@@ -6,6 +6,12 @@ blue_images = []
 orange_images_other = []
 blue_images_other = []
 smoke_images = []
+explosion_images = []
+
+for i in range(1, 8):
+    image = pygame.image.load("smoke/explosion{}.png".format(i))
+    # image = pygame.transform.scale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
+    explosion_images.append(image)
 
 for i in range(1, 6):
     image = pygame.image.load("smoke/smoke{}.png".format(i))
@@ -36,7 +42,6 @@ for i in range(0, 4):
     image = pygame.image.load("circles/orangecircle{}.png".format(i))
     orange_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
     
-
 
 powerups = [
     ["powerups/skull.png",   0],
@@ -78,8 +83,10 @@ class Game:
         self.powerup_counter = 0
         self.powerup_group = pygame.sprite.Group()
 
-        # Clouds
+        # Clouds & explosions
         self.clouds_group = pygame.sprite.Group()
+        self.explosions_group = pygame.sprite.Group()
+
 
         self.total_count = 32
         # ----------------------
@@ -343,7 +350,7 @@ class Game:
 
     def blowupBomb(self, x, y):
         # Deal damage to everyone close to this point
-        self.clouds_group.add(Clouds(x, y))
+        self.explosions_group.add(Explosion(x, y))
         
         members = []
         for group in self.groups:
@@ -355,8 +362,7 @@ class Game:
             dist = math.sqrt( (mx - x)**2 + (my - y)** 2)
 
             if dist <= 200:
-                if member.takeDamage(200 - dist) == 2:
-                    self.clouds_group.add(Clouds(mx, my))
+                member.takeDamage(200 - dist)
 
     def play_game(self):
         while self.running:
@@ -411,6 +417,7 @@ class Game:
             self.groups[1].update(self)
 
             self.clouds_group.update()
+            self.explosions_group.update()
 
             self.powerup_group.update(self)
             self.checkPowerupCollect()
@@ -780,6 +787,34 @@ class Clouds(pygame.sprite.Sprite):
                 game.screen.blit(smoke_images[3], (self.x - smoke_images[3].get_size()[0] / 2, self.y - smoke_images[3].get_size()[1] / 2))
             elif self.frames <= 50:
                 game.screen.blit(smoke_images[4], (self.x - smoke_images[4].get_size()[0] / 2, self.y - smoke_images[4].get_size()[1] / 2))
+        else:
+            self.kill()
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.frames = 0
+
+    def update(self):
+        # explosion animation
+        self.frames += 1
+        if self.frames <= 50:
+            if self.frames <= 10:
+                game.screen.blit(explosion_images[0], (self.x - explosion_images[0].get_size()[0] / 2, self.y - explosion_images[0].get_size()[1] / 2))
+            elif self.frames <= 20:
+                game.screen.blit(explosion_images[1], (self.x - explosion_images[1].get_size()[0] / 2, self.y - explosion_images[1].get_size()[1] / 2))
+            elif self.frames <= 30:
+                game.screen.blit(explosion_images[2], (self.x - explosion_images[2].get_size()[0] / 2, self.y - explosion_images[2].get_size()[1] / 2))
+            elif self.frames <= 40:
+                game.screen.blit(explosion_images[3], (self.x - explosion_images[3].get_size()[0] / 2, self.y - explosion_images[3].get_size()[1] / 2))
+            elif self.frames <= 50:
+                game.screen.blit(explosion_images[4], (self.x - explosion_images[4].get_size()[0] / 2, self.y - explosion_images[4].get_size()[1] / 2))
+            elif self.frames <= 60:
+                game.screen.blit(explosion_images[5], (self.x - explosion_images[5].get_size()[0] / 2, self.y - explosion_images[5].get_size()[1] / 2))
+            elif self.frames <= 70:
+                game.screen.blit(explosion_images[6], (self.x - explosion_images[6].get_size()[0] / 2, self.y - explosion_images[6].get_size()[1] / 2))
         else:
             self.kill()
 
