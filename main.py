@@ -380,7 +380,10 @@ class Game:
             [mx, my] = member.getXY()
             dist = math.sqrt( (mx - x)**2 + (my - y)** 2)
 
-            if dist <= 200:
+            if dist == 0:
+                member.takeDamage(200 - dist)
+            elif dist <= 200:
+                self.clouds_group.add(Clouds(member.x, member.y))
                 member.takeDamage(200 - dist)
 
     def drawStats(self):
@@ -759,7 +762,7 @@ class Circle(pygame.sprite.Sprite):
     def takeDamage(self, amount):
         if self.hp - amount <= 0:
             self.kill()
-            return 2
+            return 
 
         self.hp -= amount
         self.checkImageChange()
