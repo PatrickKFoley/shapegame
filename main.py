@@ -3,8 +3,8 @@ from pygame.locals import *
 
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
-    ["orange",      0,      3,      7,      35,     100,    10,     10],
-    ["blue",        1,      2,      10,     45,     110,    10,     8],
+    ["orange",      0,      6,      7,      35,     100,    7,     10],
+    ["blue",        1,      4,      10,     45,     110,    10,     8],
 ]
 
 class Game:
@@ -125,16 +125,13 @@ class Game:
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
     def spawnPowerup(self, location, id = -1):
-        if id >= len(self.powerups) or id < 0:
-            return
-
         if id == -1:
             self.powerup_counter += 1
-
             powerup = self.powerup_counter % len(self.powerups)
             self.powerup_group.add(Powerup(self.powerups[powerup], location[0], location[1]))
+        elif id >= len(self.powerups) or id < 0:
+            return
         else:
-            self.powerup_counter += 1
             self.powerup_group.add(Powerup(self.powerups[id], location[0], location[1]))
     
     def checkPowerupCollect(self):
