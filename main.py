@@ -43,6 +43,8 @@ for i in range(0, 4):
     orange_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
     
 
+powerup_images_hud = []
+powerup_images_screen = []
 powerups = [
     ["powerups/skull.png",   0],
     ["powerups/cross.png",   1],
@@ -53,12 +55,17 @@ powerups = [
     ["powerups/bomb.png",    6]
 ]
 
+for i in range(0, 7):
+    image = pygame.image.load(powerups[i][0])
+    powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
+    powerup_images_hud.append(pygame.transform.scale(image, (15, 15)))
+
 class Game:
     def __init__(self):
         self.screen_w = 1920
-        self.screen_h = 1080
+        self.screen_h = 980
         self.font = pygame.font.Font("freesansbold.ttf", 160)
-        self.screen = pygame.display.set_mode((self.screen_w, self.screen_h))
+        self.screen = pygame.display.set_mode((self.screen_w, self.screen_h + 100))
         self.clock = pygame.time.Clock()
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.running = True
@@ -80,6 +87,7 @@ class Game:
         self.fortnite_y_growing = False
 
         # Powerups
+        self.powerups = [[], []]
         self.powerup_counter = 0
         self.powerup_group = pygame.sprite.Group()
 
@@ -87,19 +95,26 @@ class Game:
         self.clouds_group = pygame.sprite.Group()
         self.explosions_group = pygame.sprite.Group()
 
+        # Max hp of each group
+        self.max_hps = [0, 0]
+        self.hps = []
 
-        self.total_count = 32
+        members_per_team = 16
+        self.total_count = members_per_team * 2
         # ----------------------
-        for i in range(16):
+        for i in range(members_per_team):
             # self.groups[0].add(Circle(circles[0], self.id_count, self))
             # self.groups[0].add(Circle(circles[1], self.id_count, self))
             # self.groups[1].add(Circle(circles[2], self.id_count, self))
             # self.groups[1].add(Circle(circles[3], self.id_count, self))
 
             self.groups[0].add(Circle(circles[0], self.id_count, self))
+            self.max_hps[0] += circles[0][5]
             self.groups[1].add(Circle(circles[1], self.id_count, self))
+            self.max_hps[1] += circles[1][5]
 
             # self.groups[0].add(Circle(circles[0], self.id_count, self))
+        self.hps = [self.max_hps[0], self.max_hps[1]]
 
     def spawnPowerup(self, location, id = -1):
         if id == -1:
@@ -328,7 +343,11 @@ class Game:
             for member in group.sprites():
                 members.append(member)
 
+        self.hps = [0, 0]
+        self.powerups =[[], []]
         for member_1 in members:
+            self.hps[member_1.getG_id()] += member_1.getHp()
+            self.powerups[member_1.getG_id()].append(member_1.getPowerups())
             for member_2 in members:
                 if member_1 != member_2:
                     [m1_x, m1_y] = member_1.getXY()
@@ -363,6 +382,37 @@ class Game:
 
             if dist <= 200:
                 member.takeDamage(200 - dist)
+
+    def drawStats(self):
+        self.screen.blit(orange_images[0], (orange_images[0].get_size()[0] / 2 + 10, self.screen_h + 50 - orange_images[0].get_size()[1] / 2 ))
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, orange_images[0].get_size()[0] * 2, self.screen_h + 60)
+
+        pygame.draw.rect(game.screen, "red", ((orange_images[0].get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
+        pygame.draw.rect(game.screen, "green", (orange_images[0].get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
+
+
+        offset = self.screen_w / 2 - 100
+        self.screen.blit(blue_images[0], (blue_images[0].get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - blue_images[0].get_size()[1] / 2 ))
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, blue_images[0].get_size()[0] * 2 + offset, self.screen_h + 60)
+
+        pygame.draw.rect(game.screen, "red", ((blue_images[0].get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
+        pygame.draw.rect(game.screen, "green", (blue_images[0].get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
+
+
+        for i in range(len(self.groups)):
+            powerup_counter = 0
+            for member in self.groups[i]:
+                for powerup in member.getPowerups():
+                    if i == 0:
+                        image = powerup_images_screen[powerup]
+                        game.screen.blit(image, ((orange_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        powerup_counter += 1
+                    else:
+                        image = powerup_images_screen[powerup]
+                        game.screen.blit(image, ((blue_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        powerup_counter += 1
+
+
 
     def play_game(self):
         while self.running:
@@ -421,6 +471,8 @@ class Game:
 
             self.powerup_group.update(self)
             self.checkPowerupCollect()
+
+            self.drawStats()
 
             # Do fortnite circle things
             if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= 10:
@@ -598,7 +650,7 @@ class Circle(pygame.sprite.Sprite):
             for powerup in self.powerups:
                 p_counter += 1
 
-                image = pygame.transform.scale(pygame.image.load(powerups[powerup][0]), (10, 10))
+                image = powerup_images_hud[powerup]
                 game.screen.blit(image, (self.x + self.max_hp / 2 + 5 + p_counter * 10, self.y - self.r))
 
         pygame.draw.rect(game.screen, "red", (self.x - self.max_hp / 2, self.y - self.r * 1, self.max_hp, 5))
