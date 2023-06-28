@@ -58,7 +58,7 @@ powerups = [
 for i in range(0, 7):
     image = pygame.image.load(powerups[i][0])
     powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
-    powerup_images_hud.append(pygame.transform.scale(image, (15, 15)))
+    powerup_images_hud.append(pygame.transform.scale(image, (20, 20)))
 
 class Game:
     def __init__(self):
@@ -412,8 +412,6 @@ class Game:
                         game.screen.blit(image, ((blue_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
 
-
-
     def play_game(self):
         while self.running:
             self.frames += 1
@@ -640,7 +638,7 @@ class Circle(pygame.sprite.Sprite):
 
         if self.dmg_counter != 0:
             self.dmg_counter -= 1
-            pygame.draw.circle(game.screen, "red", (self.x - self.max_hp / 2 - 10, self.y - self.r + 3), 3)
+            pygame.draw.circle(game.screen, "red", (self.x - self.r, self.y - self.r + 10), 3)
 
         if type(self.powerups) == type(None):
             self.powerups = []
@@ -648,10 +646,9 @@ class Circle(pygame.sprite.Sprite):
         p_counter = 0
         if self.powerups != []:
             for powerup in self.powerups:
-                p_counter += 1
-
                 image = powerup_images_hud[powerup]
-                game.screen.blit(image, (self.x + self.max_hp / 2 + 5 + p_counter * 10, self.y - self.r))
+                game.screen.blit(image, (self.x - self.max_hp / 2 + p_counter * 20, self.y - self.r - 25))
+                p_counter += 1
 
         pygame.draw.rect(game.screen, "red", (self.x - self.max_hp / 2, self.y - self.r * 1, self.max_hp, 5))
         pygame.draw.rect(game.screen, "green", (self.x - self.max_hp / 2, self.y - self.r * 1, self.hp, 5))
