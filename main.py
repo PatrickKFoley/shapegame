@@ -384,19 +384,37 @@ class Game:
                 member.takeDamage(200 - dist)
 
     def drawStats(self):
-        self.screen.blit(orange_images[0], (orange_images[0].get_size()[0] / 2 + 10, self.screen_h + 50 - orange_images[0].get_size()[1] / 2 ))
-        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, orange_images[0].get_size()[0] * 2, self.screen_h + 60)
+        if self.hps[0] <= self.max_hps[0] / 4:
+            image = orange_images[3]
+        elif self.hps[0] <= self.max_hps[0] * 2 / 4:
+            image = orange_images[2]
+        elif self.hps[0] <= self.max_hps[0] * 3 / 4:
+            image = orange_images[1]
+        else:
+            image = orange_images[0]
 
-        pygame.draw.rect(game.screen, "red", ((orange_images[0].get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
-        pygame.draw.rect(game.screen, "green", (orange_images[0].get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
+        self.screen.blit(image, (image.get_size()[0] / 2 + 10, self.screen_h + 50 - image.get_size()[1] / 2 ))
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2, self.screen_h + 60)
 
+        pygame.draw.rect(game.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
+        pygame.draw.rect(game.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
+
+
+        if self.hps[1] <= self.max_hps[1] / 4:
+            image = blue_images[3]
+        elif self.hps[1] <= self.max_hps[1] * 2 / 4:
+            image = blue_images[2]
+        elif self.hps[1] <= self.max_hps[1] * 3 / 4:
+            image = blue_images[1]
+        else:
+            image = blue_images[0]
 
         offset = self.screen_w / 2 - 100
-        self.screen.blit(blue_images[0], (blue_images[0].get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - blue_images[0].get_size()[1] / 2 ))
+        self.screen.blit(image, (image.get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - image.get_size()[1] / 2 ))
         self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, blue_images[0].get_size()[0] * 2 + offset, self.screen_h + 60)
 
-        pygame.draw.rect(game.screen, "red", ((blue_images[0].get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
-        pygame.draw.rect(game.screen, "green", (blue_images[0].get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
+        pygame.draw.rect(game.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
+        pygame.draw.rect(game.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
 
 
         for i in range(len(self.groups)):
@@ -745,6 +763,7 @@ class Circle(pygame.sprite.Sprite):
 
         self.hp -= amount
         self.checkImageChange()
+        self.dmg_counter = 144
 
     # return something on own death
     def getHitBy(self, enemy):
