@@ -123,6 +123,9 @@ class Game:
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
     def spawnPowerup(self, location, id = -1):
+        if id >= len(self.powerups) or id < 0:
+            return
+
         if id == -1:
             self.powerup_counter += 1
 
@@ -450,17 +453,11 @@ class Game:
                 # button click event
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        # if self.total_count % 2 == 1:
-                            
-                        #     self.groups[0].add(Circle(circles[0], self.id_count, self, pygame.mouse.get_pos()))
-                        #     self.id_count += 1
-                        #     self.total_count += 1
-                        # else:
-                        #     self.groups[1].add(Circle(circles[1], self.id_count, self, pygame.mouse.get_pos()))
-                        #     self.id_count += 1
-                        #     self.total_count += 1
-
-                        self.spawnPowerup(pygame.mouse.get_pos(), 0)
+                        if self.total_count % 2 == 1:
+                            self.groups[0].add(Circle(self.c0, self.id_count, self, self.orange_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
+                        else:
+                            self.groups[1].add(Circle(self.c1, self.id_count, self, self.blue_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
+                        self.total_count += 1
 
                     if event.button == 3:
                         self.fortnite_x = 0
@@ -469,9 +466,10 @@ class Game:
                         self.fortnite_y = 0
                         self.fortnite_y_counter = 0
                         self.fortnite_y_growing = False
-                    
-                    if event.button == 2:
-                        self.spawnPowerup(pygame.mouse.get_pos(), 6)
+
+                # keyboard click event
+                if event.type == KEYDOWN:
+                    self.spawnPowerup(pygame.mouse.get_pos(), event.key - 49)
 
             # flip() the display to put your work on screen
             pygame.display.flip()
@@ -519,12 +517,12 @@ class Game:
             if len(self.groups[0].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("Blue Wins!", self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.c1[0].capitalize()), self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("Orange Wins!", self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
 
             # limits FPS to 60
             self.clock.tick(144)
