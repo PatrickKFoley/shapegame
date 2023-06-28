@@ -3,8 +3,8 @@ from pygame.locals import *
 
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
-    ["orange",      0,      6,      7,      35,     100,    7,     10],
-    ["blue",        1,      4,      10,     45,     110,    10,     8],
+    ["orange",      0,      6,      7,      35,     100,    3,     10],
+    ["blue",        1,      4,      10,     45,     110,    5,     8],
 ]
 
 class Game:
@@ -72,6 +72,7 @@ class Game:
 
         self.screen_w = 1920
         self.screen_h = 980
+        self.fps = 144
         self.font = pygame.font.Font("freesansbold.ttf", 160)
         self.screen = pygame.display.set_mode((self.screen_w, self.screen_h + 100))
         self.clock = pygame.time.Clock()
@@ -383,7 +384,7 @@ class Game:
                     if not member_1.getId() in laser.ids_collided_with:
                         laser.ids_collided_with.append(member_1.getId())
                         if member_1.getG_id() != laser.g_id:
-                            if member_1.takeDamage(50) == -1:
+                            if member_1.takeDamage(25) == -1:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images))
 
@@ -393,9 +394,10 @@ class Game:
         text_rect.topleft = (x - font.size(text)[0] / 2, y)
         surface.blit(text_obj, text_rect)
 
-    def blowupBomb(self, x, y):
+    def blowupBomb(self, x, y, g_id):
         # Deal damage to everyone close to this point
         self.explosions_group.add(Explosion(x, y, self.explosion_images))
+        kill_counter = 0
         
         members = []
         for group in self.groups:
@@ -409,8 +411,15 @@ class Game:
             if dist == 0:
                 member.takeDamage(200 - dist)
             elif dist <= 200:
-                self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images))
-                member.takeDamage(200 - dist)
+                if member.takeDamage(200 - dist) == -1:
+                    self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images))
+                    kill_counter += 1
+
+        if kill_counter >= 2:
+            if g_id == 0:
+                self.groups[0].add(Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, [x, y]))
+            else:
+                self.groups[1].add(Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y]))
 
     def checkLaserCollision(self):
         members = []
@@ -518,7 +527,7 @@ class Game:
             self.screen.blit(self.background, (0, 0))
 
             # Every x seconds spawn a random powerup
-            if not self.done and self.frames % (2 * 144) == 0:
+            if not self.done and self.frames % (1 * self.fps) == 0:
                 self.spawnPowerup((random.randint(self.fortnite_x + 10, self.screen_w - self.fortnite_x - 10), random.randint(self.fortnite_y + 10, self.screen_h - self.fortnite_y - 10)))
 
             # draw & update groups
@@ -679,7 +688,7 @@ class Circle(pygame.sprite.Sprite):
             self.v_y *= 2
         # check if picked up bomb (explode in some time)
         if id == 6:
-            self.bomb_timer = 500
+            self.bomb_timer = 3 * self.game.fps
 
     def update(self, game):
         self.move(game)
@@ -688,7 +697,7 @@ class Circle(pygame.sprite.Sprite):
             self.bomb_timer -= 1
 
             if self.bomb_timer == 0:
-                game.blowupBomb(self.x, self.y)
+                game.blowupBomb(self.x, self.y, self.getG_id())
                 self.bomb_timer = -1
                 self.removePowerup(6)
 
@@ -983,7 +992,7 @@ class Laser(pygame.sprite.Sprite):
         # game.screen.blit(self.image, self.x, self.y)
 
         self.frames += 1
-        if self.frames >= 1000:
+        if self.frames >= game.fps * 5:
             self.kill()
 
 pygame.init()
