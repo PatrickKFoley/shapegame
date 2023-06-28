@@ -14,10 +14,10 @@ class Game:
         self.circles = [c0, c1]
 
         # Preprocess images
-        self.orange_images = []
-        self.blue_images = []
-        self.orange_images_other = []
-        self.blue_images_other = []
+        self.c0_images = []
+        self.c1_images = []
+        self.c0_images_other = []
+        self.c1_images_other = []
         self.smoke_images = []
         self.explosion_images = []
         self.powerup_images_hud = []
@@ -40,17 +40,17 @@ class Game:
             image = pygame.image.load("circles/{}/{}.png".format(c1[0], i))
             size_multiplier = c1[4] / 1024
             size_multiplier_other = c0[4] / 1024
-            self.blue_images.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier), int(image.get_size()[1]*size_multiplier))))
+            self.c1_images.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier), int(image.get_size()[1]*size_multiplier))))
             image = pygame.image.load("circles/{}/{}.png".format(c1[0], i))
-            self.blue_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
+            self.c1_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
             
 
             image = pygame.image.load("circles/{}/{}.png".format(c0[0], i))
             size_multiplier = c0[4] / 1024
             size_multiplier_other = c1[4] / 1024
-            self.orange_images.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier), int(image.get_size()[1]*size_multiplier))))
+            self.c0_images.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier), int(image.get_size()[1]*size_multiplier))))
             image = pygame.image.load("circles/{}/{}.png".format(c0[0], i))
-            self.orange_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
+            self.c0_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
     
         self.powerups = [
             ["powerups/skull.png",   0],
@@ -67,7 +67,7 @@ class Game:
             self.powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
             self.powerup_images_hud.append(pygame.transform.scale(image, (20, 20)))
 
-        self.images = [self.orange_images, self.blue_images, self.orange_images_other, self.blue_images_other]
+        self.images = [self.c0_images, self.c1_images, self.c0_images_other, self.c1_images_other]
 
         self.screen_w = 1920
         self.screen_h = 980
@@ -114,9 +114,9 @@ class Game:
             # self.groups[1].add(Circle(circles[2], self.id_count, self))
             # self.groups[1].add(Circle(circles[3], self.id_count, self))
 
-            self.groups[0].add(Circle(c0, self.id_count, self, self.orange_images, self.powerup_images_hud))
+            self.groups[0].add(Circle(c0, self.id_count, self, self.c0_images, self.powerup_images_hud))
             self.max_hps[0] += c0[5]
-            self.groups[1].add(Circle(c1, self.id_count, self, self.blue_images, self.powerup_images_hud))
+            self.groups[1].add(Circle(c1, self.id_count, self, self.c1_images, self.powerup_images_hud))
             self.max_hps[1] += c1[5]
 
             # self.groups[0].add(Circle(circles[0], self.id_count, self))
@@ -396,13 +396,13 @@ class Game:
 
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
-            image = self.orange_images[3]
+            image = self.c0_images[3]
         elif self.hps[0] <= self.max_hps[0] * 2 / 4:
-            image = self.orange_images[2]
+            image = self.c0_images[2]
         elif self.hps[0] <= self.max_hps[0] * 3 / 4:
-            image = self.orange_images[1]
+            image = self.c0_images[1]
         else:
-            image = self.orange_images[0]
+            image = self.c0_images[0]
 
         self.screen.blit(image, (image.get_size()[0] / 2 + 10, self.screen_h + 50 - image.get_size()[1] / 2 ))
         self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2, self.screen_h + 60)
@@ -412,17 +412,17 @@ class Game:
 
 
         if self.hps[1] <= self.max_hps[1] / 4:
-            image = self.blue_images[3]
+            image = self.c1_images[3]
         elif self.hps[1] <= self.max_hps[1] * 2 / 4:
-            image = self.blue_images[2]
+            image = self.c1_images[2]
         elif self.hps[1] <= self.max_hps[1] * 3 / 4:
-            image = self.blue_images[1]
+            image = self.c1_images[1]
         else:
-            image = self.blue_images[0]
+            image = self.c1_images[0]
 
         offset = self.screen_w / 2 - 100
         self.screen.blit(image, (image.get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - image.get_size()[1] / 2 ))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, self.blue_images[0].get_size()[0] * 2 + offset, self.screen_h + 60)
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, self.c1_images[0].get_size()[0] * 2 + offset, self.screen_h + 60)
 
         pygame.draw.rect(game.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
         pygame.draw.rect(game.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
@@ -434,11 +434,11 @@ class Game:
                 for powerup in member.getPowerups():
                     if i == 0:
                         image = self.powerup_images_screen[powerup]
-                        game.screen.blit(image, ((self.orange_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        game.screen.blit(image, ((self.c0_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
                     else:
                         image = self.powerup_images_screen[powerup]
-                        game.screen.blit(image, ((self.blue_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        game.screen.blit(image, ((self.c1_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
 
     def play_game(self):
@@ -454,9 +454,9 @@ class Game:
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
                         if self.total_count % 2 == 1:
-                            self.groups[0].add(Circle(self.c0, self.id_count, self, self.orange_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
+                            self.groups[0].add(Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
                         else:
-                            self.groups[1].add(Circle(self.c1, self.id_count, self, self.blue_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
+                            self.groups[1].add(Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
                         self.total_count += 1
 
                     if event.button == 3:
