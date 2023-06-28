@@ -59,11 +59,12 @@ class Game:
             ["powerups/muscle.png",  3],
             ["powerups/speed.png",   4],
             ["powerups/health.png",  5],
-            ["powerups/bomb.png",    6]
+            ["powerups/bomb.png",    6],
+            ["powerups/laser.png",   7]
         ]
 
-        for i in range(0, 7):
-            image = pygame.image.load(self.powerups[i][0])
+        for powerup in self.powerups:
+            image = pygame.image.load(powerup[0])
             self.powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
             self.powerup_images_hud.append(pygame.transform.scale(image, (20, 20)))
 
@@ -81,8 +82,8 @@ class Game:
 
         # for loop for creating circles
         self.groups = []
-        self.groups.append(pygame.sprite.Group()) # "RED"
-        self.groups.append(pygame.sprite.Group()) # "GRAY"
+        self.groups.append(pygame.sprite.Group()) # "ORANGE"
+        self.groups.append(pygame.sprite.Group()) # "BLUE"
         self.id_count = 0
 
         # Something to take care of the "fortnite circle"
@@ -96,6 +97,7 @@ class Game:
         # Powerups
         self.powerup_counter = 0
         self.powerup_group = pygame.sprite.Group()
+        self.laser_group = pygame.sprite.Group()
 
         # Clouds & explosions
         self.clouds_group = pygame.sprite.Group()
@@ -157,16 +159,19 @@ class Game:
                     powerup.kill()
 
     def getSafeSpawn(self, id):
-        w = self.screen_w - 400
-        h = self.screen_h - 400
+        w = self.screen_w - 200
+        h = self.screen_h - 200
 
-        w_int = w/7
-        h_int = h/3
+        rows = 4
+        cols = 8
 
-        x = id % (self.total_count / 4)
-        y = id // (self.total_count / 4)
+        w_int = w/cols-1
+        h_int = h/rows-1
 
-        return [200 + (w_int * x), 200 + (h_int * y)]
+        x = id % (self.total_count / rows)
+        y = id // (self.total_count / rows)
+
+        return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
         # check if either member has a speed, if so, remove it
@@ -356,11 +361,12 @@ class Game:
         for member_1 in members:
             self.hps[member_1.getG_id()] += member_1.getHp()
             self.powerups[member_1.getG_id()].append(member_1.getPowerups())
+
+            [m1_x, m1_y] = member_1.getXY()
+            m1_r = member_1.getRad()
             for member_2 in members:
                 if member_1 != member_2:
-                    [m1_x, m1_y] = member_1.getXY()
                     [m2_x, m2_y] = member_2.getXY()
-                    m1_r = member_1.getRad()
                     m2_r = member_2.getRad()
 
                     dist = math.sqrt( (m2_x - m1_x)**2 + (m2_y - m1_y)**2 )
@@ -368,6 +374,21 @@ class Game:
 
                     if (dist <= max_dist):
                         self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
+
+            for laser in self.laser_group.sprites():
+                [lx, ly] = [laser.x, laser.y]
+                lr = laser.r
+
+                dist = math.sqrt( (m1_x - lx)**2 + (m1_y - ly)**2 )
+                max_dist = lr + m1_r
+
+                if dist <= max_dist:
+                    if not member_1.getId() in laser.ids_collided_with:
+                        laser.ids_collided_with.append(member_1.getId())
+                        if member_1.getG_id() != laser.g_id:
+                            if member_1.takeDamage(50) == -1:
+                                [x, y] = member_1.getXY()
+                                self.clouds_group.add(Clouds(x, y, self.smoke_images))
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -394,6 +415,30 @@ class Game:
                 self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images))
                 member.takeDamage(200 - dist)
 
+    def checkLaserCollision(self):
+        members = []
+        for group in self.groups:
+            for member in group.sprites():
+                members.append(member)
+
+        for laser in self.laser_group.sprites():
+            for member in members:
+                [lx, ly] = [laser.x, laser.y]
+                [mx, my] = member.getXY()
+                lr = laser.r
+                mr = member.getRad()
+
+                dist = math.sqrt( (mx - lx)**2 + (my - ly)**2 )
+                max_dist = lr + mr
+
+                if dist <= max_dist:
+                    if not member.getId() in laser.ids_collided_with:
+                        laser.ids_collided_with.append(member.getId())
+                        if member.getG_id() != laser.g_id:
+                            if member.takeDamage(50) == -1:
+                                [x, y] = member.getXY()
+                                self.clouds_group.add(Clouds(x, y, self.smoke_images))
+                    
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
             image = self.c0_images[3]
@@ -485,6 +530,7 @@ class Game:
             self.powerup_group.draw(self.screen)
 
             self.groups[0].update(self)
+            self.laser_group.update(self)
             self.check_collisions()
             self.groups[1].update(self)
 
@@ -493,7 +539,7 @@ class Game:
 
             self.powerup_group.update(self)
             self.checkPowerupCollect()
-
+            
             self.drawStats()
 
             # Do fortnite circle things
@@ -532,6 +578,7 @@ class Circle(pygame.sprite.Sprite):
         super().__init__()
         self.g_id = attributes[1]
         self.id = id
+        self.game = game
         game.id_count += 1
         self.frames = 0
         self.new = NEW
@@ -615,6 +662,9 @@ class Circle(pygame.sprite.Sprite):
         if id == 5:
             self.hp = min(self.hp + self.max_hp / 2, self.max_hp)
             self.checkImageChange()
+        # if removing laser, spawn laser in same direction as circle
+        if id == 7:
+            self.game.laser_group.add(Laser(self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
 
     def collectPowerup(self, id):
         self.powerups.append(id)
@@ -762,7 +812,7 @@ class Circle(pygame.sprite.Sprite):
     def takeDamage(self, amount):
         if self.hp - amount <= 0:
             self.kill()
-            return 
+            return -1
 
         self.hp -= amount
         self.checkImageChange()
@@ -799,12 +849,18 @@ class Circle(pygame.sprite.Sprite):
 
         if 5 in self.powerups:
             self.removePowerup(5)
+
+        if 7 in self.powerups:
+            self.removePowerup(7)
     
     def getHp(self):
         return self.hp
 
     def getG_id(self):
         return self.g_id
+    
+    def getId(self):
+        return self.id
 
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, attributes, x, y):
@@ -889,6 +945,48 @@ class Explosion(pygame.sprite.Sprite):
             elif self.frames <= 70:
                 game.screen.blit(self.images[6], (self.x - self.images[6].get_size()[0] / 2, self.y - self.images[6].get_size()[1] / 2))
         else:
+            self.kill()
+
+class Laser(pygame.sprite.Sprite):
+    def __init__(self, g_id, x, y, vx, vy, image):
+        super().__init__()
+        self.g_id = g_id
+        self.x = x
+        self.y = y
+        self.vx = vx *3
+        self.vy = vy *3
+        self.image = image
+        self.r = image.get_size()[0]/2
+        self.frames = 0
+        self.ids_collided_with = []
+
+    def update(self, game):
+        self.x += self.vx
+        self.y += self.vy
+
+        # ensure laser stays within bounds
+        if self.x > game.screen_w - self.r - game.fortnite_x:
+            self.x = game.screen_w - self.r - game.fortnite_x
+            self.vx = -1 * self.vx
+
+        if self.x < self.r + game.fortnite_x:
+            self.x = self.r + game.fortnite_x
+            self.vx = -1 * self.vx
+
+        if self.y > game.screen_h - self.r - game.fortnite_y:
+            self.y = game.screen_h - self.r - game.fortnite_y
+            self.vy = -1 * self.vy
+
+        if self.y < self.r + game.fortnite_y:
+            self.y = self.r + game.fortnite_y
+            self.vy = -1 * self.vy
+
+        game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
+        
+        # game.screen.blit(self.image, self.x, self.y)
+
+        self.frames += 1
+        if self.frames >= 1000:
             self.kill()
 
 pygame.init()
