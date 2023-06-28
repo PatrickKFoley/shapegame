@@ -50,7 +50,7 @@ powerups = [
     ["powerups/cross.png",   1],
     ["powerups/star.png",    2],
     ["powerups/muscle.png",  3],
-    ["powerups/feather.png", 4],
+    ["powerups/speed.png", 4],
     ["powerups/health.png",  5],
     ["powerups/bomb.png",    6]
 ]
@@ -160,7 +160,7 @@ class Game:
         return [200 + (w_int * x), 200 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
-        # check if either member has a feather, if so, remove it
+        # check if either member has a speed, if so, remove it
         if 4 in mem_1.powerups: mem_1.removePowerup(4)
         if 4 in mem_2.powerups: mem_2.removePowerup(4)
 
@@ -585,7 +585,7 @@ class Circle(pygame.sprite.Sprite):
         # if removing muscle, divide attack
         if id == 3:
             self.attack /= 5
-        # if removing feather, divide attack
+        # if removing speed, divide attack
         if id == 4:
             self.attack /= 2
         # if removing health, gain health
