@@ -70,9 +70,11 @@ class Game:
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
+        self.sounds.append(pygame.mixer.Sound("sounds/pickup.wav"))
+        self.sounds[3].set_volume(.5)
 
         for sound in self.sounds[2]:
-            sound.set_volume(.1)
+            sound.set_volume(.05)
 
         self.screen_w = 1920
         self.screen_h = 980
@@ -158,6 +160,7 @@ class Game:
                 if dist <= max_dist:
                     # Member has collected powerup
                     member.collectPowerup(powerup.getId())
+                    self.sounds[3].play()
                     powerup.kill()
 
     def getSafeSpawn(self, id):
