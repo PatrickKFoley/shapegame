@@ -72,7 +72,7 @@ class Game:
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
 
         for sound in self.sounds[2]:
-            sound.set_volume(.25)
+            sound.set_volume(.1)
 
         self.screen_w = 1920
         self.screen_h = 980
@@ -176,8 +176,6 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
-        self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
-
         # check if either member has a speed, if so, remove it
         if 4 in mem_1.powerups: mem_1.removePowerup(4)
         if 4 in mem_2.powerups: mem_2.removePowerup(4)
@@ -381,6 +379,7 @@ class Game:
                     max_dist = m1_r + m2_r
 
                     if (dist <= max_dist):
+                        self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
                         self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
 
             for laser in self.laser_group.sprites():
