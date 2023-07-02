@@ -72,7 +72,7 @@ class Game:
 
         self.screen_w = 1920
         self.screen_h = 980
-        self.fps = 144
+        self.fps = 60
         self.font = pygame.font.Font("freesansbold.ttf", 160)
         self.screen = pygame.display.set_mode((self.screen_w, self.screen_h + 100))
         self.clock = pygame.time.Clock()
@@ -577,7 +577,7 @@ class Game:
                 self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
 
             # limits FPS to 60
-            self.clock.tick(144)
+            self.clock.tick(self.fps)
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
@@ -702,7 +702,7 @@ class Circle(pygame.sprite.Sprite):
                 self.removePowerup(6)
 
         # puff of smoke animation
-        self.frames += 1
+        self.frames += 2
         if self.frames <= 50 and self.new:
             if self.frames <= 10:
                 game.screen.blit(self.smoke_images[0], (self.x - self.smoke_images[0].get_size()[0] / 2, self.y - self.smoke_images[0].get_size()[1] / 2))
@@ -909,7 +909,7 @@ class Clouds(pygame.sprite.Sprite):
 
     def update(self):
         # puff of smoke animation
-        self.frames += 1
+        self.frames += 2
         if self.frames <= 50:
             if self.frames <= 10:
                 game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
@@ -934,8 +934,8 @@ class Explosion(pygame.sprite.Sprite):
 
     def update(self):
         # explosion animation
-        self.frames += 1
-        if self.frames <= 50:
+        self.frames += 2
+        if self.frames <= 70:
             if self.frames <= 10:
                 game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 20:
