@@ -76,9 +76,22 @@ class Game:
         self.sounds[4].set_volume(.1)
         self.sounds.append(pygame.mixer.Sound("sounds/choir.wav"))
         self.sounds[5].set_volume(.5)
+        self.sounds.append(pygame.mixer.Sound("sounds/fuse.wav"))
+        self.sounds[6].set_volume(.1)
+        self.sounds.append([])
+        self.sounds[7].append(pygame.mixer.Sound("sounds/death/1.wav"))
+        self.sounds[7].append(pygame.mixer.Sound("sounds/death/2.wav"))
+        self.sounds[7].append(pygame.mixer.Sound("sounds/death/3.wav"))
+        self.sounds[7].append(pygame.mixer.Sound("sounds/death/4.wav"))
+        self.sounds.append(pygame.mixer.Sound("sounds/wind.wav"))
+        self.sounds.append(pygame.mixer.Sound("sounds/laser.wav"))
+        self.sounds[9].set_volume(.5)
 
         for sound in self.sounds[2]:
             sound.set_volume(.01)
+
+        for sound in self.sounds[7]:
+            sound.set_volume(.5)
 
         self.screen_w = 1920
         self.screen_h = 980
@@ -163,8 +176,15 @@ class Game:
 
                 if dist <= max_dist:
                     # Member has collected powerup
-                    member.collectPowerup(powerup.getId())
                     self.sounds[3].play()
+                    member.collectPowerup(powerup.getId())
+
+                    if powerup.getId() == 6:
+                        self.sounds[6].play(10)
+                    elif powerup.getId() == 4:
+                        self.sounds[8].play()
+                        pygame.mixer.Sound.fadeout(self.sounds[8], 1500)
+                    
                     powerup.kill()
 
     def getSafeSpawn(self, id):
@@ -183,6 +203,8 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
+        self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
+
         # check if either member has a speed, if so, remove it
         if 4 in mem_1.powerups: mem_1.removePowerup(4)
         if 4 in mem_2.powerups: mem_2.removePowerup(4)
@@ -257,7 +279,7 @@ class Game:
             elif loser_response == 1:     
                 [x, y] = loser.getXY()
                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                self.sounds[1].play()
+                self.sounds[7][random.randint(0, len(self.sounds[7])-1)].play()
                 return 1
 
     def handle_collision(self, mem_1, mem_2, flag = 0):
@@ -368,7 +390,7 @@ class Game:
                             if member_1.takeDamage(25) == -1:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                                self.sounds[1].play()
+                                self.sounds[7][random.randint(0, len(self.sounds[7])-1)].play()
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -377,6 +399,8 @@ class Game:
         surface.blit(text_obj, text_rect)
 
     def blowupBomb(self, x, y, g_id):
+        self.sounds[6].stop()
+
         # Deal damage to everyone close to this point
         self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
         self.sounds[0].play()
@@ -396,7 +420,7 @@ class Game:
             elif dist <= 200:
                 if member.takeDamage(200 - dist) == -1:
                     self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
-                    self.sounds[1].play()
+                    self.sounds[7][random.randint(0, len(self.sounds[7])-1)].play()
                     kill_counter += 1
 
         if kill_counter >= 2:
@@ -428,7 +452,7 @@ class Game:
                             if member.takeDamage(50) == -1:
                                 [x, y] = member.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                                self.sounds[1].play()
+                                self.sounds[7][random.randint(0, len(self.sounds[7]-1))].play()
                     
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
@@ -664,6 +688,7 @@ class Circle(pygame.sprite.Sprite):
         # if removing laser, spawn laser in same direction as circle
         if id == 7:
             self.game.laser_group.add(Laser(self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
+            self.game.sounds[9].play()
 
     def collectPowerup(self, id):
         self.powerups.append(id)
