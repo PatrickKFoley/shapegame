@@ -62,6 +62,7 @@ class Game:
         # Sounds
         self.sounds = []
         self.sounds.append(pygame.mixer.Sound("sounds/explosion.flac"))
+        self.sounds[0].set_volume(.1)
         self.sounds.append(pygame.mixer.Sound("sounds/pop.wav"))
         self.sounds.append([])
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink1.wav"))
@@ -70,11 +71,14 @@ class Game:
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
         self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
-        self.sounds.append(pygame.mixer.Sound("sounds/pickup.wav"))
-        self.sounds[3].set_volume(.5)
+        self.sounds.append(pygame.mixer.Sound("sounds/pop.wav"))
+        self.sounds.append(pygame.mixer.Sound("sounds/shotgun.wav"))
+        self.sounds[4].set_volume(.1)
+        self.sounds.append(pygame.mixer.Sound("sounds/choir.wav"))
+        self.sounds[5].set_volume(.5)
 
         for sound in self.sounds[2]:
-            sound.set_volume(.05)
+            sound.set_volume(.01)
 
         self.screen_w = 1920
         self.screen_h = 980
@@ -197,18 +201,23 @@ class Game:
             res_1 = mem_1.getHitBy(mem_2)
             res_2 = mem_2.getHitBy(mem_1)
 
+            self.sounds[4].play()
+
             # mem_2 has a resurrection and has killed mem_1
             if res_1 == 2:
                 self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images))
-                self.sounds[1].play()
+                self.sounds[5].play()
+                pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
                 self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images))
-                self.sounds[1].play()
+                self.sounds[5].play()
+                pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
             return 1
         
         # check if one member has an insta-kill
         elif 0 in mem_1.powerups or 0 in mem_2.powerups:
+            self.sounds[4].play()
             if 0 in mem_1.powerups:
                 winner = mem_1
                 loser = mem_2
@@ -240,7 +249,8 @@ class Game:
                 v = loser.getVel()
 
                 self.groups[g].add(Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images))
-                self.sounds[1].play()
+                self.sounds[5].play()
+                pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
                 winner.removePowerup(1)
                 return 1
             # winner has killed loser
@@ -318,47 +328,6 @@ class Game:
         v2p = v2np_ + v2tp_
         mem_2.setVel(v2p[0], v2p[1])
         # mem_2.rotate(mem_2.angle)
-
-    def check_powerups(self, mem_1, mem_2, d1 = False, d2 = False):
-        [x1, y1] = mem_1.getXY()
-        [x2, y2] = mem_2.getXY()
-        r1 = mem_1.getRad()
-        r2 = mem_2.getRad()
-        g1 = mem_1.getG_id()
-        g2 = mem_2.getG_id()
-        v1 = mem_1.getVel()
-        v2 = mem_2.getVel()
-
-        # Check for powerup 0 (instant-kill)
-        # if both have:
-        if 0 in mem_1.getPowerups() and 0 in mem_2.getPowerups():
-            mem_1.takeDamage(mem_1.max_hp)
-            mem_2.takeDamage(mem_2.max_hp)
-            d1 = d2 = True
-        
-        elif 0 in mem_1.getPowerups():
-            mem_1.removePowerup(0)
-            mem_2.takeDamage(mem_2.max_hp)
-            d2 = True
-        
-        elif 0 in mem_2.getPowerups():
-            mem_2.removePowerup(0)
-            mem_1.takeDamage(mem_1.max_hp)
-            d1 = True
-        
-        # Check for powerup 1 (resurrection)
-        if d1 and 1 in mem_2.getPowerups() and d2 and 1 in mem_1.getPowerups():
-            # spawn mem_2 a new teammate at mem_1's death spot and mem_1 a new teammate at mem_2's death spot
-            self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, [x1, y1], r1, v1, True, self.smoke_images))
-            self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, [x2, y2], r2, v2, True, self.smoke_images))
-        elif d1 and 1 in mem_2.getPowerups():
-            # spawn mem_2 a new teammate at mem_1's death spot
-            self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, [x1, y1], r1, v1, True, self.smoke_images))
-            mem_2.removePowerup(1)
-        elif d2 and 1 in mem_1.getPowerups():
-            # spawn mem_1 a new teammate at mem_1's death spot
-            self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, [x2, y2], r2, v2, True, self.smoke_images))
-            mem_1.removePowerup(1)
 
     def check_collisions(self):
         members = []
@@ -529,6 +498,8 @@ class Game:
                         self.total_count += 1
 
                     if event.button == 3:
+                        self.sounds[5].play()
+                        pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
                         self.fortnite_x = 0
                         self.fortnite_x_counter = 0
                         self.fortnite_x_growing = False
