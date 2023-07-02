@@ -3,8 +3,8 @@ from pygame.locals import *
 
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
-    ["orange",      0,      6,      7,      35,     100,    3,     10],
-    ["blue",        1,      4,      10,     45,     110,    5,     8],
+    ["orange",      0,      6,      7,      10,     100,    3,     10],
+    ["blue",        1,      4,      10,     20,     110,    5,     8],
 ]
 
 class Game:
@@ -16,8 +16,6 @@ class Game:
         # Preprocess images
         self.c0_images = []
         self.c1_images = []
-        self.c0_images_other = []
-        self.c1_images_other = []
         self.smoke_images = []
         self.explosion_images = []
         self.powerup_images_hud = []
@@ -38,20 +36,11 @@ class Game:
         # Circles
         for i in range(0, 4):
             image = pygame.image.load("circles/{}/{}.png".format(c1[0], i))
-            size_multiplier = c1[4] / 1024
-            size_multiplier_other = c0[4] / 1024
-            self.c1_images.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier), int(image.get_size()[1]*size_multiplier))))
-            image = pygame.image.load("circles/{}/{}.png".format(c1[0], i))
-            self.c1_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
-            
+            self.c1_images.append(image)
 
             image = pygame.image.load("circles/{}/{}.png".format(c0[0], i))
-            size_multiplier = c0[4] / 1024
-            size_multiplier_other = c1[4] / 1024
-            self.c0_images.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier), int(image.get_size()[1]*size_multiplier))))
-            image = pygame.image.load("circles/{}/{}.png".format(c0[0], i))
-            self.c0_images_other.append(pygame.transform.scale(image, (int(image.get_size()[0]*size_multiplier_other), int(image.get_size()[1]*size_multiplier_other))))
-    
+            self.c0_images.append(image)
+     
         self.powerups = [
             ["powerups/skull.png",   0],
             ["powerups/cross.png",   1],
@@ -68,7 +57,7 @@ class Game:
             self.powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
             self.powerup_images_hud.append(pygame.transform.scale(image, (20, 20)))
 
-        self.images = [self.c0_images, self.c1_images, self.c0_images_other, self.c1_images_other]
+        self.images = [self.c0_images, self.c1_images]
 
         self.screen_w = 1920
         self.screen_h = 980
@@ -192,10 +181,10 @@ class Game:
 
             # mem_2 has a resurrection and has killed mem_1
             if res_1 == 2:
-                self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2 + 2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images))
+                self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images))
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
-                self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1 + 2], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images))
+                self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images))
             return 1
         
         # check if one member has an insta-kill
@@ -230,7 +219,7 @@ class Game:
                 r = loser.getRad()
                 v = loser.getVel()
 
-                self.groups[g].add(Circle(self.circles[g], self.id_count, self, self.images[g + 2], self.powerup_images_hud, xy, r, v, True, self.smoke_images))
+                self.groups[g].add(Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images))
                 winner.removePowerup(1)
                 return 1
             # winner has killed loser
@@ -338,15 +327,15 @@ class Game:
         # Check for powerup 1 (resurrection)
         if d1 and 1 in mem_2.getPowerups() and d2 and 1 in mem_1.getPowerups():
             # spawn mem_2 a new teammate at mem_1's death spot and mem_1 a new teammate at mem_2's death spot
-            self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2 + 2], self.powerup_images_hud, [x1, y1], r1, v1, True, self.smoke_images))
-            self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1 + 2], self.powerup_images_hud, [x2, y2], r2, v2, True, self.smoke_images))
+            self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, [x1, y1], r1, v1, True, self.smoke_images))
+            self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, [x2, y2], r2, v2, True, self.smoke_images))
         elif d1 and 1 in mem_2.getPowerups():
             # spawn mem_2 a new teammate at mem_1's death spot
-            self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2 + 2], self.powerup_images_hud, [x1, y1], r1, v1, True, self.smoke_images))
+            self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, [x1, y1], r1, v1, True, self.smoke_images))
             mem_2.removePowerup(1)
         elif d2 and 1 in mem_1.getPowerups():
             # spawn mem_1 a new teammate at mem_1's death spot
-            self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1 + 2], self.powerup_images_hud, [x2, y2], r2, v2, True, self.smoke_images))
+            self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, [x2, y2], r2, v2, True, self.smoke_images))
             mem_1.removePowerup(1)
 
     def check_collisions(self):
@@ -454,6 +443,7 @@ class Game:
             image = self.c0_images[1]
         else:
             image = self.c0_images[0]
+        image = pygame.transform.scale(image, (75, 75))
 
         self.screen.blit(image, (image.get_size()[0] / 2 + 10, self.screen_h + 50 - image.get_size()[1] / 2 ))
         self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2, self.screen_h + 60)
@@ -470,10 +460,11 @@ class Game:
             image = self.c1_images[1]
         else:
             image = self.c1_images[0]
+        image = pygame.transform.scale(image, (75, 75))
 
         offset = self.screen_w / 2 - 100
         self.screen.blit(image, (image.get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - image.get_size()[1] / 2 ))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, self.c1_images[0].get_size()[0] * 2 + offset, self.screen_h + 60)
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2 + offset, self.screen_h + 60)
 
         pygame.draw.rect(game.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
         pygame.draw.rect(game.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
@@ -485,11 +476,11 @@ class Game:
                 for powerup in member.getPowerups():
                     if i == 0:
                         image = self.powerup_images_screen[powerup]
-                        game.screen.blit(image, ((self.c0_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        game.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
                     else:
                         image = self.powerup_images_screen[powerup]
-                        game.screen.blit(image, ((self.c1_images[0].get_size()[0] * 2 + 30) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        game.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
 
     def play_game(self):
@@ -596,9 +587,6 @@ class Circle(pygame.sprite.Sprite):
         self.hud_images = hud_images
         self.smoke_images = smoke_images
 
-        self.images = images
-        self.image = self.images[0]
-        
         if VEL == 0:
             # Want a constant speed, but random direction to start
             speed = attributes[2]
@@ -620,10 +608,12 @@ class Circle(pygame.sprite.Sprite):
         
         self.m = attributes[3]
         if R == 0:
-            self.r = attributes[4]
+            self.r = 25 + random.randint(0, attributes[4])
         else:
             self.r = R
 
+        self.images = images
+        self.image = self.getNextImage(0)
 
         self.hp = self.max_hp = attributes[5]
         self.attack = attributes[6]
@@ -645,6 +635,11 @@ class Circle(pygame.sprite.Sprite):
 
         # Powerups array
         self.powerups = []
+
+    def getNextImage(self, index):
+        print(index)
+        multiplier = self.getRad() / 1024
+        return pygame.transform.scale(self.images[index], (int(2048 * multiplier), int(2048 * multiplier)))
 
     def getPowerups(self):
         return self.powerups
@@ -804,16 +799,16 @@ class Circle(pygame.sprite.Sprite):
 
     def checkImageChange(self):
         if self.hp <= self.max_hp / 4:
-            self.image = self.images[3]
+            self.image = self.getNextImage(3)
 
         elif self.hp <= self.max_hp * 2 / 4:
-            self.image = self.images[2]
+            self.image = self.getNextImage(2)
 
         elif self.hp <= self.max_hp * 3 / 4:
-            self.image = self.images[1]
+            self.image = self.getNextImage(1)
 
         else:
-            self.image = self.images[0]
+            self.image = self.getNextImage(0)
 
     def takeDamage(self, amount):
         if self.hp - amount <= 0:
@@ -916,9 +911,9 @@ class Clouds(pygame.sprite.Sprite):
             elif self.frames <= 20:
                 game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 30:
-                game.screen.blit(self.images[2], (self.x - self.images[2].get_size()[0] / 2, self.y - self.images[2].get_size()[1] / 2))
+                game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 40:
-                game.screen.blit(self.images[3], (self.x - self.images[3].get_size()[0] / 2, self.y - self.images[3].get_size()[1] / 2))
+                game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 50:
                 game.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
         else:
@@ -941,9 +936,9 @@ class Explosion(pygame.sprite.Sprite):
             elif self.frames <= 20:
                 game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 30:
-                game.screen.blit(self.images[2], (self.x - self.images[2].get_size()[0] / 2, self.y - self.images[2].get_size()[1] / 2))
+                game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 40:
-                game.screen.blit(self.images[3], (self.x - self.images[3].get_size()[0] / 2, self.y - self.images[3].get_size()[1] / 2))
+                game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 50:
                 game.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
             elif self.frames <= 60:
