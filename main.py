@@ -225,7 +225,7 @@ class Game:
             # winner has killed loser
             elif loser_response == 1:     
                 [x, y] = loser.getXY()
-                self.clouds_group.add(Clouds(x, y, self.smoke_images))
+                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 return 1
 
     def handle_collision(self, mem_1, mem_2, flag = 0):
@@ -375,7 +375,7 @@ class Game:
                         if member_1.getG_id() != laser.g_id:
                             if member_1.takeDamage(25) == -1:
                                 [x, y] = member_1.getXY()
-                                self.clouds_group.add(Clouds(x, y, self.smoke_images))
+                                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -385,7 +385,7 @@ class Game:
 
     def blowupBomb(self, x, y, g_id):
         # Deal damage to everyone close to this point
-        self.explosions_group.add(Explosion(x, y, self.explosion_images))
+        self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
         kill_counter = 0
         
         members = []
@@ -401,7 +401,7 @@ class Game:
                 member.takeDamage(200 - dist)
             elif dist <= 200:
                 if member.takeDamage(200 - dist) == -1:
-                    self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images))
+                    self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
                     kill_counter += 1
 
         if kill_counter >= 2:
@@ -432,7 +432,7 @@ class Game:
                         if member.getG_id() != laser.g_id:
                             if member.takeDamage(50) == -1:
                                 [x, y] = member.getXY()
-                                self.clouds_group.add(Clouds(x, y, self.smoke_images))
+                                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                     
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
@@ -448,8 +448,8 @@ class Game:
         self.screen.blit(image, (image.get_size()[0] / 2 + 10, self.screen_h + 50 - image.get_size()[1] / 2 ))
         self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2, self.screen_h + 60)
 
-        pygame.draw.rect(game.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
-        pygame.draw.rect(game.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
+        pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
+        pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
 
 
         if self.hps[1] <= self.max_hps[1] / 4:
@@ -466,8 +466,8 @@ class Game:
         self.screen.blit(image, (image.get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - image.get_size()[1] / 2 ))
         self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2 + offset, self.screen_h + 60)
 
-        pygame.draw.rect(game.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
-        pygame.draw.rect(game.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
+        pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
+        pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
 
 
         for i in range(len(self.groups)):
@@ -476,11 +476,11 @@ class Game:
                 for powerup in member.getPowerups():
                     if i == 0:
                         image = self.powerup_images_screen[powerup]
-                        game.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
                     else:
                         image = self.powerup_images_screen[powerup]
-                        game.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+                        self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
                         powerup_counter += 1
 
     def play_game(self):
@@ -895,56 +895,58 @@ class Powerup(pygame.sprite.Sprite):
             self.kill()
 
 class Clouds(pygame.sprite.Sprite):
-    def __init__(self, x, y, images):
+    def __init__(self, x, y, images, screen):
         super().__init__()
         self.x = x
         self.y = y
         self.frames = 0
         self.images = images
+        self.screen = screen
 
     def update(self):
         # puff of smoke animation
         self.frames += 2
         if self.frames <= 50:
             if self.frames <= 10:
-                game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 20:
-                game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 30:
-                game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 40:
-                game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 50:
-                game.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
+                self.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
         else:
             self.kill()
 
 class Explosion(pygame.sprite.Sprite):
-    def __init__(self, x, y, images):
+    def __init__(self, x, y, images, screen):
         super().__init__()
         self.x = x
         self.y = y
         self.frames = 0
         self.images = images
+        self.screen = screen
 
     def update(self):
         # explosion animation
         self.frames += 2
         if self.frames <= 70:
             if self.frames <= 10:
-                game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 20:
-                game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 30:
-                game.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
             elif self.frames <= 40:
-                game.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
             elif self.frames <= 50:
-                game.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
+                self.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
             elif self.frames <= 60:
-                game.screen.blit(self.images[5], (self.x - self.images[5].get_size()[0] / 2, self.y - self.images[5].get_size()[1] / 2))
+                self.screen.blit(self.images[5], (self.x - self.images[5].get_size()[0] / 2, self.y - self.images[5].get_size()[1] / 2))
             elif self.frames <= 70:
-                game.screen.blit(self.images[6], (self.x - self.images[6].get_size()[0] / 2, self.y - self.images[6].get_size()[1] / 2))
+                self.screen.blit(self.images[6], (self.x - self.images[6].get_size()[0] / 2, self.y - self.images[6].get_size()[1] / 2))
         else:
             self.kill()
 
@@ -990,10 +992,12 @@ class Laser(pygame.sprite.Sprite):
         if self.frames >= game.fps * 5:
             self.kill()
 
-pygame.init()
 
-game = Game(circles[0], circles[1])
-game.play_game()
+def main():
+    pygame.init()
+    game = Game(circles[0], circles[1])
+    game.play_game()
+    pygame.quit()
 
-pygame.quit()
+main()
 
