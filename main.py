@@ -59,6 +59,21 @@ class Game:
 
         self.images = [self.c0_images, self.c1_images]
 
+        # Sounds
+        self.sounds = []
+        self.sounds.append(pygame.mixer.Sound("sounds/explosion.flac"))
+        self.sounds.append(pygame.mixer.Sound("sounds/pop.wav"))
+        self.sounds.append([])
+        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink1.wav"))
+        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink2.wav"))
+        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink3.wav"))
+        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
+        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
+        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
+
+        for sound in self.sounds[2]:
+            sound.set_volume(.25)
+
         self.screen_w = 1920
         self.screen_h = 980
         self.fps = 60
@@ -161,6 +176,8 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
+        self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
+
         # check if either member has a speed, if so, remove it
         if 4 in mem_1.powerups: mem_1.removePowerup(4)
         if 4 in mem_2.powerups: mem_2.removePowerup(4)
@@ -182,9 +199,11 @@ class Game:
             # mem_2 has a resurrection and has killed mem_1
             if res_1 == 2:
                 self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images))
+                self.sounds[1].play()
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
                 self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images))
+                self.sounds[1].play()
             return 1
         
         # check if one member has an insta-kill
@@ -220,12 +239,14 @@ class Game:
                 v = loser.getVel()
 
                 self.groups[g].add(Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images))
+                self.sounds[1].play()
                 winner.removePowerup(1)
                 return 1
             # winner has killed loser
             elif loser_response == 1:     
                 [x, y] = loser.getXY()
                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                self.sounds[1].play()
                 return 1
 
     def handle_collision(self, mem_1, mem_2, flag = 0):
@@ -376,6 +397,7 @@ class Game:
                             if member_1.takeDamage(25) == -1:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                                self.sounds[1].play()
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -386,6 +408,7 @@ class Game:
     def blowupBomb(self, x, y, g_id):
         # Deal damage to everyone close to this point
         self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
+        self.sounds[0].play()
         kill_counter = 0
         
         members = []
@@ -402,6 +425,7 @@ class Game:
             elif dist <= 200:
                 if member.takeDamage(200 - dist) == -1:
                     self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
+                    self.sounds[1].play()
                     kill_counter += 1
 
         if kill_counter >= 2:
@@ -433,6 +457,7 @@ class Game:
                             if member.takeDamage(50) == -1:
                                 [x, y] = member.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                                self.sounds[1].play()
                     
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
@@ -992,9 +1017,9 @@ class Laser(pygame.sprite.Sprite):
         if self.frames >= game.fps * 5:
             self.kill()
 
-
 def main():
     pygame.init()
+    pygame.mixer.pre_init(44100, -16, 2, 512)
     game = Game(circles[0], circles[1])
     game.play_game()
     pygame.quit()
