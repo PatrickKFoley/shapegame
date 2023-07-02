@@ -608,7 +608,7 @@ class Circle(pygame.sprite.Sprite):
         
         self.m = attributes[3]
         if R == 0:
-            self.r = 25 + random.randint(0, attributes[4])
+            self.r = 30 + random.randint(0, attributes[4])
         else:
             self.r = R
 
@@ -686,8 +686,6 @@ class Circle(pygame.sprite.Sprite):
             self.bomb_timer = 3 * self.game.fps
 
     def update(self, game):
-        self.move(game)
-
         if self.bomb_timer >= 0:
             self.bomb_timer -= 1
 
@@ -726,6 +724,8 @@ class Circle(pygame.sprite.Sprite):
 
         pygame.draw.rect(game.screen, "red", (self.x - self.max_hp / 2, self.y - self.r * 1, self.max_hp, 5))
         pygame.draw.rect(game.screen, "green", (self.x - self.max_hp / 2, self.y - self.r * 1, self.hp, 5))
+
+        self.move(game)
 
     def rotate(self):
         new_angle = math.degrees(math.atan2(self.v_y, self.v_x))
