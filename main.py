@@ -351,7 +351,7 @@ class Game:
                     max_dist = m1_r + m2_r
 
                     if (dist <= max_dist):
-                        self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
+                        # self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
                         self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
 
             for laser in self.laser_group.sprites():
