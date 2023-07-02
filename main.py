@@ -86,6 +86,8 @@ class Game:
         self.sounds.append(pygame.mixer.Sound("sounds/wind.wav"))
         self.sounds.append(pygame.mixer.Sound("sounds/laser.wav"))
         self.sounds[9].set_volume(.5)
+        self.sounds.append(pygame.mixer.Sound("sounds/punch.wav"))
+        self.sounds[10].set_volume(.5)
 
         for sound in self.sounds[2]:
             sound.set_volume(.01)
@@ -522,8 +524,6 @@ class Game:
                         self.total_count += 1
 
                     if event.button == 3:
-                        self.sounds[5].play()
-                        pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
                         self.fortnite_x = 0
                         self.fortnite_x_counter = 0
                         self.fortnite_x_growing = False
@@ -659,7 +659,6 @@ class Circle(pygame.sprite.Sprite):
         self.powerups = []
 
     def getNextImage(self, index):
-        print(index)
         multiplier = self.getRad() / 1024
         return pygame.transform.scale(self.images[index], (int(2048 * multiplier), int(2048 * multiplier)))
 
@@ -870,6 +869,7 @@ class Circle(pygame.sprite.Sprite):
     def hitEnemy(self, enemy):
         if 3 in self.powerups:
             self.removePowerup(3)
+            self.game.sounds[10].play()
 
         if 5 in self.powerups:
             self.removePowerup(5)
