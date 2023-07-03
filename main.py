@@ -60,45 +60,47 @@ class Game:
         self.images = [self.c0_images, self.c1_images]
 
         # Sounds
-        self.sounds = []
-        self.sounds.append(pygame.mixer.Sound("sounds/explosion.flac"))
-        self.sounds[0].set_volume(.1)
-        self.sounds.append(pygame.mixer.Sound("sounds/pop.wav"))
-        self.sounds.append([])
-        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink1.wav"))
-        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink2.wav"))
-        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/clink3.wav"))
-        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
-        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
-        self.sounds[2].append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
-        self.sounds.append(pygame.mixer.Sound("sounds/pop.wav"))
-        self.sounds.append(pygame.mixer.Sound("sounds/shotgun.wav"))
-        self.sounds[4].set_volume(.1)
-        self.sounds.append(pygame.mixer.Sound("sounds/choir.wav"))
-        self.sounds[5].set_volume(.5)
-        self.sounds.append(pygame.mixer.Sound("sounds/fuse.wav"))
-        self.sounds[6].set_volume(.1)
-        self.sounds.append([])
-        self.sounds[7].append(pygame.mixer.Sound("sounds/death/1.wav"))
-        self.sounds[7].append(pygame.mixer.Sound("sounds/death/2.wav"))
-        self.sounds[7].append(pygame.mixer.Sound("sounds/death/3.wav"))
-        self.sounds[7].append(pygame.mixer.Sound("sounds/death/4.wav"))
-        self.sounds.append(pygame.mixer.Sound("sounds/wind.wav"))
-        self.sounds.append(pygame.mixer.Sound("sounds/laser.wav"))
-        self.sounds[9].set_volume(.25)
-        self.sounds.append(pygame.mixer.Sound("sounds/punch.wav"))
-        self.sounds[10].set_volume(.5)
-        self.sounds.append(pygame.mixer.Sound("sounds/laser_hit.wav"))
-        self.twinkle_sound = pygame.mixer.Sound("sounds/twinkle.wav")
-        self.twinkle_sound.set_volume(.5)
-        self.win_sound = pygame.mixer.Sound("sounds/win.wav")
-        self.heal_sound = pygame.mixer.Sound("sounds/heal.wav")
-        self.heal_sound.set_volume(.5)
+        self.death_sounds = []
+        self.death_sounds.append(pygame.mixer.Sound("sounds/death/1.wav"))
+        self.death_sounds.append(pygame.mixer.Sound("sounds/death/2.wav"))
+        self.death_sounds.append(pygame.mixer.Sound("sounds/death/3.wav"))
+        self.death_sounds.append(pygame.mixer.Sound("sounds/death/4.wav"))
 
-        for sound in self.sounds[2]:
+        self.collision_sounds = []
+        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink1.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink2.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink3.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
+
+        self.choir_sound = pygame.mixer.Sound("sounds/choir.wav")
+        self.explosion_sound = pygame.mixer.Sound("sounds/explosion.flac")
+        self.fuse_sound = pygame.mixer.Sound("sounds/fuse.wav")
+        self.heal_sound = pygame.mixer.Sound("sounds/heal.wav")
+        self.laser_hit_sound = pygame.mixer.Sound("sounds/laser_hit.wav")
+        self.laser_sound = pygame.mixer.Sound("sounds/laser.wav")
+        self.pop_sound = pygame.mixer.Sound("sounds/pop.wav")
+        self.pop_sound = pygame.mixer.Sound("sounds/pop.wav")
+        self.punch_sound = pygame.mixer.Sound("sounds/punch.wav")
+        self.shotgun_sound = pygame.mixer.Sound("sounds/shotgun.wav")
+        self.twinkle_sound = pygame.mixer.Sound("sounds/twinkle.wav")
+        self.win_sound = pygame.mixer.Sound("sounds/win.wav")
+        self.wind_sound = pygame.mixer.Sound("sounds/wind.wav")
+
+        self.choir_sound.set_volume(.5)
+        self.explosion_sound.set_volume(.1)
+        self.fuse_sound.set_volume(.1)
+        self.heal_sound.set_volume(.5)
+        self.laser_sound.set_volume(.25)
+        self.punch_sound.set_volume(.5)
+        self.shotgun_sound.set_volume(.1)
+        self.twinkle_sound.set_volume(.5)
+
+        for sound in self.collision_sounds:
             sound.set_volume(.05)
 
-        for sound in self.sounds[7]:
+        for sound in self.death_sounds:
             sound.set_volume(.5)
 
         self.screen_w = 1920
@@ -185,14 +187,14 @@ class Game:
 
                 if dist <= max_dist:
                     # Member has collected powerup
-                    self.sounds[3].play()
+                    self.pop_sound.play()
                     member.collectPowerup(powerup.getId())
 
                     if powerup.getId() == 6:
-                        self.sounds[6].play(10)
+                        self.fuse_sound.play(10)
                     elif powerup.getId() == 4:
-                        self.sounds[8].play()
-                        pygame.mixer.Sound.fadeout(self.sounds[8], 1500)
+                        self.wind_sound.play()
+                        pygame.mixer.Sound.fadeout(self.wind_sound, 1500)
                     elif powerup.getId() == 2:
                         self.twinkle_sound.play()
                     
@@ -214,7 +216,7 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
-        self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
+        self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
 
         # check if either member has a speed, if so, remove it
         if 4 in mem_1.powerups: mem_1.removePowerup(4)
@@ -234,23 +236,23 @@ class Game:
             res_1 = mem_1.getHitBy(mem_2)
             res_2 = mem_2.getHitBy(mem_1)
 
-            self.sounds[4].play()
+            self.shotgun_sound.play()
 
             # mem_2 has a resurrection and has killed mem_1
             if res_1 == 2:
                 self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images))
-                self.sounds[5].play()
-                pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
+                self.choir_sound.play()
+                pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
                 self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images))
-                self.sounds[5].play()
-                pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
+                self.choir_sound.play()
+                pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             return 1
         
         # check if one member has an insta-kill
         elif 0 in mem_1.powerups or 0 in mem_2.powerups:
-            self.sounds[4].play()
+            self.shotgun_sound.play()
             if 0 in mem_1.powerups:
                 winner = mem_1
                 loser = mem_2
@@ -282,15 +284,15 @@ class Game:
                 v = loser.getVel()
 
                 self.groups[g].add(Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images))
-                self.sounds[5].play()
-                pygame.mixer.Sound.fadeout(self.sounds[5], 1000)
+                self.choir_sound.play()
+                pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
                 winner.removePowerup(1)
                 return 1
             # winner has killed loser
             elif loser_response == 1:     
                 [x, y] = loser.getXY()
                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                self.sounds[7][random.randint(0, len(self.sounds[7])-1)].play()
+                self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 return 1
 
     def handle_collision(self, mem_1, mem_2, flag = 0):
@@ -384,7 +386,7 @@ class Game:
                     max_dist = m1_r + m2_r
 
                     if (dist <= max_dist):
-                        # self.sounds[2][random.randint(0, len(self.sounds[2])-1)].play()
+                        # self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
                         self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
 
             for laser in self.laser_group.sprites():
@@ -398,11 +400,11 @@ class Game:
                     if not member_1.getId() in laser.ids_collided_with:
                         laser.ids_collided_with.append(member_1.getId())
                         if member_1.getG_id() != laser.g_id:
-                            self.sounds[11].play()
+                            self.laser_hit_sound.play()
                             if member_1.takeDamage(25) == -1:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                                self.sounds[7][random.randint(0, len(self.sounds[7])-1)].play()
+                                self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -411,11 +413,11 @@ class Game:
         surface.blit(text_obj, text_rect)
 
     def blowupBomb(self, x, y, g_id):
-        self.sounds[6].stop()
+        self.fuse_sound.stop()
 
         # Deal damage to everyone close to this point
         self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
-        self.sounds[0].play()
+        self.explosion_sound.play()
         kill_counter = 0
         
         members = []
@@ -432,7 +434,7 @@ class Game:
             elif dist <= 200:
                 if member.takeDamage(200 - dist) == -1:
                     self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
-                    self.sounds[7][random.randint(0, len(self.sounds[7])-1)].play()
+                    self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                     kill_counter += 1
 
         if kill_counter >= 2:
@@ -464,7 +466,7 @@ class Game:
                             if member.takeDamage(50) == -1:
                                 [x, y] = member.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                                self.sounds[7][random.randint(0, len(self.sounds[7]-1))].play()
+                                self.death_sounds[random.randint(0, len(self.death_sounds-1))].play()
                     
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
@@ -705,7 +707,7 @@ class Circle(pygame.sprite.Sprite):
         # if removing laser, spawn laser in same direction as circle
         if id == 7:
             self.game.laser_group.add(Laser(self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
-            self.game.sounds[9].play()
+            self.game.laser_sound.play()
 
     def collectPowerup(self, id):
         self.powerups.append(id)
@@ -887,7 +889,7 @@ class Circle(pygame.sprite.Sprite):
     def hitEnemy(self, enemy):
         if 3 in self.powerups:
             self.removePowerup(3)
-            self.game.sounds[10].play()
+            self.game.punch_sound.play()
 
         if 5 in self.powerups:
             self.removePowerup(5)
