@@ -85,12 +85,18 @@ class Game:
         self.sounds[7].append(pygame.mixer.Sound("sounds/death/4.wav"))
         self.sounds.append(pygame.mixer.Sound("sounds/wind.wav"))
         self.sounds.append(pygame.mixer.Sound("sounds/laser.wav"))
-        self.sounds[9].set_volume(.5)
+        self.sounds[9].set_volume(.25)
         self.sounds.append(pygame.mixer.Sound("sounds/punch.wav"))
         self.sounds[10].set_volume(.5)
+        self.sounds.append(pygame.mixer.Sound("sounds/laser_hit.wav"))
+        self.twinkle_sound = pygame.mixer.Sound("sounds/twinkle.wav")
+        self.twinkle_sound.set_volume(.5)
+        self.win_sound = pygame.mixer.Sound("sounds/win.wav")
+        self.heal_sound = pygame.mixer.Sound("sounds/heal.wav")
+        self.heal_sound.set_volume(.5)
 
         for sound in self.sounds[2]:
-            sound.set_volume(.01)
+            sound.set_volume(.05)
 
         for sound in self.sounds[7]:
             sound.set_volume(.5)
@@ -105,6 +111,7 @@ class Game:
         self.running = True
         self.frames = 0
         self.done = False
+        self.play_sound = True
 
         # for loop for creating circles
         self.groups = []
@@ -186,6 +193,8 @@ class Game:
                     elif powerup.getId() == 4:
                         self.sounds[8].play()
                         pygame.mixer.Sound.fadeout(self.sounds[8], 1500)
+                    elif powerup.getId() == 2:
+                        self.twinkle_sound.play()
                     
                     powerup.kill()
 
@@ -389,6 +398,7 @@ class Game:
                     if not member_1.getId() in laser.ids_collided_with:
                         laser.ids_collided_with.append(member_1.getId())
                         if member_1.getG_id() != laser.g_id:
+                            self.sounds[11].play()
                             if member_1.takeDamage(25) == -1:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
@@ -582,12 +592,19 @@ class Game:
             if len(self.groups[0].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("{} Wins!".format(self.c1[0].capitalize()), self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.c1[0].capitalize()), self.font, self.c1[0], self.screen, self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, "black", self.screen, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, self.c0[0], self.screen, self.screen_w / 2, self.screen_h / 6)
+
+            
+            if self.done and self.play_sound:
+                self.play_sound = False
+                if self.win_sound.get_num_channels() == 0:
+                    self.win_sound.play()
+                    
 
             # limits FPS to 60
             self.clock.tick(self.fps)
@@ -682,6 +699,7 @@ class Circle(pygame.sprite.Sprite):
             self.attack /= 2
         # if removing health, gain health
         if id == 5:
+            self.game.heal_sound.play()
             self.hp = min(self.hp + self.max_hp / 2, self.max_hp)
             self.checkImageChange()
         # if removing laser, spawn laser in same direction as circle
