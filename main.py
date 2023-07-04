@@ -552,7 +552,7 @@ class Game:
         #                 powerup_counter += 1
 
     def addKillfeed(self, right_circle, left_circle, action_id):
-        if len(self.killfeed_group) == 10:
+        if len(self.killfeed_group) == 12:
             self.killfeed_group.update(True)
 
         self.killfeed_group.add(Killfeed(right_circle, left_circle, self.powerup_images_screen[action_id], self.screen_w, len(self.killfeed_group), self.screen))
