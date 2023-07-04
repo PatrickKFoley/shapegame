@@ -485,9 +485,12 @@ class Game:
 
         if kill_counter >= 1:
             if g_id == 0:
-                self.groups[0].add(Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, [x, y]))
+                new_circle = Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, [x, y])
+                self.groups[0].add(new_circle)
             else:
-                self.groups[1].add(Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y]))
+                new_circle = Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y])
+                self.groups[1].add(new_circle)
+            self.addKillfeed(circle, new_circle, 1)
 
     def checkLaserCollision(self):
         members = []
