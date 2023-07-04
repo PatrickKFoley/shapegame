@@ -104,11 +104,11 @@ class Game:
         for sound in self.death_sounds:
             sound.set_volume(.5)
 
-        self.screen_w = 1920
-        self.screen_h = 980
+        self.screen_w = 1720
+        self.screen_h = 1070
         self.fps = 60
         self.font = pygame.font.Font("freesansbold.ttf", 160)
-        self.screen = pygame.display.set_mode((self.screen_w, self.screen_h + 100))
+        self.screen = pygame.display.set_mode((self.screen_w + 200, self.screen_h))
         self.clock = pygame.time.Clock()
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.running = True
@@ -138,6 +138,9 @@ class Game:
         # Clouds & explosions
         self.clouds_group = pygame.sprite.Group()
         self.explosions_group = pygame.sprite.Group()
+
+        # Killfeed
+        self.killfeed_group = pygame.sprite.Group()
 
         # Max hp of each group
         self.max_hps = [0, 0]
@@ -217,7 +220,7 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
-        self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
+        # self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
 
         # check if either member has a speed, if so, remove it
         if 4 in mem_1.powerups: mem_1.removePowerup(4)
@@ -225,6 +228,9 @@ class Game:
 
         # check if both members have insta-kill
         if 0 in mem_1.powerups and 0 in mem_2.powerups:
+            self.addKillfeed(mem_1, mem_2, 0)
+            self.addKillfeed(mem_2, mem_1, 0)
+
             xy1 = mem_1.getXY()
             xy2 = mem_2.getXY()
             r1 = mem_1.getRad()
@@ -241,25 +247,31 @@ class Game:
 
             # mem_2 has a resurrection and has killed mem_1
             if res_1 == 2:
-                self.groups[g2].add(Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images))
+                new_circle = Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images)
+                self.groups[g2].add(new_circle)
+                self.addKillfeed(mem_2, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
-                self.groups[g1].add(Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images))
+                new_circle = Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images)
+                self.groups[g1].add(new_circle)
+                self.addKillfeed(mem_1, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             return 1
         
         # check if one member has an insta-kill
         elif 0 in mem_1.powerups or 0 in mem_2.powerups:
-            self.shotgun_sound.play()
             if 0 in mem_1.powerups:
                 winner = mem_1
                 loser = mem_2
             else:
                 winner = mem_2
                 loser = mem_1
+            self.shotgun_sound.play()
+            self.addKillfeed(winner, loser, 0)          
+
 
         # roll a d20+luck for who damages who
         else:
@@ -284,7 +296,9 @@ class Game:
                 r = loser.getRad()
                 v = loser.getVel()
 
-                self.groups[g].add(Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images))
+                new_circle = Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images)
+                self.groups[g].add(new_circle)
+                self.addKillfeed(winner, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
                 winner.removePowerup(1)
@@ -295,6 +309,19 @@ class Game:
                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 return 1
+            # winner has killed loser with muscle
+            elif loser_response == 3:     
+                [x, y] = loser.getXY()
+                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                self.addKillfeed(winner, loser, 3)
+                return 1
+            # winner has star
+            elif loser_response == 4:
+                self.addKillfeed(winner, loser, 2)
+            # winner has speed
+            elif loser_response == 5:
+                self.addKillfeed(winner, loser, 4)
 
     def handle_collision(self, mem_1, mem_2, flag = 0):
         # Magic done by: https://www.vobarian.com/collisions/2dcollisions2.pdf
@@ -406,6 +433,7 @@ class Game:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                                self.addKillfeed(laser.circle, member_1, 7)
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -413,7 +441,7 @@ class Game:
         text_rect.topleft = (x - font.size(text)[0] / 2, y)
         surface.blit(text_obj, text_rect)
 
-    def blowupBomb(self, x, y, g_id):
+    def blowupBomb(self, circle, x, y, g_id):
         self.fuse_sound.stop()
 
         # Deal damage to everyone close to this point
@@ -431,11 +459,14 @@ class Game:
             dist = math.sqrt( (mx - x)**2 + (my - y)** 2)
 
             if dist == 0:
-                member.takeDamage(200 - dist)
+                member.takeDamage(1000)
+                self.addKillfeed(circle, circle, 6)
+
             elif dist <= 200:
                 if member.takeDamage(200 - dist) == -1:
                     self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
                     self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                    self.addKillfeed(circle, member, 6)
                     kill_counter += 1
 
         if kill_counter >= 2:
@@ -478,13 +509,14 @@ class Game:
             image = self.c0_images[1]
         else:
             image = self.c0_images[0]
-        image = pygame.transform.scale(image, (75, 75))
+        image = pygame.transform.scale(image, (85, 85))
 
-        self.screen.blit(image, (image.get_size()[0] / 2 + 10, self.screen_h + 50 - image.get_size()[1] / 2 ))
-        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2, self.screen_h + 60)
+        self.screen.blit(image, (self.screen_w + 10, 10))
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 52, 105)
+        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 60, 130)
 
-        pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
-        pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
+        # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
+        # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
 
 
         if self.hps[1] <= self.max_hps[1] / 4:
@@ -495,28 +527,35 @@ class Game:
             image = self.c1_images[1]
         else:
             image = self.c1_images[0]
-        image = pygame.transform.scale(image, (75, 75))
+        image = pygame.transform.scale(image, (85, 85))
 
         offset = self.screen_w / 2 - 100
-        self.screen.blit(image, (image.get_size()[0] / 2 + 10 + offset, self.screen_h + 50 - image.get_size()[1] / 2 ))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 35), "black", self.screen, image.get_size()[0] * 2 + offset, self.screen_h + 60)
+        self.screen.blit(image, (self.screen_w + 105, 10))
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 147, 105)
+        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 155, 130)
 
-        pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
-        pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
+        # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
+        # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
 
 
-        for i in range(len(self.groups)):
-            powerup_counter = 0
-            for member in self.groups[i]:
-                for powerup in member.getPowerups():
-                    if i == 0:
-                        image = self.powerup_images_screen[powerup]
-                        self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
-                        powerup_counter += 1
-                    else:
-                        image = self.powerup_images_screen[powerup]
-                        self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
-                        powerup_counter += 1
+        # for i in range(len(self.groups)):
+        #     powerup_counter = 0
+        #     for member in self.groups[i]:
+        #         for powerup in member.getPowerups():
+        #             if i == 0:
+        #                 image = self.powerup_images_screen[powerup]
+        #                 self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+        #                 powerup_counter += 1
+        #             else:
+        #                 image = self.powerup_images_screen[powerup]
+        #                 self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
+        #                 powerup_counter += 1
+
+    def addKillfeed(self, right_circle, left_circle, action_id):
+        if len(self.killfeed_group) == 10:
+            self.killfeed_group.update(True)
+
+        self.killfeed_group.add(Killfeed(right_circle, left_circle, self.powerup_images_screen[action_id], self.screen_w, len(self.killfeed_group), self.screen))
 
     def play_game(self):
         while self.running:
@@ -568,6 +607,7 @@ class Game:
 
             self.clouds_group.update()
             self.explosions_group.update()
+            self.killfeed_group.update()
 
             self.powerup_group.update(self)
             self.checkPowerupCollect()
@@ -705,9 +745,10 @@ class Circle(pygame.sprite.Sprite):
             self.game.heal_sound.play()
             self.hp = min(self.hp + self.max_hp / 2, self.max_hp)
             self.checkImageChange()
+            self.game.addKillfeed(self, self, 5)
         # if removing laser, spawn laser in same direction as circle
         if id == 7:
-            self.game.laser_group.add(Laser(self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
+            self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
             self.game.laser_sound.play()
 
     def collectPowerup(self, id):
@@ -733,7 +774,7 @@ class Circle(pygame.sprite.Sprite):
             self.bomb_timer -= 1
 
             if self.bomb_timer == 0:
-                game.blowupBomb(self.x, self.y, self.getG_id())
+                game.blowupBomb(self, self.x, self.y, self.getG_id())
                 self.bomb_timer = -1
                 self.removePowerup(6)
 
@@ -877,14 +918,26 @@ class Circle(pygame.sprite.Sprite):
         # Check if you had a star, if so remove it
         if 2 in self.powerups: self.removePowerup(2)
 
+        # if you died
         if self.hp <= 0:
+
             if 1 in enemy.powerups:
                 self.kill()
                 return 2
+            elif 3 in enemy.powerups:
+                self.kill()
+                return 3
+            elif 4 in enemy.powerups:
+                self.kill()
+                return 5
             else:
                 self.kill()
                 return 1
         else:
+            if 2 in enemy.powerups:
+                return 4
+            elif 4 in enemy.powerups:
+                return 5
             return 0
 
     def hitEnemy(self, enemy):
@@ -995,9 +1048,10 @@ class Explosion(pygame.sprite.Sprite):
             self.kill()
 
 class Laser(pygame.sprite.Sprite):
-    def __init__(self, g_id, x, y, vx, vy, image):
+    def __init__(self, circle, g_id, x, y, vx, vy, image):
         super().__init__()
         self.g_id = g_id
+        self.circle = circle
         self.x = x
         self.y = y
         self.vx = vx *3
@@ -1036,6 +1090,40 @@ class Laser(pygame.sprite.Sprite):
         if self.frames >= game.fps * 5:
             self.kill()
 
+class Killfeed(pygame.sprite.Sprite):
+    def __init__(self, left_circle, right_circle, action_img, x, count, screen):
+        super().__init__()
+        self.left_circle = left_circle
+        self.right_circle = right_circle
+        self.action_img = action_img
+        self.x = x
+        self.y = 260 + (60 * count)
+        self.screen = screen
+        self.left_img = pygame.transform.scale(left_circle.image, (50, 50))
+        self.right_img = pygame.transform.scale(right_circle.image, (50, 50))
+
+    def update(self, cycle = False):
+        # check if they are now cycled out 
+        if cycle:
+            self.y -= 60
+
+            if self.y < 260:
+                self.kill()
+                return
+
+        # draw elements
+        self.screen.blit(self.left_img, (self.x + 10, self.y))
+        self.draw_text(str(self.left_circle.getId() % 16), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 60, self.y + 40)
+        self.screen.blit(self.action_img, (self.x + 80, self.y + 10))
+        self.screen.blit(self.right_img, (self.x + 140, self.y))
+        self.draw_text(str(self.right_circle.getId() % 16), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 190, self.y + 40)
+
+    def draw_text(self, text, font, color, surface, x, y):
+        text_obj = font.render(text, 1, color)
+        text_rect = text_obj.get_rect()
+        text_rect.topleft = (x - font.size(text)[0] / 2, y)
+        surface.blit(text_obj, text_rect)
+        
 def main():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
