@@ -99,6 +99,7 @@ class Game:
         self.shotgun_sound.set_volume(.05)
         self.twinkle_sound.set_volume(.25)
         self.wind_sound.set_volume(.25)
+        self.win_sound.setVolume(.25)
 
         for sound in self.collision_sounds:
             sound.set_volume(.05)
@@ -122,7 +123,8 @@ class Game:
         self.groups = []
         self.groups.append(pygame.sprite.Group()) # "ORANGE"
         self.groups.append(pygame.sprite.Group()) # "BLUE"
-        self.id_count = 0
+        self.id_count = [0, 0]
+        self.spawn_count = 0
 
         # Something to take care of the "fortnite circle"
         self.fortnite_x = 0
@@ -149,21 +151,15 @@ class Game:
         self.hps = []
 
         members_per_team = 16
+        self.max_hps[0] += c0[5] * members_per_team
+        self.max_hps[1] += c1[5] * members_per_team
+        self.hps = [self.max_hps[0], self.max_hps[1]]
+
         self.total_count = members_per_team * 2
         # ----------------------
         for i in range(members_per_team):
-            # self.groups[0].add(Circle(circles[0], self.id_count, self))
-            # self.groups[0].add(Circle(circles[1], self.id_count, self))
-            # self.groups[1].add(Circle(circles[2], self.id_count, self))
-            # self.groups[1].add(Circle(circles[3], self.id_count, self))
-
-            self.groups[0].add(Circle(c0, self.id_count, self, self.c0_images, self.powerup_images_hud))
-            self.max_hps[0] += c0[5]
-            self.groups[1].add(Circle(c1, self.id_count, self, self.c1_images, self.powerup_images_hud))
-            self.max_hps[1] += c1[5]
-
-            # self.groups[0].add(Circle(circles[0], self.id_count, self))
-        self.hps = [self.max_hps[0], self.max_hps[1]]
+            self.addCircle(0)
+            self.addCircle(1)
 
     def spawnPowerup(self, location, id = -1):
         if id == -1:
@@ -206,7 +202,7 @@ class Game:
                     
                     powerup.kill()
 
-    def getSafeSpawn(self, id):
+    def getSafeSpawn(self):
         w = self.screen_w
         h = self.screen_h
 
@@ -216,9 +212,10 @@ class Game:
         w_int = w/cols
         h_int = h/rows
 
-        x = id % (self.total_count / rows)
-        y = id // (self.total_count / rows)
+        x = self.spawn_count % (self.total_count / rows)
+        y = self.spawn_count // (self.total_count / rows)
 
+        self.spawn_count += 1
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
@@ -249,15 +246,13 @@ class Game:
 
             # mem_2 has a resurrection and has killed mem_1
             if res_1 == 2:
-                new_circle = Circle(self.circles[g2], self.id_count, self, self.images[g2], self.powerup_images_hud, xy2, r2, v2, True, self.smoke_images)
-                self.groups[g2].add(new_circle)
+                new_circle = self.addCircle(g2, xy2, r2, v2, True)
                 self.addKillfeed(mem_2, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
-                new_circle = Circle(self.circles[g1], self.id_count, self, self.images[g1], self.powerup_images_hud, xy1, r1, v1, True, self.smoke_images)
-                self.groups[g1].add(new_circle)
+                new_circle = self.addCircle(g1, xy1, r1, v1, True)
                 self.addKillfeed(mem_1, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
@@ -296,8 +291,8 @@ class Game:
                 r = loser.getRad()
                 v = loser.getVel()
 
-                new_circle = Circle(self.circles[g], self.id_count, self, self.images[g], self.powerup_images_hud, xy, r, v, True, self.smoke_images)
-                self.groups[g].add(new_circle)
+                new_circle = self.addCircle(g, xy, r, v, True)
+                # self.groups[g].add(new_circle)
                 self.addKillfeed(winner, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
@@ -484,12 +479,12 @@ class Game:
                     kill_counter += 1
 
         if kill_counter >= 1:
-            if g_id == 0:
-                new_circle = Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, [x, y])
-                self.groups[0].add(new_circle)
-            else:
-                new_circle = Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y])
-                self.groups[1].add(new_circle)
+            # if g_id == 0:
+            new_circle = self.addCircle(g_id, [x, y])
+            # self.groups[0].add(new_circle)
+            # else:
+            #     new_circle = Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y])
+            #     self.groups[1].add(new_circle)
             self.addKillfeed(circle, new_circle, 1)
 
     def checkLaserCollision(self):
@@ -579,6 +574,16 @@ class Game:
 
         self.killfeed_group.add(Killfeed(right_circle, left_circle, image, self.screen_w, len(self.killfeed_group), self.screen))
 
+    def addCircle(self, g_id, xy = 0, r = 0, v = 0, new = False):
+        if new:
+            self.total_count += 1
+
+        new_circle = Circle(self.circles[g_id], self.id_count[g_id], self, self.images[g_id], self.powerup_images_hud, xy, r, v, new, self.smoke_images)
+        self.id_count[g_id] += 1
+        self.groups[g_id].add(new_circle)
+
+        return new_circle
+
     def play_game(self):
         while self.running:
             self.frames += 1
@@ -592,9 +597,9 @@ class Game:
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
                         if self.total_count % 2 == 1:
-                            self.groups[0].add(Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
+                            self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
                         else:
-                            self.groups[1].add(Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, pygame.mouse.get_pos(), 0, 0, True, self.smoke_images))
+                            self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
                         self.total_count += 1
 
                     if event.button == 3:
@@ -680,7 +685,6 @@ class Circle(pygame.sprite.Sprite):
         self.g_id = attributes[1]
         self.id = id
         self.game = game
-        game.id_count += 1
         self.frames = 0
         self.new = NEW
         self.alive = True
@@ -724,7 +728,7 @@ class Circle(pygame.sprite.Sprite):
 
         if XY == 0:
             # Need some sort of smart spawning so that they can't overlap 
-            [self.x, self.y] = game.getSafeSpawn(id)
+            [self.x, self.y] = game.getSafeSpawn()
         else:
             [self.x, self.y] = XY
 
@@ -1136,10 +1140,10 @@ class Killfeed(pygame.sprite.Sprite):
 
         # draw elements
         self.screen.blit(self.left_img, (self.x + 10, self.y))
-        self.draw_text(str(self.left_circle.getId() % 16), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 60, self.y + 40)
+        self.draw_text(str(self.left_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 60, self.y + 40)
         self.screen.blit(self.action_img, (self.x + 80, self.y + 10))
         self.screen.blit(self.right_img, (self.x + 140, self.y))
-        self.draw_text(str(self.right_circle.getId() % 16), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 190, self.y + 40)
+        self.draw_text(str(self.right_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 190, self.y + 40)
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
