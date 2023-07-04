@@ -319,6 +319,13 @@ class Game:
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, 3)
                 return 1
+            # winner has killed loser with speed
+            elif loser_response == 5:
+                [x, y] = loser.getXY()
+                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                self.addKillfeed(winner, loser, 4)
+                return 1
             # winner has killed loser
             elif loser_response == 1:     
                 [x, y] = loser.getXY()
@@ -329,9 +336,6 @@ class Game:
             # winner has star
             elif loser_response == 4:
                 self.addKillfeed(winner, loser, 2)
-            # winner has speed
-            elif loser_response == 5:
-                self.addKillfeed(winner, loser, 4)
 
     def handle_collision(self, mem_1, mem_2, flag = 0):
         # Magic done by: https://www.vobarian.com/collisions/2dcollisions2.pdf
@@ -479,7 +483,7 @@ class Game:
                     self.addKillfeed(circle, member, 6)
                     kill_counter += 1
 
-        if kill_counter >= 2:
+        if kill_counter >= 1:
             if g_id == 0:
                 self.groups[0].add(Circle(self.c0, self.id_count, self, self.c0_images, self.powerup_images_hud, [x, y]))
             else:
