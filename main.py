@@ -69,9 +69,9 @@ class Game:
         self.collision_sounds = []
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink1.wav"))
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink2.wav"))
-        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink3.wav"))
-        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
-        self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
+        # self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink3.wav"))
+        # self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/bing1.wav"))
+        # self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
 
         self.choir_sound = pygame.mixer.Sound("sounds/choir.wav")
@@ -88,14 +88,15 @@ class Game:
         self.win_sound = pygame.mixer.Sound("sounds/win.wav")
         self.wind_sound = pygame.mixer.Sound("sounds/wind.wav")
 
-        self.choir_sound.set_volume(.5)
+        self.choir_sound.set_volume(.25)
         self.explosion_sound.set_volume(.1)
-        self.fuse_sound.set_volume(.1)
-        self.heal_sound.set_volume(.5)
-        self.laser_sound.set_volume(.25)
-        self.punch_sound.set_volume(.5)
-        self.shotgun_sound.set_volume(.1)
-        self.twinkle_sound.set_volume(.5)
+        self.fuse_sound.set_volume(.05)
+        self.heal_sound.set_volume(.25)
+        self.laser_sound.set_volume(.1)
+        self.punch_sound.set_volume(.25)
+        self.shotgun_sound.set_volume(.05)
+        self.twinkle_sound.set_volume(.25)
+        self.wind_sound.set_volume(.25)
 
         for sound in self.collision_sounds:
             sound.set_volume(.05)
