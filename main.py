@@ -123,8 +123,10 @@ class Game:
         self.groups = []
         self.groups.append(pygame.sprite.Group()) # "ORANGE"
         self.groups.append(pygame.sprite.Group()) # "BLUE"
-        self.id_count = [0, 0]
+        self.id_count = [1, 1]
         self.spawn_count = 0
+
+        self.dead_stats = []
 
         # Something to take care of the "fortnite circle"
         self.fortnite_x = 0
@@ -288,7 +290,7 @@ class Game:
         # check for any powerups to update stats
         # winner has star
         if 2 in winner.powerups:
-            self.addKillfeed(winner, loser, 2)
+            # self.addKillfeed(winner, loser, 2)
             winner.stats.useStar()
         # winner has muscle
         if 3 in winner.powerups:
@@ -626,6 +628,9 @@ class Game:
                             for member in group:
                                 print(member.stats.report())
 
+                        for member in self.dead_stats:
+                            print(member)
+
                         # self.fortnite_x = 0
                         # self.fortnite_x_counter = 0
                         # self.fortnite_x_growing = False
@@ -767,6 +772,14 @@ class Circle(pygame.sprite.Sprite):
 
         # Powerups array
         self.powerups = []
+
+    def killCircle(self):
+        stats = self.stats
+        id = self.id
+        image = self.image
+        self.kill()
+
+        self.game.dead_stats.append([image, id, stats])
 
     def getNextImage(self, index):
         multiplier = self.getRad() / 1024
@@ -949,7 +962,7 @@ class Circle(pygame.sprite.Sprite):
 
     def takeDamage(self, amount):
         if self.hp - amount <= 0:
-            self.kill()
+            self.killCircle()
             return -1
 
         self.hp -= amount
@@ -975,20 +988,20 @@ class Circle(pygame.sprite.Sprite):
         if self.hp <= 0:
 
             if 1 in enemy.powerups:
-                self.kill()
+                self.killCircle()
                 return 2
             elif 0 in enemy.powerups:     
                 enemy.removePowerup(0)
-                self.kill()
+                self.killCircle()
                 return 6
             elif 3 in enemy.powerups:
-                self.kill()
+                self.killCircle()
                 return 3
             elif 4 in enemy.powerups:
-                self.kill()
+                self.killCircle()
                 return 5
             else:
-                self.kill()
+                self.killCircle()
                 return 1
         else:
             if 2 in enemy.powerups:
