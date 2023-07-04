@@ -99,7 +99,7 @@ class Game:
         self.shotgun_sound.set_volume(.05)
         self.twinkle_sound.set_volume(.25)
         self.wind_sound.set_volume(.25)
-        self.win_sound.setVolume(.25)
+        self.win_sound.set_volume(.25)
 
         for sound in self.collision_sounds:
             sound.set_volume(.05)
@@ -229,6 +229,8 @@ class Game:
         if 0 in mem_1.powerups and 0 in mem_2.powerups:
             self.addKillfeed(mem_1, mem_2, 0)
             self.addKillfeed(mem_2, mem_1, 0)
+            mem_1.stats.useInstakill()
+            mem_2.stats.useInstakill()
 
             xy1 = mem_1.getXY()
             xy2 = mem_2.getXY()
@@ -248,12 +250,14 @@ class Game:
             if res_1 == 2:
                 new_circle = self.addCircle(g2, xy2, r2, v2, True)
                 self.addKillfeed(mem_2, new_circle, 1)
+                mem_2.stats.resurrectPlayer()
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             # mem_1 has a resurrection and has killed mem_2
             if res_2 == 2:
                 new_circle = self.addCircle(g1, xy1, r1, v1, True)
                 self.addKillfeed(mem_1, new_circle, 1)
+                mem_1.stats.resurrectPlayer()
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
             return 1
@@ -265,7 +269,8 @@ class Game:
                 loser = mem_2
             else:
                 winner = mem_2
-                loser = mem_1     
+                loser = mem_1   
+            winner.stats.useInstakill()  
 
 
         # roll a d20+luck for who damages who
@@ -279,6 +284,18 @@ class Game:
             else:
                 winner = mem_2
                 loser = mem_1
+        
+        # check for any powerups to update stats
+        # winner has star
+        if 2 in winner.powerups:
+            self.addKillfeed(winner, loser, 2)
+            winner.stats.useStar()
+        # winner has muscle
+        if 3 in winner.powerups:
+            winner.stats.useMuscle()
+        # winner has speed
+        if 4 in winner.powerups:
+            winner.stats.useSpeed()
 
         loser_response = loser.getHitBy(winner)
         winner.hitEnemy(loser)
@@ -292,13 +309,13 @@ class Game:
                 v = loser.getVel()
 
                 new_circle = self.addCircle(g, xy, r, v, True)
+                winner.stats.resurrectPlayer()
                 # self.groups[g].add(new_circle)
                 self.addKillfeed(winner, new_circle, 1)
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
                 winner.removePowerup(1)
                 return 1
-            
             # winner has killed loser with insta kill
             elif loser_response == 6:     
                 [x, y] = loser.getXY()
@@ -328,10 +345,7 @@ class Game:
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, -1)
                 return 1
-            # winner has star
-            elif loser_response == 4:
-                self.addKillfeed(winner, loser, 2)
-
+            
     def handle_collision(self, mem_1, mem_2, flag = 0):
         # Magic done by: https://www.vobarian.com/collisions/2dcollisions2.pdf
 
@@ -438,11 +452,14 @@ class Game:
                         laser.ids_collided_with.append(member_1.getId())
                         if member_1.getG_id() != laser.g_id:
                             self.laser_hit_sound.play()
-                            if member_1.takeDamage(25) == -1:
+                            laser_damage = 25
+                            if member_1.takeDamage(laser_damage) == -1:
                                 [x, y] = member_1.getXY()
                                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                                 self.addKillfeed(laser.circle, member_1, 7)
+                                laser.circle.stats.laserHit()
+                                laser.circle.stats.dealDamage(laser_damage)
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
@@ -456,6 +473,7 @@ class Game:
         # Deal damage to everyone close to this point
         self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
         self.explosion_sound.play()
+        circle.stats.useBomb()
         kill_counter = 0
         
         members = []
@@ -486,6 +504,7 @@ class Game:
             #     new_circle = Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y])
             #     self.groups[1].add(new_circle)
             self.addKillfeed(circle, new_circle, 1)
+            circle.stats.resurrectPlayer()
 
     def checkLaserCollision(self):
         members = []
@@ -603,12 +622,16 @@ class Game:
                         self.total_count += 1
 
                     if event.button == 3:
-                        self.fortnite_x = 0
-                        self.fortnite_x_counter = 0
-                        self.fortnite_x_growing = False
-                        self.fortnite_y = 0
-                        self.fortnite_y_counter = 0
-                        self.fortnite_y_growing = False
+                        for group in self.groups:
+                            for member in group:
+                                print(member.stats.report())
+
+                        # self.fortnite_x = 0
+                        # self.fortnite_x_counter = 0
+                        # self.fortnite_x_growing = False
+                        # self.fortnite_y = 0
+                        # self.fortnite_y_counter = 0
+                        # self.fortnite_y_growing = False
 
                 # keyboard click event
                 if event.type == KEYDOWN:
@@ -694,6 +717,7 @@ class Circle(pygame.sprite.Sprite):
         self.bomb_timer = -1
         self.hud_images = hud_images
         self.smoke_images = smoke_images
+        self.stats = CircleStats()
 
         if VEL == 0:
             # Want a constant speed, but random direction to start
@@ -756,6 +780,7 @@ class Circle(pygame.sprite.Sprite):
             self.powerups = []
         else:
             self.powerups.remove(id)
+            self.stats.activatePowerup()
 
         # If removing star, subtract luck
         if id == 2:
@@ -769,7 +794,9 @@ class Circle(pygame.sprite.Sprite):
         # if removing health, gain health
         if id == 5:
             self.game.heal_sound.play()
-            self.hp = min(self.hp + self.max_hp / 2, self.max_hp)
+            new_hp = min(self.hp + self.max_hp / 2, self.max_hp)
+            self.stats.heal(new_hp - self.hp)
+            self.hp = new_hp
             self.checkImageChange()
             self.game.addKillfeed(self, self, 5)
         # if removing laser, spawn laser in same direction as circle
@@ -932,6 +959,7 @@ class Circle(pygame.sprite.Sprite):
     # return something on own death
     def getHitBy(self, enemy):
         self.hp = self.hp - enemy.attack
+        self.stats.receiveDamage(enemy.attack)
         self.dmg_counter = 144
         
         self.checkImageChange()
@@ -965,9 +993,12 @@ class Circle(pygame.sprite.Sprite):
         else:
             if 2 in enemy.powerups:
                 return 4
+            if 3 in enemy.powerups:
+                return 7
             return 0
 
     def hitEnemy(self, enemy):
+        self.stats.dealDamage(self.getAttack())
         if 3 in self.powerups:
             self.removePowerup(3)
             self.game.punch_sound.play()
@@ -986,6 +1017,68 @@ class Circle(pygame.sprite.Sprite):
     
     def getId(self):
         return self.id
+
+class CircleStats():
+    def __init__(self):
+        self.dmg_dealt = 0
+        self.dmg_received = 0
+        self.hp_healed = 0
+        self.powerups_activated = 0
+
+        self.instakills_used = 0
+        self.players_resurrected = 0
+        self.stars_used = 0
+        self.muscles_used = 0
+        self.speeds_used = 0
+        self.bombs_used = 0
+        self.laser_hits = 0
+
+    def dealDamage(self, amount):
+        self.dmg_dealt += amount
+
+    def receiveDamage(self, amount):
+        self.dmg_received += amount
+
+    def heal(self, amount):
+        self.hp_healed += amount
+
+    def activatePowerup(self):
+        self.powerups_activated += 1
+
+    def useInstakill(self):
+        self.instakills_used += 1
+
+    def resurrectPlayer(self):
+        self.players_resurrected += 1
+
+    def useStar(self):
+        self.stars_used += 1
+
+    def useMuscle(self):
+        self.muscles_used += 1
+
+    def useSpeed(self):
+        self.speeds_used += 1
+
+    def useBomb(self):
+        self.bombs_used += 1
+    
+    def laserHit(self):
+        self.laser_hits += 1
+
+    def report(self):
+        return [
+            self.dmg_dealt,
+            self.dmg_received,
+            self.hp_healed,
+            self.powerups_activated,
+            self.instakills_used,
+            self.players_resurrected ,
+            self.muscles_used,
+            self.speeds_used,
+            self.bombs_used,
+            self.laser_hits,
+        ]
 
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, attributes, x, y):
