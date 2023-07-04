@@ -3,7 +3,7 @@ from pygame.locals import *
 
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
-    ["orange",      0,      6,      7,      10,     100,    3,     10],
+    ["orange",      0,      6,      7,      10,     120,    3,     10],
     ["blue",        1,      4,      10,     20,     110,    5,     8],
 ]
 
@@ -51,6 +51,8 @@ class Game:
             ["powerups/bomb.png",    6],
             ["powerups/laser.png",   7]
         ]
+
+        self.coffin_img = pygame.transform.scale(pygame.image.load("powerups/coffin.png"), (40, 40))
 
         for powerup in self.powerups:
             image = pygame.image.load(powerup[0])
@@ -268,9 +270,7 @@ class Game:
                 loser = mem_2
             else:
                 winner = mem_2
-                loser = mem_1
-            self.shotgun_sound.play()
-            self.addKillfeed(winner, loser, 0)          
+                loser = mem_1     
 
 
         # roll a d20+luck for who damages who
@@ -303,11 +303,14 @@ class Game:
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
                 winner.removePowerup(1)
                 return 1
-            # winner has killed loser
-            elif loser_response == 1:     
+            
+            # winner has killed loser with insta kill
+            elif loser_response == 6:     
                 [x, y] = loser.getXY()
                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                self.shotgun_sound.play()   
+                self.addKillfeed(winner, loser, 0)
                 return 1
             # winner has killed loser with muscle
             elif loser_response == 3:     
@@ -315,6 +318,13 @@ class Game:
                 self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, 3)
+                return 1
+            # winner has killed loser
+            elif loser_response == 1:     
+                [x, y] = loser.getXY()
+                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                self.addKillfeed(winner, loser, -1)
                 return 1
             # winner has star
             elif loser_response == 4:
@@ -555,7 +565,12 @@ class Game:
         if len(self.killfeed_group) == 12:
             self.killfeed_group.update(True)
 
-        self.killfeed_group.add(Killfeed(right_circle, left_circle, self.powerup_images_screen[action_id], self.screen_w, len(self.killfeed_group), self.screen))
+        if action_id == -1:
+            image = self.coffin_img
+        else:
+            image = self.powerup_images_screen[action_id]
+
+        self.killfeed_group.add(Killfeed(right_circle, left_circle, image, self.screen_w, len(self.killfeed_group), self.screen))
 
     def play_game(self):
         while self.running:
@@ -913,7 +928,6 @@ class Circle(pygame.sprite.Sprite):
         # Check if enemy had insta-kill
         if 0 in enemy.powerups:
             self.hp = 0
-            enemy.removePowerup(0)
         
         # Check if you had a star, if so remove it
         if 2 in self.powerups: self.removePowerup(2)
@@ -924,6 +938,10 @@ class Circle(pygame.sprite.Sprite):
             if 1 in enemy.powerups:
                 self.kill()
                 return 2
+            elif 0 in enemy.powerups:     
+                enemy.removePowerup(0)
+                self.kill()
+                return 6
             elif 3 in enemy.powerups:
                 self.kill()
                 return 3
@@ -936,8 +954,6 @@ class Circle(pygame.sprite.Sprite):
         else:
             if 2 in enemy.powerups:
                 return 4
-            elif 4 in enemy.powerups:
-                return 5
             return 0
 
     def hitEnemy(self, enemy):
