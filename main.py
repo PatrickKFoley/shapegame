@@ -205,14 +205,14 @@ class Game:
                     powerup.kill()
 
     def getSafeSpawn(self, id):
-        w = self.screen_w - 200
-        h = self.screen_h - 200
+        w = self.screen_w
+        h = self.screen_h
 
         rows = 4
         cols = 8
 
-        w_int = w/cols-1
-        h_int = h/rows-1
+        w_int = w/cols
+        h_int = h/rows
 
         x = id % (self.total_count / rows)
         y = id // (self.total_count / rows)
