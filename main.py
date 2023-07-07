@@ -117,7 +117,10 @@ class Game:
         self.running = True
         self.frames = 0
         self.done = False
+        self.frames_done = 0
         self.play_sound = True
+        self.spawned_counter = 0
+        self.mode = "GAME"
 
         # for loop for creating circles
         self.groups = []
@@ -166,7 +169,8 @@ class Game:
     def spawnPowerup(self, location, id = -1):
         if id == -1:
             self.powerup_counter += 1
-            powerup = self.powerup_counter % len(self.powerups)
+            # powerup = self.powerup_counter % len(self.powerups)
+            powerup = random.randint(0, len(self.powerups) - 1)
             self.powerup_group.add(Powerup(self.powerups[powerup], location[0], location[1]))
         elif id >= len(self.powerups) or id < 0:
             return
@@ -321,7 +325,8 @@ class Game:
             # winner has killed loser with insta kill
             elif loser_response == 6:     
                 [x, y] = loser.getXY()
-                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                if self.mode == "GAME":
+                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.shotgun_sound.play()   
                 self.addKillfeed(winner, loser, 0)
@@ -329,21 +334,24 @@ class Game:
             # winner has killed loser with muscle
             elif loser_response == 3:     
                 [x, y] = loser.getXY()
-                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                if self.mode == "GAME":
+                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, 3)
                 return 1
             # winner has killed loser with speed
             elif loser_response == 5:
                 [x, y] = loser.getXY()
-                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                if self.mode == "GAME":
+                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, 4)
                 return 1
             # winner has killed loser
             elif loser_response == 1:     
                 [x, y] = loser.getXY()
-                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                if self.mode == "GAME":
+                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, -1)
                 return 1
@@ -457,7 +465,8 @@ class Game:
                             laser_damage = 25
                             if member_1.takeDamage(laser_damage) == -1:
                                 [x, y] = member_1.getXY()
-                                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                                if self.mode == "GAME":
+                                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                                 self.addKillfeed(laser.circle, member_1, 7)
                                 laser.circle.stats.laserHit()
@@ -473,7 +482,8 @@ class Game:
         self.fuse_sound.stop()
 
         # Deal damage to everyone close to this point
-        self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
+        if self.mode == "GAME":
+            self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
         self.explosion_sound.play()
         circle.stats.useBomb()
         kill_counter = 0
@@ -493,7 +503,9 @@ class Game:
 
             elif dist <= 200:
                 if member.takeDamage(200 - dist) == -1:
-                    self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
+                    if self.mode == "GAME":
+                        self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
+
                     self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                     self.addKillfeed(circle, member, 6)
                     kill_counter += 1
@@ -530,7 +542,8 @@ class Game:
                         if member.getG_id() != laser.g_id:
                             if member.takeDamage(50) == -1:
                                 [x, y] = member.getXY()
-                                self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                                if self.mode == "GAME":
+                                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                                 self.death_sounds[random.randint(0, len(self.death_sounds-1))].play()
                     
     def drawStats(self):
@@ -617,21 +630,25 @@ class Game:
                 # button click event
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        if self.total_count % 2 == 1:
+                        self.spawn_count += 1
+                        if self.spawn_count % 2 == 1:
                             self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
                         else:
                             self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
-                        self.total_count += 1
+                    
+                    if event.button == 2:
+
+                        self.showStats()
 
                     if event.button == 3:
                         print("LIVING MEMBERS:")
                         for group in self.groups:
                             for member in group:
-                                print(member.id, member.stats.report())
+                                print(member.id, "\t", member.stats.report())
 
                         print("DEAD MEMBERS:")
                         for member in self.dead_stats:
-                            print(member[1], member[2].report())
+                            print(member[1], "\t", member[2].report())
                         print("\n")
 
                         # self.fortnite_x = 0
@@ -650,7 +667,7 @@ class Game:
             self.screen.blit(self.background, (0, 0))
 
             # Every x seconds spawn a random powerup
-            if not self.done and self.frames % (1 * self.fps) == 0:
+            if not self.done and self.frames % (10 * self.fps) == 0:
                 self.spawnPowerup((random.randint(self.fortnite_x + 10, self.screen_w - self.fortnite_x - 10), random.randint(self.fortnite_y + 10, self.screen_h - self.fortnite_y - 10)))
 
             # draw & update groups
@@ -678,13 +695,13 @@ class Game:
 
             if self.fortnite_x_growing:
                 self.fortnite_x_counter += 1
-                if self.fortnite_x_counter % 10 == 0:
+                if self.fortnite_x_counter % 3 == 0:
                     if self.fortnite_x <= 770:
                         self.fortnite_x += 1
 
             if self.fortnite_y_growing:
                 self.fortnite_y_counter += 1
-                if self.fortnite_y_counter % 10 == 0:
+                if self.fortnite_y_counter % 3 == 0:
                     if self.fortnite_y <= 350:
                         self.fortnite_y += 1
 
@@ -705,10 +722,60 @@ class Game:
                 self.play_sound = False
                 if self.win_sound.get_num_channels() == 0:
                     self.win_sound.play()
+
+            if self.done:
+                self.frames_done += 1
+                if self.frames_done == 10 * self.fps:
+                    self.showStats()
                     
 
             # limits FPS to 60
             self.clock.tick(self.fps)
+
+    def showStats(self):
+        self.mode = "STATS"
+        while self.running:
+            for event in pygame.event.get():
+                # quit event
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if event.type == MOUSEBUTTONDOWN:
+                    if event.button == 2:
+                        self.mode = "GAME"
+                        return
+
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+
+            # update all groups (and check for collisions) w/o drawing them
+            self.groups[0].update(self)
+            self.laser_group.update(self)
+            self.check_collisions()
+            self.groups[1].update(self)
+            self.clouds_group.update()
+            self.explosions_group.update()
+            self.killfeed_group.update()
+            self.powerup_group.update(self)
+            
+
+            # other functions
+            self.checkPowerupCollect()
+            self.drawStats()
+
+            # list all stats
+            member_counter = 0
+            for group in self.groups:
+                for member in group:
+                    # draw circle + id
+                    # self.centerImageAt()
+
+                    member_counter += 1
+
+            self.clock.tick(self.fps)
+
+
+    def centerImageAt(self, image, x, y):
+        self.screen.blit(image, (x + (image.get_size()[0] / 2), y - (image.get_zie()[1] / 2)))
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
@@ -861,22 +928,30 @@ class Circle(pygame.sprite.Sprite):
             elif self.frames <= 50:
                 game.screen.blit(self.smoke_images[4], (self.x - self.smoke_images[4].get_size()[0] / 2, self.y - self.smoke_images[4].get_size()[1] / 2))
 
-        if self.dmg_counter != 0:
-            self.dmg_counter -= 1
-            pygame.draw.circle(game.screen, "red", (self.x - self.r, self.y - self.r + 10), 3)
+        
 
         if type(self.powerups) == type(None):
             self.powerups = []
 
-        p_counter = 0
-        if self.powerups != []:
-            for powerup in self.powerups:
-                image = self.hud_images[powerup]
-                game.screen.blit(image, (self.x - self.max_hp / 2 + p_counter * 20, self.y - self.r - 25))
-                p_counter += 1
+        if self.game.mode == "GAME":
+            # show powerups
+            p_counter = 0
+            if self.powerups != []:
+                for powerup in self.powerups:
+                    image = self.hud_images[powerup]
+                    game.screen.blit(image, (self.x - self.max_hp / 2 + p_counter * 20, self.y - self.r - 25))
+                    p_counter += 1
 
-        pygame.draw.rect(game.screen, "red", (self.x - self.max_hp / 2, self.y - self.r * 1, self.max_hp, 5))
-        pygame.draw.rect(game.screen, "green", (self.x - self.max_hp / 2, self.y - self.r * 1, self.hp, 5))
+            # show damage indicator
+            if self.dmg_counter != 0:
+                self.dmg_counter -= 1
+                pygame.draw.circle(game.screen, "red", (self.x - self.r, self.y - self.r + 10), 3)
+
+            # show health
+            pygame.draw.rect(game.screen, "red", (self.x - self.max_hp / 2, self.y - self.r * 1, self.max_hp, 5))
+            pygame.draw.rect(game.screen, "green", (self.x - self.max_hp / 2, self.y - self.r * 1, self.hp, 5))
+        elif self.game.mode == "STATS":
+            pass
 
         self.move(game)
 
@@ -1087,9 +1162,9 @@ class CircleStats():
             self.dmg_dealt,
             self.dmg_received,
             self.hp_healed,
+            self.players_resurrected ,
             self.powerups_activated,
             self.instakills_used,
-            self.players_resurrected ,
             self.muscles_used,
             self.speeds_used,
             self.bombs_used,
@@ -1218,7 +1293,8 @@ class Laser(pygame.sprite.Sprite):
             self.y = self.r + game.fortnite_y
             self.vy = -1 * self.vy
 
-        game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
+        if game.mode == "GAME":
+            game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
         
         # game.screen.blit(self.image, self.x, self.y)
 
