@@ -624,12 +624,15 @@ class Game:
                         self.total_count += 1
 
                     if event.button == 3:
+                        print("LIVING MEMBERS:")
                         for group in self.groups:
                             for member in group:
-                                print(member.stats.report())
+                                print(member.id, member.stats.report())
 
+                        print("DEAD MEMBERS:")
                         for member in self.dead_stats:
-                            print(member)
+                            print(member[1], member[2].report())
+                        print("\n")
 
                         # self.fortnite_x = 0
                         # self.fortnite_x_counter = 0
