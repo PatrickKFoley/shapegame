@@ -3,8 +3,9 @@ from pygame.locals import *
 
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
-    ["orange",      0,      6,      7,      10,     120,    3,     10],
-    ["blue",        1,      4,      10,     20,     110,    5,     8],
+    # ["orange",      0,      6,      7,      10,     120,    3,     10],
+    ["blue",        0,      4,      10,     20,     110,    5,     8],
+    ["purple",      1,      5,      15,     30,     180,    2,     8],
 ]
 
 class Game:
@@ -636,7 +637,7 @@ class Game:
                         else:
                             self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
                     
-                    if event.button == 2:
+                    if event.button == 3:
 
                         self.showStats()
 
