@@ -332,6 +332,7 @@ class Game:
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                winner.stats.killPlayer(loser.id)
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.shotgun_sound.play()   
                 self.addKillfeed(winner, loser, 0)
@@ -341,6 +342,7 @@ class Game:
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                winner.stats.killPlayer(loser.id)
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, 3)
                 return 1
@@ -349,6 +351,7 @@ class Game:
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                winner.stats.killPlayer(loser.id)
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, 4)
                 return 1
@@ -357,6 +360,7 @@ class Game:
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                winner.stats.killPlayer(loser.id)
                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                 self.addKillfeed(winner, loser, -1)
                 return 1
@@ -474,6 +478,7 @@ class Game:
                                 [x, y] = member_1.getXY()
                                 if self.mode == "GAME":
                                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                                laser.circle.stats.killPlayer(member_1.id)
                                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                                 self.addKillfeed(laser.circle, member_1, 7)
                                 
@@ -513,6 +518,7 @@ class Game:
                 if member.takeDamage(200 - dist) == -1:
                     if self.mode == "GAME":
                         self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
+                    circle.stats.killPlayer(member.id)
 
                     self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                     self.addKillfeed(circle, member, 6)
@@ -552,6 +558,7 @@ class Game:
                                 [x, y] = member.getXY()
                                 if self.mode == "GAME":
                                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                                laser.circle.stats.killPlayer(member.id)
                                 self.death_sounds[random.randint(0, len(self.death_sounds-1))].play()
                     
     def drawStats(self):
@@ -597,7 +604,10 @@ class Game:
         else:
             image = self.powerup_images_screen[action_id]
 
-        self.killfeed_group.add(Killfeed(right_circle, left_circle, image, self.screen_w, len(self.killfeed_group), self.screen))
+        new = Killfeed(right_circle, left_circle, image, self.screen_w, len(self.killfeed_group), self.screen)
+        
+        if new not in self.killfeed_group:
+            self.killfeed_group.add(new)
 
     def addCircle(self, g_id, xy = 0, r = 0, v = 0, new = False):
         if new:
@@ -714,6 +724,7 @@ class Game:
 
     def showStats(self):
         self.mode = "STATS"
+        self.frames += 1
         while self.running:
             for event in pygame.event.get():
                 # quit event
@@ -732,6 +743,10 @@ class Game:
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
 
+            # Every x seconds spawn a random powerup
+            if not self.done and self.frames % (5 * self.fps) == 0:
+                self.spawnPowerup()
+
             # update all groups (and check for collisions) w/o drawing them
             self.groups[0].update(self)
             self.laser_group.update(self)
@@ -746,6 +761,22 @@ class Game:
             # other functions
             self.checkPowerupCollect()
             self.drawStats()
+
+            # Do fortnite circle things
+            if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= 10:
+                self.fortnite_x_growing = self.fortnite_y_growing = True
+
+            if self.fortnite_x_growing:
+                self.fortnite_x_counter += 1
+                if self.fortnite_x_counter % 3 == 0:
+                    if self.fortnite_x <= 770:
+                        self.fortnite_x += 1
+
+            if self.fortnite_y_growing:
+                self.fortnite_y_counter += 1
+                if self.fortnite_y_counter % 3 == 0:
+                    if self.fortnite_y <= 350:
+                        self.fortnite_y += 1
 
             # draw grid
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
@@ -762,10 +793,10 @@ class Game:
             # draw headers
             font = pygame.font.Font("freesansbold.ttf", 80)
             self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 100)
-            self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 900, 100)
+            self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 850, 100)
 
             self.screen.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 60))
-            self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 900, 60))
+            self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 60))
 
             self.screen.blit(self.sword_image, (256, 200))
             self.screen.blit(self.blood_image, (329, 200))
@@ -777,17 +808,19 @@ class Game:
             self.screen.blit(self.powerup_images_screen[4], (604, 200))
             self.screen.blit(self.powerup_images_screen[6], (654, 200))
             self.screen.blit(self.powerup_images_screen[7], (704, 200))
+            self.screen.blit(self.coffin_img, (754, 200))
 
-            self.screen.blit(self.sword_image, (256 + 900, 200))
-            self.screen.blit(self.blood_image, (329 + 900, 200))
+            self.screen.blit(self.sword_image, (256 + 850, 200))
+            self.screen.blit(self.blood_image, (329 + 850, 200))
 
-            self.screen.blit(self.powerup_images_screen[5], (404 + 900, 200))
-            self.screen.blit(self.powerup_images_screen[1], (454 + 900, 200))
-            self.screen.blit(self.powerup_images_screen[0], (504 + 900, 200))
-            self.screen.blit(self.powerup_images_screen[3], (554 + 900, 200))
-            self.screen.blit(self.powerup_images_screen[4], (604 + 900, 200))
-            self.screen.blit(self.powerup_images_screen[6], (654 + 900, 200))
-            self.screen.blit(self.powerup_images_screen[7], (704 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[5], (404 + 850, 200))
+            self.screen.blit(self.powerup_images_screen[1], (454 + 850, 200))
+            self.screen.blit(self.powerup_images_screen[0], (504 + 850, 200))
+            self.screen.blit(self.powerup_images_screen[3], (554 + 850, 200))
+            self.screen.blit(self.powerup_images_screen[4], (604 + 850, 200))
+            self.screen.blit(self.powerup_images_screen[6], (654 + 850, 200))
+            self.screen.blit(self.powerup_images_screen[7], (704 + 850, 200))
+            self.screen.blit(self.coffin_img, (754 + 850, 200))
 
             # list all stats
             group_counter = 0
@@ -803,9 +836,9 @@ class Game:
 
                     id = "id: " + str(id)
                     hp = str(round(member.hp / member.max_hp * 100, 1)) + "%"
-                    dmg_o = str(member.stats.report()[0])
-                    dmg_i = str(member.stats.report()[1])
-                    hp_h = str(member.stats.report()[2])
+                    dmg_o = str(round(member.stats.report()[0]))
+                    dmg_i = str(round(member.stats.report()[1]))
+                    hp_h = str(round(member.stats.report()[2]))
                     p_r = str(member.stats.report()[3])
                     p_a = str(member.stats.report()[4])
                     i_u = str(member.stats.report()[5])
@@ -813,12 +846,13 @@ class Game:
                     s_u = str(member.stats.report()[7])
                     b_u = str(member.stats.report()[8])
                     l_h = str(member.stats.report()[9])
+                    p_k = str(member.stats.report()[10])
 
                     stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
                     stats.append(p_r); #stats.append(p_a); 
                     stats.append(i_u); stats.append(m_u); stats.append(s_u)
-                    stats.append(b_u); stats.append(l_h)
-                    self.printStat(stats, 75 + group_counter * 900, 250 + member_counter * 30)
+                    stats.append(b_u); stats.append(l_h); stats.append(p_k)
+                    self.printStat(stats, 75 + group_counter * 850, 250 + member_counter * 30)
 
                     member_counter += 1
 
@@ -828,19 +862,11 @@ class Game:
                     else:
                         id = str(stats_list[0])
 
-                    # counter = 0
-                    # for stat in stats[1]:
-                    #     stats[1][counter] = str(round(stats[1][counter]))
-                    #     counter += 1
-                    
-                    # stats[1][0] = "id: " + stats[1][0]
-                    # stats[1][1] = stats[1][1] + "%"
-
                     stats = stats_list[1]
                     id = "id: " + str(id)
                     hp = str(round(0, 1)) + "%"
-                    dmg_o = str(stats.report()[0])
-                    dmg_i = str(stats.report()[1])
+                    dmg_o = str(round(stats.report()[0]))
+                    dmg_i = str(round(stats.report()[1]))
                     hp_h = str(round(stats.report()[2]))
                     p_r = str(stats.report()[3])
                     p_a = str(stats.report()[4])
@@ -849,15 +875,16 @@ class Game:
                     s_u = str(stats.report()[7])
                     b_u = str(stats.report()[8])
                     l_h = str(stats.report()[9])
+                    p_k = str(stats.report()[10])
 
                     stats = []
                     stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
                     stats.append(p_r); #stats.append(p_a); 
                     stats.append(i_u); stats.append(m_u); stats.append(s_u)
-                    stats.append(b_u); stats.append(l_h)
+                    stats.append(b_u); stats.append(l_h); stats.append(p_k)
 
    
-                    self.printStat(stats, 75 + group_counter * 900, 250 + member_counter * 30, True)
+                    self.printStat(stats, 75 + group_counter * 850, 250 + member_counter * 30, True)
 
                     member_counter += 1
 
@@ -962,7 +989,8 @@ class Circle(pygame.sprite.Sprite):
         id = self.id
         self.kill()
 
-        self.game.dead_stats[self.g_id].append([id, stats])
+        if [id, stats] not in self.game.dead_stats[self.g_id]:
+            self.game.dead_stats[self.g_id].append([id, stats])
 
     def getNextImage(self, index):
         multiplier = self.getRad() / 1024
@@ -1228,6 +1256,8 @@ class CircleStats():
         self.dmg_received = 0
         self.hp_healed = 0
         self.powerups_activated = 0
+        self.kills = 0
+        self.players_killed = []
 
         self.instakills_used = 0
         self.players_resurrected = 0
@@ -1248,6 +1278,11 @@ class CircleStats():
 
     def activatePowerup(self):
         self.powerups_activated += 1
+
+    def killPlayer(self, id):
+        if id not in self.players_killed:
+            self.players_killed.append(id)
+            self.kills += 1
 
     def useInstakill(self):
         self.instakills_used += 1
@@ -1282,6 +1317,7 @@ class CircleStats():
             self.speeds_used,
             self.bombs_used,
             self.laser_hits,
+            self.kills
         ]
 
 class Powerup(pygame.sprite.Sprite):
