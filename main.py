@@ -4,8 +4,8 @@ from pygame.locals import *
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
     # ["orange",      0,      6,      7,      10,     120,    3,     10],
-    ["blue",        0,      4,      10,     20,     110,    5,     8],
-    ["purple",      1,      5,      15,     30,     180,    2,     8],
+    ["blue",        0,      4,      10,     15,     110,    5,     8],
+    ["purple",      1,      5,      15,     25,     180,    2,     8],
 ]
 
 class Game:
@@ -59,6 +59,9 @@ class Game:
             image = pygame.image.load(powerup[0])
             self.powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
             self.powerup_images_hud.append(pygame.transform.scale(image, (20, 20)))
+
+        self.blood_image = pygame.transform.scale(pygame.image.load("powerups/blood.png"), (40, 40))
+        self.sword_image = pygame.transform.scale(pygame.image.load("powerups/sword.png"), (40, 40))
 
         self.images = [self.c0_images, self.c1_images]
 
@@ -122,6 +125,7 @@ class Game:
         self.play_sound = True
         self.spawned_counter = 0
         self.mode = "GAME"
+        self.stats_screen = False
 
         # for loop for creating circles
         self.groups = []
@@ -130,7 +134,7 @@ class Game:
         self.id_count = [1, 1]
         self.spawn_count = 0
 
-        self.dead_stats = []
+        self.dead_stats = [[], []]
 
         # Something to take care of the "fortnite circle"
         self.fortnite_x = 0
@@ -473,11 +477,14 @@ class Game:
                                 laser.circle.stats.laserHit()
                                 laser.circle.stats.dealDamage(laser_damage)
 
-    def draw_text(self, text, font, color, surface, x, y):
+    def draw_text(self, text, font, color, x, y, center = True):
         text_obj = font.render(text, 1, color)
         text_rect = text_obj.get_rect()
-        text_rect.topleft = (x - font.size(text)[0] / 2, y)
-        surface.blit(text_obj, text_rect)
+        if center:
+            text_rect.topleft = (x - font.size(text)[0] / 2, y)
+        else:
+            text_rect.topleft = (x, y)
+        self.screen.blit(text_obj, text_rect)
 
     def blowupBomb(self, circle, x, y, g_id):
         self.fuse_sound.stop()
@@ -559,8 +566,8 @@ class Game:
         image = pygame.transform.scale(image, (85, 85))
 
         self.screen.blit(image, (self.screen_w + 10, 10))
-        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 52, 105)
-        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 60, 130)
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 52, 105)
+        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 60, 130)
 
         # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
         # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
@@ -578,8 +585,8 @@ class Game:
 
         offset = self.screen_w / 2 - 100
         self.screen.blit(image, (self.screen_w + 105, 10))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 147, 105)
-        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen, self.screen_w + 155, 130)
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 147, 105)
+        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 155, 130)
 
         # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
         # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
@@ -637,7 +644,7 @@ class Game:
                         else:
                             self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
                     
-                    if event.button == 3:
+                    if event.button == 2:
 
                         self.showStats()
 
@@ -648,8 +655,9 @@ class Game:
                                 print(member.id, "\t", member.stats.report())
 
                         print("DEAD MEMBERS:")
-                        for member in self.dead_stats:
-                            print(member[1], "\t", member[2].report())
+                        for group in self.dead_stats:
+                            for member in group:
+                                print(member[1], "\t", member[2].report())
                         print("\n")
 
                         # self.fortnite_x = 0
@@ -661,7 +669,10 @@ class Game:
 
                 # keyboard click event
                 if event.type == KEYDOWN:
-                    self.spawnPowerup(pygame.mouse.get_pos(), event.key - 49)
+                    if event.key == 9:
+                        self.showStats()
+                    else:
+                        self.spawnPowerup(pygame.mouse.get_pos(), event.key - 49)
 
             # flip() the display to put your work on screen
             pygame.display.flip()
@@ -711,12 +722,12 @@ class Game:
             if len(self.groups[0].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("{} Wins!".format(self.c1[0].capitalize()), self.font, self.c1[0], self.screen, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.c1[0].capitalize()), self.font, self.c1[0], self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, self.c0[0], self.screen, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, self.c0[0], self.screen_w / 2, self.screen_h / 6)
 
             
             if self.done and self.play_sound:
@@ -744,6 +755,11 @@ class Game:
                     if event.button == 2:
                         self.mode = "GAME"
                         return
+                # keyboard click event
+                if event.type == KEYDOWN:
+                    if event.key == 9:
+                        self.mode = "GAME"
+                        return
 
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
@@ -763,20 +779,149 @@ class Game:
             self.checkPowerupCollect()
             self.drawStats()
 
+            # draw grid
+            num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+            
+            pygame.draw.rect(self.screen, "darkgray", (10, 50, 1710, num_rows * 30 + 215))
+
+            for i in range(0, num_rows):
+                if i % 2 == 0:
+                    color = "lightgray"
+                else:
+                    color = "white"
+                pygame.draw.rect(self.screen, color, (20, 245 + 30 * i, 1690, 30))
+
+            # draw headers
+            font = pygame.font.Font("freesansbold.ttf", 80)
+            self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 100)
+            self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 900, 100)
+
+            self.screen.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 60))
+            self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 900, 60))
+
+            self.screen.blit(self.sword_image, (256, 200))
+            self.screen.blit(self.blood_image, (329, 200))
+
+            self.screen.blit(self.powerup_images_screen[5], (404, 200))
+            self.screen.blit(self.powerup_images_screen[1], (454, 200))
+            self.screen.blit(self.powerup_images_screen[0], (504, 200))
+            self.screen.blit(self.powerup_images_screen[3], (554, 200))
+            self.screen.blit(self.powerup_images_screen[4], (604, 200))
+            self.screen.blit(self.powerup_images_screen[6], (654, 200))
+            self.screen.blit(self.powerup_images_screen[7], (704, 200))
+
+            self.screen.blit(self.sword_image, (256 + 900, 200))
+            self.screen.blit(self.blood_image, (329 + 900, 200))
+
+            self.screen.blit(self.powerup_images_screen[5], (404 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[1], (454 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[0], (504 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[3], (554 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[4], (604 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[6], (654 + 900, 200))
+            self.screen.blit(self.powerup_images_screen[7], (704 + 900, 200))
+
             # list all stats
-            member_counter = 0
+            group_counter = 0
             for group in self.groups:
+                member_counter = 0
                 for member in group:
-                    # draw circle + id
-                    # self.centerImageAt()
+                    if member.id < 10:
+                        id = "0" + str(member.id)
+                    else:
+                        id = str(member.id)
+
+                    stats = []
+
+                    id = "id: " + str(id)
+                    hp = str(round(member.hp / member.max_hp * 100, 1)) + "%"
+                    dmg_o = str(member.stats.report()[0])
+                    dmg_i = str(member.stats.report()[1])
+                    hp_h = str(member.stats.report()[2])
+                    p_r = str(member.stats.report()[3])
+                    p_a = str(member.stats.report()[4])
+                    i_u = str(member.stats.report()[5])
+                    m_u = str(member.stats.report()[6])
+                    s_u = str(member.stats.report()[7])
+                    b_u = str(member.stats.report()[8])
+                    l_h = str(member.stats.report()[9])
+
+                    stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
+                    stats.append(p_r); #stats.append(p_a); 
+                    stats.append(i_u); stats.append(m_u); stats.append(s_u)
+                    stats.append(b_u); stats.append(l_h)
+                    self.printStat(stats, 75 + group_counter * 900, 250 + member_counter * 30)
 
                     member_counter += 1
 
+                for stats_list in self.dead_stats[group_counter]:
+                    if stats_list[0] < 10:
+                        id = "0" + str(stats_list[0])
+                    else:
+                        id = str(stats_list[0])
+
+                    # counter = 0
+                    # for stat in stats[1]:
+                    #     stats[1][counter] = str(round(stats[1][counter]))
+                    #     counter += 1
+                    
+                    # stats[1][0] = "id: " + stats[1][0]
+                    # stats[1][1] = stats[1][1] + "%"
+
+                    stats = stats_list[1]
+                    id = "id: " + str(id)
+                    hp = str(round(0, 1)) + "%"
+                    dmg_o = str(stats.report()[0])
+                    dmg_i = str(stats.report()[1])
+                    hp_h = str(round(stats.report()[2]))
+                    p_r = str(stats.report()[3])
+                    p_a = str(stats.report()[4])
+                    i_u = str(stats.report()[5])
+                    m_u = str(stats.report()[6])
+                    s_u = str(stats.report()[7])
+                    b_u = str(stats.report()[8])
+                    l_h = str(stats.report()[9])
+
+                    stats = []
+                    stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
+                    stats.append(p_r); #stats.append(p_a); 
+                    stats.append(i_u); stats.append(m_u); stats.append(s_u)
+                    stats.append(b_u); stats.append(l_h)
+
+   
+                    self.printStat(stats, 75 + group_counter * 900, 250 + member_counter * 30, True)
+
+                    member_counter += 1
+
+
+                group_counter += 1
+
             self.clock.tick(self.fps)
 
+    def printStat(self, stats, x, y, dead = False):
+        font = pygame.font.Font("freesansbold.ttf", 25)
+        if dead:
+            color = "red"
+        else:
+            color = "black"
+
+        for i in range(0, len(stats)):
+            if stats[i] == "0":
+                stats[i] = "-"
+
+            if i<3:
+                self.draw_text(stats[i], font, color, x + i * 100, y)
+
+            elif 3<=i<4:
+                self.draw_text(stats[i], font, color, x + 275 + (i-3) * 50, y)
+
+            else:
+                self.draw_text(stats[i], font, color, x + 300 + (i-3) * 50, y)
+
+        # pygame.quit()
 
     def centerImageAt(self, image, x, y):
-        self.screen.blit(image, (x + (image.get_size()[0] / 2), y - (image.get_zie()[1] / 2)))
+        self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
@@ -847,10 +992,9 @@ class Circle(pygame.sprite.Sprite):
     def killCircle(self):
         stats = self.stats
         id = self.id
-        image = self.image
         self.kill()
 
-        self.game.dead_stats.append([image, id, stats])
+        self.game.dead_stats[self.g_id].append([id, stats])
 
     def getNextImage(self, index):
         multiplier = self.getRad() / 1024
