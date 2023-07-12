@@ -965,8 +965,6 @@ class Game:
         self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
 
     def createStatsScreen(self):
-        print("drawing new stats screen")
-        
         # create stats screen image
         num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
         self.cur_rows = num_rows
