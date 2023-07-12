@@ -4,12 +4,15 @@ from pygame.locals import *
 circles = [
     # color         g_id    v       m       r       hp      atk     luck
     # ["orange",      0,      6,      7,      10,     120,    3,     10],
-    ["blue",        0,      4,      10,     15,     110,    5,     8],
-    ["purple",      1,      5,      15,     20,     180,    2,     11],
+    ["blue",        0,      3,      10,     15,     110,    5,     8],
+    ["purple",      1,      4,      15,     20,     180,    2,     11],
 ]
 
 class Game:
-    def __init__(self, c0, c1):
+    def __init__(self, c0, c1, seed = False):
+        if seed != False:
+            random.seed(seed)
+        
         self.c0 = c0
         self.c1 = c1
         self.circles = [c0, c1]
@@ -447,6 +450,7 @@ class Game:
 
             [m1_x, m1_y] = member_1.getXY()
             m1_r = member_1.getRad()
+
             for member_2 in members:
                 if member_1 != member_2:
                     [m2_x, m2_y] = member_2.getXY()
@@ -456,8 +460,15 @@ class Game:
                     max_dist = m1_r + m2_r
 
                     if (dist <= max_dist):
-                        # self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
-                        self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
+                        if member_2.getId() in member_1.colliding_with or member_1.getId() in member_2.colliding_with:
+                            pass
+                        else:
+                            self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
+                    else:
+                        if member_2.getId() in member_1.colliding_with:
+                            member_1.colliding_with.remove(member_2.getId())
+                        if member_1.getId() in member_2.colliding_with:
+                            member_2.colliding_with.remove(member_1.getId())
 
             for laser in self.laser_group.sprites():
                 [lx, ly] = [laser.x, laser.y]
@@ -660,6 +671,11 @@ class Game:
             if not self.done and self.frames % (5 * self.fps) == 0:
                 self.spawnPowerup()
 
+            # Every x seconds there there is less than 10 circles spawn a speed powerup
+            if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < 10:
+                self.spawnPowerup(4)
+
+
             # draw & update groups
             self.groups[0].draw(self.screen)
             self.groups[1].draw(self.screen)
@@ -672,7 +688,9 @@ class Game:
 
             self.clouds_group.update()
             self.explosions_group.update()
-            self.killfeed_group.update()
+            for killfeed in self.killfeed_group.sprites():
+                if killfeed.update() == 1:
+                    self.killfeed_group.update(True)
 
             self.powerup_group.update(self)
             self.checkPowerupCollect()
@@ -721,6 +739,8 @@ class Game:
 
             # limits FPS to 60
             self.clock.tick(self.fps)
+            font = pygame.font.Font("freesansbold.ttf", 40)
+            self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
 
     def showStats(self):
         self.mode = "STATS"
@@ -746,6 +766,10 @@ class Game:
             # Every x seconds spawn a random powerup
             if not self.done and self.frames % (5 * self.fps) == 0:
                 self.spawnPowerup()
+            
+            # Every x seconds there there is less than 10 circles spawn a speed powerup
+            if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < 10:
+                self.spawnPowerup(4)
 
             # update all groups (and check for collisions) w/o drawing them
             self.groups[0].update(self)
@@ -934,6 +958,7 @@ class Circle(pygame.sprite.Sprite):
         self.hud_images = hud_images
         self.smoke_images = smoke_images
         self.stats = CircleStats()
+        self.colliding_with = []
 
         if VEL == 0:
             # Want a constant speed, but random direction to start
@@ -1459,18 +1484,37 @@ class Killfeed(pygame.sprite.Sprite):
         self.action_img = action_img
         self.x = x
         self.y = 260 + (60 * count)
+        self.next_y = self.y
         self.screen = screen
         self.left_img = pygame.transform.scale(left_circle.image, (50, 50))
         self.right_img = pygame.transform.scale(right_circle.image, (50, 50))
+        self.frames = 0
 
     def update(self, cycle = False):
         # check if they are now cycled out 
         if cycle:
-            self.y -= 60
+            self.next_y -= 60
 
-            if self.y < 260:
+            if self.next_y < 260:
                 self.kill()
                 return
+            
+        if self.y != self.next_y:
+            self.y -= 2
+
+        self.frames += 1 
+        if self.frames > 60 * 13: 
+            self.kill()
+            return 1
+        elif self.frames < 60 * 5:
+            self.left_img.set_alpha(255)
+            self.right_img.set_alpha(255)
+            self.action_img.set_alpha(255)
+        else:
+            alpha = 255 + 30 * 5 - self.frames / 2
+            self.left_img.set_alpha(alpha)
+            self.right_img.set_alpha(alpha)
+            self.action_img.set_alpha(alpha)
 
         # draw elements
         self.screen.blit(self.left_img, (self.x + 10, self.y))
@@ -1488,7 +1532,11 @@ class Killfeed(pygame.sprite.Sprite):
 def main():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
-    game = Game(circles[0], circles[1])
+
+    seed = False
+    # seed = "Enter your seed here :)"
+
+    game = Game(circles[0], circles[1], seed)
     game.play_game()
     pygame.quit()
 
