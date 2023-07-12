@@ -5,7 +5,7 @@ circles = [
     # color         g_id    v       m       r       hp      atk     luck
     # ["orange",      0,      6,      7,      10,     120,    3,     10],
     ["blue",        0,      4,      10,     15,     110,    5,     8],
-    ["purple",      1,      5,      15,     25,     180,    2,     11],
+    ["purple",      1,      5,      15,     20,     180,    2,     11],
 ]
 
 class Game:
@@ -145,7 +145,6 @@ class Game:
         self.fortnite_y_growing = False
 
         # Powerups
-        self.powerup_counter = 0
         self.powerup_group = pygame.sprite.Group()
         self.laser_group = pygame.sprite.Group()
 
@@ -171,10 +170,11 @@ class Game:
             self.addCircle(0)
             self.addCircle(1)
 
-    def spawnPowerup(self, location, id = -1):
+    def spawnPowerup(self, id = -1, location = False):
+        if location == False:
+            location = (random.randint(self.fortnite_x + 10, self.screen_w - self.fortnite_x - 10), random.randint(self.fortnite_y + 10, self.screen_h - self.fortnite_y - 10))
+
         if id == -1:
-            self.powerup_counter += 1
-            # powerup = self.powerup_counter % len(self.powerups)
             powerup = random.randint(0, len(self.powerups) - 1)
             self.powerup_group.add(Powerup(self.powerups[powerup], location[0], location[1]))
         elif id >= len(self.powerups) or id < 0:
@@ -468,15 +468,15 @@ class Game:
                         if member_1.getG_id() != laser.g_id:
                             self.laser_hit_sound.play()
                             laser_damage = 25
+                            laser.circle.stats.laserHit()
+                            laser.circle.stats.dealDamage(laser_damage)
                             if member_1.takeDamage(laser_damage) == -1:
                                 [x, y] = member_1.getXY()
                                 if self.mode == "GAME":
                                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                                 self.addKillfeed(laser.circle, member_1, 7)
-                                laser.circle.stats.laserHit()
-                                laser.circle.stats.dealDamage(laser_damage)
-
+                                
     def draw_text(self, text, font, color, x, y, center = True):
         text_obj = font.render(text, 1, color)
         text_rect = text_obj.get_rect()
@@ -588,23 +588,6 @@ class Game:
         self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 147, 105)
         self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 155, 130)
 
-        # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.max_hps[1] / 2.5, 5)))
-        # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10 + offset, self.screen_h + 25, self.hps[1] / 2.5, 5))
-
-
-        # for i in range(len(self.groups)):
-        #     powerup_counter = 0
-        #     for member in self.groups[i]:
-        #         for powerup in member.getPowerups():
-        #             if i == 0:
-        #                 image = self.powerup_images_screen[powerup]
-        #                 self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
-        #                 powerup_counter += 1
-        #             else:
-        #                 image = self.powerup_images_screen[powerup]
-        #                 self.screen.blit(image, ((image.get_size()[0] * 2 + 110) + (powerup_counter * 40) + (i * offset), self.screen_h + 40))
-        #                 powerup_counter += 1
-
     def addKillfeed(self, right_circle, left_circle, action_id):
         if len(self.killfeed_group) == 12:
             self.killfeed_group.update(True)
@@ -643,44 +626,29 @@ class Game:
                             self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
                         else:
                             self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
-                    
-                    if event.button == 2:
-
-                        self.showStats()
-
+            
                     if event.button == 3:
-                        print("LIVING MEMBERS:")
-                        for group in self.groups:
-                            for member in group:
-                                print(member.id, "\t", member.stats.report())
-
-                        print("DEAD MEMBERS:")
-                        for group in self.dead_stats:
-                            for member in group:
-                                print(member[1], "\t", member[2].report())
-                        print("\n")
-
-                        # self.fortnite_x = 0
-                        # self.fortnite_x_counter = 0
-                        # self.fortnite_x_growing = False
-                        # self.fortnite_y = 0
-                        # self.fortnite_y_counter = 0
-                        # self.fortnite_y_growing = False
+                        self.fortnite_x = 0
+                        self.fortnite_x_counter = 0
+                        self.fortnite_x_growing = False
+                        self.fortnite_y = 0
+                        self.fortnite_y_counter = 0
+                        self.fortnite_y_growing = False
 
                 # keyboard click event
                 if event.type == KEYDOWN:
                     if event.key == 9:
                         self.showStats()
                     else:
-                        self.spawnPowerup(pygame.mouse.get_pos(), event.key - 49)
+                        self.spawnPowerup(event.key - 49, pygame.mouse.get_pos())
 
             # flip() the display to put your work on screen
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
 
             # Every x seconds spawn a random powerup
-            if not self.done and self.frames % (10 * self.fps) == 0:
-                self.spawnPowerup((random.randint(self.fortnite_x + 10, self.screen_w - self.fortnite_x - 10), random.randint(self.fortnite_y + 10, self.screen_h - self.fortnite_y - 10)))
+            if not self.done and self.frames % (5 * self.fps) == 0:
+                self.spawnPowerup()
 
             # draw & update groups
             self.groups[0].draw(self.screen)
