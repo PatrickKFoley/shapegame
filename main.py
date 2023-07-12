@@ -173,7 +173,7 @@ class Game:
             self.addCircle(0)
             self.addCircle(1)
 
-        self.createStatsScreen()
+        self.createStatsScreen(True)
 
     def spawnPowerup(self, id = -1, location = False):
         if location == False:
@@ -660,7 +660,7 @@ class Game:
                 # keyboard click event
                 if event.type == KEYDOWN:
                     if event.key == 9:
-                        self.showStats()
+                        self.stats_screen = not self.stats_screen
                     else:
                         self.spawnPowerup(event.key - 49, pygame.mouse.get_pos())
 
@@ -740,6 +740,14 @@ class Game:
                 self.frames_done += 1
                 if self.frames_done == 10 * self.fps:
                     self.showStats()
+
+            
+
+            if self.stats_screen:
+                if self.frames % (self.fps / 2) == 0:
+                    self.createStatsScreen()
+
+                self.screen.blit(self.stats_surface, (10, 50))
                     
 
             # limits FPS to 60
@@ -749,8 +757,8 @@ class Game:
 
     def showStats(self):
         self.mode = "STATS"
-        self.frames += 1
         while self.running:
+            self.frames += 1
             for event in pygame.event.get():
                 # quit event
                 if event.type == pygame.QUIT:
@@ -813,122 +821,12 @@ class Game:
                     if self.fortnite_y <= 350:
                         self.fortnite_y += 1
 
+
+            if self.frames % (self.fps / 2) == 0:
+                self.createStatsScreen()
+
             self.screen.blit(self.stats_surface, (10, 50))
 
-            # # draw grid
-            # num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-            # pygame.draw.rect(self.screen, "darkgray", (10, 50, 1710, num_rows * 30 + 215))
-
-            # for i in range(0, num_rows):
-            #     if i % 2 == 0:
-            #         color = "lightgray"
-            #     else:
-            #         color = "white"
-            #     pygame.draw.rect(self.screen, color, (20, 245 + 30 * i, 1690, 30))
-
-            # # draw headers
-            # font = pygame.font.Font("freesansbold.ttf", 80)
-            # self.draw_text("{} Team".format(self.circles[0][0].capitalize()), font, self.circles[0][0], 500, 100)
-            # self.draw_text("{} Team".format(self.circles[1][0].capitalize()), font, self.circles[1][0], 500 + 850, 100)
-
-            # self.screen.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 60))
-            # self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 60))
-
-            # self.screen.blit(self.sword_image, (256, 200))
-            # self.screen.blit(self.blood_image, (329, 200))
-
-            # for image in self.powerup_images_screen:
-            #     image.set_alpha(255)
-
-            # self.screen.blit(self.powerup_images_screen[5], (404, 200))
-            # self.screen.blit(self.powerup_images_screen[1], (454, 200))
-            # self.screen.blit(self.powerup_images_screen[0], (504, 200))
-            # self.screen.blit(self.powerup_images_screen[3], (554, 200))
-            # self.screen.blit(self.powerup_images_screen[4], (604, 200))
-            # self.screen.blit(self.powerup_images_screen[6], (654, 200))
-            # self.screen.blit(self.powerup_images_screen[7], (704, 200))
-            # self.screen.blit(self.coffin_img, (754, 200))
-
-            # self.screen.blit(self.sword_image, (256 + 850, 200))
-            # self.screen.blit(self.blood_image, (329 + 850, 200))
-
-            # self.screen.blit(self.powerup_images_screen[5], (404 + 850, 200))
-            # self.screen.blit(self.powerup_images_screen[1], (454 + 850, 200))
-            # self.screen.blit(self.powerup_images_screen[0], (504 + 850, 200))
-            # self.screen.blit(self.powerup_images_screen[3], (554 + 850, 200))
-            # self.screen.blit(self.powerup_images_screen[4], (604 + 850, 200))
-            # self.screen.blit(self.powerup_images_screen[6], (654 + 850, 200))
-            # self.screen.blit(self.powerup_images_screen[7], (704 + 850, 200))
-            # self.screen.blit(self.coffin_img, (754 + 850, 200))
-
-            # list all stats
-            group_counter = 0
-            for group in self.groups:
-                member_counter = 0
-                for member in group:
-                    if member.id < 10:
-                        id = "0" + str(member.id)
-                    else:
-                        id = str(member.id)
-
-                    stats = []
-
-                    id = "id: " + str(id)
-                    hp = str(round(member.hp / member.max_hp * 100, 1)) + "%"
-                    dmg_o = str(round(member.stats.report()[0]))
-                    dmg_i = str(round(member.stats.report()[1]))
-                    hp_h = str(round(member.stats.report()[2]))
-                    p_r = str(member.stats.report()[3])
-                    p_a = str(member.stats.report()[4])
-                    i_u = str(member.stats.report()[5])
-                    m_u = str(member.stats.report()[6])
-                    s_u = str(member.stats.report()[7])
-                    b_u = str(member.stats.report()[8])
-                    l_h = str(member.stats.report()[9])
-                    p_k = str(member.stats.report()[10])
-
-                    stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
-                    stats.append(p_r); #stats.append(p_a); 
-                    stats.append(i_u); stats.append(m_u); stats.append(s_u)
-                    stats.append(b_u); stats.append(l_h); stats.append(p_k)
-                    self.printStat(stats, 75 + group_counter * 850, 250 + member_counter * 30)
-
-                    member_counter += 1
-
-                for stats_list in self.dead_stats[group_counter]:
-                    if stats_list[0] < 10:
-                        id = "0" + str(stats_list[0])
-                    else:
-                        id = str(stats_list[0])
-
-                    stats = stats_list[1]
-                    id = "id: " + str(id)
-                    hp = str(round(0, 1)) + "%"
-                    dmg_o = str(round(stats.report()[0]))
-                    dmg_i = str(round(stats.report()[1]))
-                    hp_h = str(round(stats.report()[2]))
-                    p_r = str(stats.report()[3])
-                    p_a = str(stats.report()[4])
-                    i_u = str(stats.report()[5])
-                    m_u = str(stats.report()[6])
-                    s_u = str(stats.report()[7])
-                    b_u = str(stats.report()[8])
-                    l_h = str(stats.report()[9])
-                    p_k = str(stats.report()[10])
-
-                    stats = []
-                    stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
-                    stats.append(p_r); #stats.append(p_a); 
-                    stats.append(i_u); stats.append(m_u); stats.append(s_u)
-                    stats.append(b_u); stats.append(l_h); stats.append(p_k)
-
-   
-                    self.printStat(stats, 75 + group_counter * 850, 250 + member_counter * 30, True)
-
-                    member_counter += 1
-
-
-                group_counter += 1
 
             self.clock.tick(self.fps)
             font = pygame.font.Font("freesansbold.ttf", 40)
@@ -946,25 +844,62 @@ class Game:
                 stats[i] = "-"
 
             if i<3:
-                self.draw_text(stats[i], font, color, x + i * 100, y)
+                self.draw_text(stats[i], font, color, x + i * 100, y, True, self.stats_surface)
 
             elif 3<=i<4:
-                self.draw_text(stats[i], font, color, x + 275 + (i-3) * 50, y)
+                self.draw_text(stats[i], font, color, x + 275 + (i-3) * 50, y, True, self.stats_surface)
 
             else:
-                self.draw_text(stats[i], font, color, x + 300 + (i-3) * 50, y)
+                self.draw_text(stats[i], font, color, x + 300 + (i-3) * 50, y, True, self.stats_surface)
 
         # pygame.quit()
 
     def centerImageAt(self, image, x, y):
         self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
 
-    def createStatsScreen(self):
+    def createStatsScreen(self, first = False):
         # create stats screen image
         num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
         self.cur_rows = num_rows
-        self.stats_surface = pygame.Surface((1710, num_rows * 30 + 215))
-        self.stats_surface.fill("darkgray")
+        font = pygame.font.Font("freesansbold.ttf", 80)
+
+        if first:
+            self.stats_surface = pygame.Surface((1710, num_rows * 30 + 215))
+            self.stats_surface.fill("darkgray")
+
+            self.draw_text("{} Team".format(self.circles[0][0].capitalize()), font, self.circles[0][0], 500, 50, True, self.stats_surface)
+            self.draw_text("{} Team".format(self.circles[1][0].capitalize()), font, self.circles[1][0], 500 + 850, 50, True, self.stats_surface)
+
+            self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 10))
+            self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 10))
+
+            self.stats_surface.blit(self.sword_image, (256, 150))
+            self.stats_surface.blit(self.blood_image, (329, 150))
+
+            for image in self.powerup_images_screen:
+                image.set_alpha(255)
+            self.coffin_img.set_alpha(255)
+
+            self.stats_surface.blit(self.powerup_images_screen[5], (404, 150))
+            self.stats_surface.blit(self.powerup_images_screen[1], (454, 150))
+            self.stats_surface.blit(self.powerup_images_screen[0], (504, 150))
+            self.stats_surface.blit(self.powerup_images_screen[3], (554, 150))
+            self.stats_surface.blit(self.powerup_images_screen[4], (604, 150))
+            self.stats_surface.blit(self.powerup_images_screen[6], (654, 150))
+            self.stats_surface.blit(self.powerup_images_screen[7], (704, 150))
+            self.stats_surface.blit(self.coffin_img, (754, 150))
+
+            self.stats_surface.blit(self.sword_image, (256 + 850, 150))
+            self.stats_surface.blit(self.blood_image, (329 + 850, 150))
+
+            self.stats_surface.blit(self.powerup_images_screen[5], (404 + 850, 150))
+            self.stats_surface.blit(self.powerup_images_screen[1], (454 + 850, 150))
+            self.stats_surface.blit(self.powerup_images_screen[0], (504 + 850, 150))
+            self.stats_surface.blit(self.powerup_images_screen[3], (554 + 850, 150))
+            self.stats_surface.blit(self.powerup_images_screen[4], (604 + 850, 150))
+            self.stats_surface.blit(self.powerup_images_screen[6], (654 + 850, 150))
+            self.stats_surface.blit(self.powerup_images_screen[7], (704 + 850, 150))
+            self.stats_surface.blit(self.coffin_img, (754 + 850, 150))
 
         for i in range(0, num_rows):
             if i % 2 == 0:
@@ -973,40 +908,73 @@ class Game:
                 color = "white"
             pygame.draw.rect(self.stats_surface, color, (10, 195 + 30 * i, 1690, 30))
 
-        font = pygame.font.Font("freesansbold.ttf", 80)
-        self.draw_text("{} Team".format(self.circles[0][0].capitalize()), font, self.circles[0][0], 500, 50, True, self.stats_surface)
-        self.draw_text("{} Team".format(self.circles[1][0].capitalize()), font, self.circles[1][0], 500 + 850, 50, True, self.stats_surface)
+        # list all stats
+        group_counter = 0
+        for group in self.groups:
+            member_counter = 0
+            for member in group:
+                if member.id < 10:
+                    id = "0" + str(member.id)
+                else:
+                    id = str(member.id)
 
-        self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 10))
-        self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 10))
+                stats = []
 
-        self.stats_surface.blit(self.sword_image, (256, 150))
-        self.stats_surface.blit(self.blood_image, (329, 150))
+                id = "id: " + str(id)
+                hp = str(round(member.hp / member.max_hp * 100, 1)) + "%"
+                dmg_o = str(round(member.stats.report()[0]))
+                dmg_i = str(round(member.stats.report()[1]))
+                hp_h = str(round(member.stats.report()[2]))
+                p_r = str(member.stats.report()[3])
+                p_a = str(member.stats.report()[4])
+                i_u = str(member.stats.report()[5])
+                m_u = str(member.stats.report()[6])
+                s_u = str(member.stats.report()[7])
+                b_u = str(member.stats.report()[8])
+                l_h = str(member.stats.report()[9])
+                p_k = str(member.stats.report()[10])
 
-        for image in self.powerup_images_screen:
-            image.set_alpha(255)
-        self.coffin_img.set_alpha(255)
+                stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
+                stats.append(p_r); #stats.append(p_a); 
+                stats.append(i_u); stats.append(m_u); stats.append(s_u)
+                stats.append(b_u); stats.append(l_h); stats.append(p_k)
+                self.printStat(stats, 65 + group_counter * 850, 200 + member_counter * 30)
 
-        self.stats_surface.blit(self.powerup_images_screen[5], (404, 150))
-        self.stats_surface.blit(self.powerup_images_screen[1], (454, 150))
-        self.stats_surface.blit(self.powerup_images_screen[0], (504, 150))
-        self.stats_surface.blit(self.powerup_images_screen[3], (554, 150))
-        self.stats_surface.blit(self.powerup_images_screen[4], (604, 150))
-        self.stats_surface.blit(self.powerup_images_screen[6], (654, 150))
-        self.stats_surface.blit(self.powerup_images_screen[7], (704, 150))
-        self.stats_surface.blit(self.coffin_img, (754, 150))
+                member_counter += 1
 
-        self.stats_surface.blit(self.sword_image, (256 + 850, 150))
-        self.stats_surface.blit(self.blood_image, (329 + 850, 150))
+            for stats_list in self.dead_stats[group_counter]:
+                if stats_list[0] < 10:
+                    id = "0" + str(stats_list[0])
+                else:
+                    id = str(stats_list[0])
 
-        self.stats_surface.blit(self.powerup_images_screen[5], (404 + 850, 150))
-        self.stats_surface.blit(self.powerup_images_screen[1], (454 + 850, 150))
-        self.stats_surface.blit(self.powerup_images_screen[0], (504 + 850, 150))
-        self.stats_surface.blit(self.powerup_images_screen[3], (554 + 850, 150))
-        self.stats_surface.blit(self.powerup_images_screen[4], (604 + 850, 150))
-        self.stats_surface.blit(self.powerup_images_screen[6], (654 + 850, 150))
-        self.stats_surface.blit(self.powerup_images_screen[7], (704 + 850, 150))
-        self.stats_surface.blit(self.coffin_img, (754 + 850, 150))
+                stats = stats_list[1]
+                id = "id: " + str(id)
+                hp = str(round(0, 1)) + "%"
+                dmg_o = str(round(stats.report()[0]))
+                dmg_i = str(round(stats.report()[1]))
+                hp_h = str(round(stats.report()[2]))
+                p_r = str(stats.report()[3])
+                p_a = str(stats.report()[4])
+                i_u = str(stats.report()[5])
+                m_u = str(stats.report()[6])
+                s_u = str(stats.report()[7])
+                b_u = str(stats.report()[8])
+                l_h = str(stats.report()[9])
+                p_k = str(stats.report()[10])
+
+                stats = []
+                stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
+                stats.append(p_r); #stats.append(p_a); 
+                stats.append(i_u); stats.append(m_u); stats.append(s_u)
+                stats.append(b_u); stats.append(l_h); stats.append(p_k)
+
+
+                self.printStat(stats, 65 + group_counter * 850, 200 + member_counter * 30, True)
+
+                member_counter += 1
+            
+            group_counter += 1
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
