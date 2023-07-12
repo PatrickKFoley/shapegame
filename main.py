@@ -162,16 +162,18 @@ class Game:
         self.max_hps = [0, 0]
         self.hps = []
 
-        members_per_team = 16
-        self.max_hps[0] += c0[5] * members_per_team
-        self.max_hps[1] += c1[5] * members_per_team
+        self.members_per_team = 16
+        self.max_hps[0] += c0[5] * self.members_per_team
+        self.max_hps[1] += c1[5] * self.members_per_team
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
-        self.total_count = members_per_team * 2
+        self.total_count = self.members_per_team * 2
         # ----------------------
-        for i in range(members_per_team):
+        for i in range(self.members_per_team):
             self.addCircle(0)
             self.addCircle(1)
+
+        self.createStatsScreen()
 
     def spawnPowerup(self, id = -1, location = False):
         if location == False:
@@ -493,14 +495,18 @@ class Game:
                                 self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                                 self.addKillfeed(laser.circle, member_1, 7)
                                 
-    def draw_text(self, text, font, color, x, y, center = True):
+    def draw_text(self, text, font, color, x, y, center = True, screen = False):
         text_obj = font.render(text, 1, color)
         text_rect = text_obj.get_rect()
         if center:
             text_rect.topleft = (x - font.size(text)[0] / 2, y)
         else:
             text_rect.topleft = (x, y)
-        self.screen.blit(text_obj, text_rect)
+
+        if not screen:
+            self.screen.blit(text_obj, text_rect)
+        else:
+            screen.blit(text_obj, text_rect)
 
     def blowupBomb(self, circle, x, y, g_id):
         self.fuse_sound.stop()
@@ -663,6 +669,10 @@ class Game:
                     else:
                         self.spawnPowerup(event.key - 49, pygame.mouse.get_pos())
 
+            num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+            if self.cur_rows != num_rows:
+                self.createStatsScreen()
+
             # flip() the display to put your work on screen
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
@@ -759,6 +769,10 @@ class Game:
                     if event.key == 9:
                         self.mode = "GAME"
                         return
+                    
+            num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+            if self.cur_rows != num_rows:
+                self.createStatsScreen()
 
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
@@ -778,7 +792,9 @@ class Game:
             self.groups[1].update(self)
             self.clouds_group.update()
             self.explosions_group.update()
-            self.killfeed_group.update()
+            for killfeed in self.killfeed_group.sprites():
+                if killfeed.update() == 1:
+                    self.killfeed_group.update(True)
             self.powerup_group.update(self)
             
 
@@ -802,49 +818,53 @@ class Game:
                     if self.fortnite_y <= 350:
                         self.fortnite_y += 1
 
-            # draw grid
-            num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-            
-            pygame.draw.rect(self.screen, "darkgray", (10, 50, 1710, num_rows * 30 + 215))
+            self.screen.blit(self.stats_surface, (10, 50))
 
-            for i in range(0, num_rows):
-                if i % 2 == 0:
-                    color = "lightgray"
-                else:
-                    color = "white"
-                pygame.draw.rect(self.screen, color, (20, 245 + 30 * i, 1690, 30))
+            # # draw grid
+            # num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+            # pygame.draw.rect(self.screen, "darkgray", (10, 50, 1710, num_rows * 30 + 215))
 
-            # draw headers
-            font = pygame.font.Font("freesansbold.ttf", 80)
-            self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 100)
-            self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 850, 100)
+            # for i in range(0, num_rows):
+            #     if i % 2 == 0:
+            #         color = "lightgray"
+            #     else:
+            #         color = "white"
+            #     pygame.draw.rect(self.screen, color, (20, 245 + 30 * i, 1690, 30))
 
-            self.screen.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 60))
-            self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 60))
+            # # draw headers
+            # font = pygame.font.Font("freesansbold.ttf", 80)
+            # self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 100)
+            # self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 850, 100)
 
-            self.screen.blit(self.sword_image, (256, 200))
-            self.screen.blit(self.blood_image, (329, 200))
+            # self.screen.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 60))
+            # self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 60))
 
-            self.screen.blit(self.powerup_images_screen[5], (404, 200))
-            self.screen.blit(self.powerup_images_screen[1], (454, 200))
-            self.screen.blit(self.powerup_images_screen[0], (504, 200))
-            self.screen.blit(self.powerup_images_screen[3], (554, 200))
-            self.screen.blit(self.powerup_images_screen[4], (604, 200))
-            self.screen.blit(self.powerup_images_screen[6], (654, 200))
-            self.screen.blit(self.powerup_images_screen[7], (704, 200))
-            self.screen.blit(self.coffin_img, (754, 200))
+            # self.screen.blit(self.sword_image, (256, 200))
+            # self.screen.blit(self.blood_image, (329, 200))
 
-            self.screen.blit(self.sword_image, (256 + 850, 200))
-            self.screen.blit(self.blood_image, (329 + 850, 200))
+            # for image in self.powerup_images_screen:
+            #     image.set_alpha(255)
 
-            self.screen.blit(self.powerup_images_screen[5], (404 + 850, 200))
-            self.screen.blit(self.powerup_images_screen[1], (454 + 850, 200))
-            self.screen.blit(self.powerup_images_screen[0], (504 + 850, 200))
-            self.screen.blit(self.powerup_images_screen[3], (554 + 850, 200))
-            self.screen.blit(self.powerup_images_screen[4], (604 + 850, 200))
-            self.screen.blit(self.powerup_images_screen[6], (654 + 850, 200))
-            self.screen.blit(self.powerup_images_screen[7], (704 + 850, 200))
-            self.screen.blit(self.coffin_img, (754 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[5], (404, 200))
+            # self.screen.blit(self.powerup_images_screen[1], (454, 200))
+            # self.screen.blit(self.powerup_images_screen[0], (504, 200))
+            # self.screen.blit(self.powerup_images_screen[3], (554, 200))
+            # self.screen.blit(self.powerup_images_screen[4], (604, 200))
+            # self.screen.blit(self.powerup_images_screen[6], (654, 200))
+            # self.screen.blit(self.powerup_images_screen[7], (704, 200))
+            # self.screen.blit(self.coffin_img, (754, 200))
+
+            # self.screen.blit(self.sword_image, (256 + 850, 200))
+            # self.screen.blit(self.blood_image, (329 + 850, 200))
+
+            # self.screen.blit(self.powerup_images_screen[5], (404 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[1], (454 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[0], (504 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[3], (554 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[4], (604 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[6], (654 + 850, 200))
+            # self.screen.blit(self.powerup_images_screen[7], (704 + 850, 200))
+            # self.screen.blit(self.coffin_img, (754 + 850, 200))
 
             # list all stats
             group_counter = 0
@@ -916,6 +936,8 @@ class Game:
                 group_counter += 1
 
             self.clock.tick(self.fps)
+            font = pygame.font.Font("freesansbold.ttf", 40)
+            self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
 
     def printStat(self, stats, x, y, dead = False):
         font = pygame.font.Font("freesansbold.ttf", 25)
@@ -941,6 +963,56 @@ class Game:
 
     def centerImageAt(self, image, x, y):
         self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
+
+    def createStatsScreen(self):
+        print("drawing new stats screen")
+        
+        # create stats screen image
+        num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+        self.cur_rows = num_rows
+        self.stats_surface = pygame.Surface((1710, num_rows * 30 + 215))
+        self.stats_surface.fill("darkgray")
+
+        for i in range(0, num_rows):
+            if i % 2 == 0:
+                color = "lightgray"
+            else:
+                color = "white"
+            pygame.draw.rect(self.stats_surface, color, (10, 195 + 30 * i, 1690, 30))
+
+        font = pygame.font.Font("freesansbold.ttf", 80)
+        self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 50, True, self.stats_surface)
+        self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 850, 50, True, self.stats_surface)
+
+        self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 10))
+        self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 10))
+
+        self.stats_surface.blit(self.sword_image, (256, 150))
+        self.stats_surface.blit(self.blood_image, (329, 150))
+
+        for image in self.powerup_images_screen:
+            image.set_alpha(255)
+
+        self.stats_surface.blit(self.powerup_images_screen[5], (404, 150))
+        self.stats_surface.blit(self.powerup_images_screen[1], (454, 150))
+        self.stats_surface.blit(self.powerup_images_screen[0], (504, 150))
+        self.stats_surface.blit(self.powerup_images_screen[3], (554, 150))
+        self.stats_surface.blit(self.powerup_images_screen[4], (604, 150))
+        self.stats_surface.blit(self.powerup_images_screen[6], (654, 150))
+        self.stats_surface.blit(self.powerup_images_screen[7], (704, 150))
+        self.stats_surface.blit(self.coffin_img, (754, 150))
+
+        self.stats_surface.blit(self.sword_image, (256 + 850, 150))
+        self.stats_surface.blit(self.blood_image, (329 + 850, 150))
+
+        self.stats_surface.blit(self.powerup_images_screen[5], (404 + 850, 150))
+        self.stats_surface.blit(self.powerup_images_screen[1], (454 + 850, 150))
+        self.stats_surface.blit(self.powerup_images_screen[0], (504 + 850, 150))
+        self.stats_surface.blit(self.powerup_images_screen[3], (554 + 850, 150))
+        self.stats_surface.blit(self.powerup_images_screen[4], (604 + 850, 150))
+        self.stats_surface.blit(self.powerup_images_screen[6], (654 + 850, 150))
+        self.stats_surface.blit(self.powerup_images_screen[7], (704 + 850, 150))
+        self.stats_surface.blit(self.coffin_img, (754 + 850, 150))
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
