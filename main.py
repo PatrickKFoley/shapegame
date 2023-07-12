@@ -238,8 +238,8 @@ class Game:
         # self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
 
         # check if either member has a speed, if so, remove it
-        if 4 in mem_1.powerups: mem_1.removePowerup(4)
-        if 4 in mem_2.powerups: mem_2.removePowerup(4)
+        # if 4 in mem_1.powerups: mem_1.removePowerup(4)
+        # if 4 in mem_2.powerups: mem_2.removePowerup(4)
 
         # check if both members have insta-kill
         if 0 in mem_1.powerups and 0 in mem_2.powerups:
@@ -542,12 +542,7 @@ class Game:
                     kill_counter += 1
 
         if kill_counter >= 1:
-            # if g_id == 0:
             new_circle = self.addCircle(g_id, [x, y])
-            # self.groups[0].add(new_circle)
-            # else:
-            #     new_circle = Circle(self.c1, self.id_count, self, self.c1_images, self.powerup_images_hud, [x, y])
-            #     self.groups[1].add(new_circle)
             self.addKillfeed(circle, new_circle, 1)
             circle.stats.resurrectPlayer()
 
@@ -580,13 +575,13 @@ class Game:
                     
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
-            image = self.c0_images[3]
+            image = self.images[0][3]
         elif self.hps[0] <= self.max_hps[0] * 2 / 4:
-            image = self.c0_images[2]
+            image = self.images[0][2]
         elif self.hps[0] <= self.max_hps[0] * 3 / 4:
-            image = self.c0_images[1]
+            image = self.images[0][1]
         else:
-            image = self.c0_images[0]
+            image = self.images[0][0]
         image = pygame.transform.scale(image, (85, 85))
 
         self.screen.blit(image, (self.screen_w + 10, 10))
@@ -598,13 +593,13 @@ class Game:
 
 
         if self.hps[1] <= self.max_hps[1] / 4:
-            image = self.c1_images[3]
+            image = self.images[1][3]
         elif self.hps[1] <= self.max_hps[1] * 2 / 4:
-            image = self.c1_images[2]
+            image = self.images[1][2]
         elif self.hps[1] <= self.max_hps[1] * 3 / 4:
-            image = self.c1_images[1]
+            image = self.images[1][1]
         else:
-            image = self.c1_images[0]
+            image = self.images[1][0]
         image = pygame.transform.scale(image, (85, 85))
 
         offset = self.screen_w / 2 - 100
@@ -728,12 +723,12 @@ class Game:
             if len(self.groups[0].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("{} Wins!".format(self.c1[0].capitalize()), self.font, self.c1[0], self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.circles[1][0].capitalize()), self.font, self.circles[1][0], self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
-                self.draw_text("{} Wins!".format(self.c0[0].capitalize()), self.font, self.c0[0], self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.circles[0][0].capitalize()), self.font, self.circles[0][0], self.screen_w / 2, self.screen_h / 6)
 
             
             if self.done and self.play_sound:
@@ -833,8 +828,8 @@ class Game:
 
             # # draw headers
             # font = pygame.font.Font("freesansbold.ttf", 80)
-            # self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 100)
-            # self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 850, 100)
+            # self.draw_text("{} Team".format(self.circles[0][0].capitalize()), font, self.circles[0][0], 500, 100)
+            # self.draw_text("{} Team".format(self.circles[1][0].capitalize()), font, self.circles[1][0], 500 + 850, 100)
 
             # self.screen.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 60))
             # self.screen.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 60))
@@ -979,8 +974,8 @@ class Game:
             pygame.draw.rect(self.stats_surface, color, (10, 195 + 30 * i, 1690, 30))
 
         font = pygame.font.Font("freesansbold.ttf", 80)
-        self.draw_text("{} Team".format(self.c0[0].capitalize()), font, self.c0[0], 500, 50, True, self.stats_surface)
-        self.draw_text("{} Team".format(self.c1[0].capitalize()), font, self.c1[0], 500 + 850, 50, True, self.stats_surface)
+        self.draw_text("{} Team".format(self.circles[0][0].capitalize()), font, self.circles[0][0], 500, 50, True, self.stats_surface)
+        self.draw_text("{} Team".format(self.circles[1][0].capitalize()), font, self.circles[1][0], 500 + 850, 50, True, self.stats_surface)
 
         self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 10))
         self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 10))
@@ -990,6 +985,7 @@ class Game:
 
         for image in self.powerup_images_screen:
             image.set_alpha(255)
+        self.coffin_img.set_alpha(255)
 
         self.stats_surface.blit(self.powerup_images_screen[5], (404, 150))
         self.stats_surface.blit(self.powerup_images_screen[1], (454, 150))
@@ -1333,6 +1329,9 @@ class Circle(pygame.sprite.Sprite):
         if 5 in self.powerups:
             self.removePowerup(5)
 
+        if 4 in self.powerups:
+            self.removePowerup(4)
+
         if 7 in self.powerups:
             self.removePowerup(7)
     
@@ -1392,6 +1391,7 @@ class CircleStats():
         self.muscles_used += 1
 
     def useSpeed(self):
+        print("using speed")
         self.speeds_used += 1
 
     def useBomb(self):
@@ -1538,6 +1538,7 @@ class Laser(pygame.sprite.Sprite):
             self.vy = -1 * self.vy
 
         if game.mode == "GAME":
+            self.image.set_alpha(255)
             game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
         
         # game.screen.blit(self.image, self.x, self.y)
