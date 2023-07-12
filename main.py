@@ -5,7 +5,7 @@ circles = [
     # color         g_id    v       m       r       hp      atk     luck
     # ["orange",      0,      6,      7,      10,     120,    3,     10],
     ["blue",        0,      4,      10,     15,     110,    5,     8],
-    ["purple",      1,      5,      15,     25,     180,    2,     8],
+    ["purple",      1,      5,      15,     25,     180,    2,     11],
 ]
 
 class Game:
