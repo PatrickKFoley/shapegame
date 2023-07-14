@@ -1,14 +1,14 @@
-import pygame, random, math, numpy as np, sys
+import pygame, random, math, numpy as np, sys, os
 from pygame.locals import *
 
 circles = [
-    # color         g_id    v       m       r       hp      atk     luck
+    # color         g_id    v       m       r       hp      atk     luck    face_id
     # ["orange",      0,      6,      7,      10,     120,    3,     10],
-    ["blue",        0,      3,      10,     15,     110,    5,     8],
-    ["purple",      1,      4,      15,     20,     170,    2,     10],
+    ["red",        0,      3,      10,     15,     110,    5,     8,   0],
+    ["blue",      1,      4,      15,     20,     170,    2,     10,  1],
 ]
 
-class Game:
+class Game: 
     def __init__(self, c0, c1, seed = False):
         if seed != False:
             random.seed(seed)
@@ -38,12 +38,48 @@ class Game:
             self.smoke_images.append(image)
 
         # Circles
-        for i in range(0, 4):
-            image = pygame.image.load("circles/{}/{}.png".format(c1[0], i))
-            self.c1_images.append(image)
+        if os.path.isdir("circles/{}/{}".format(c1[8], c1[0])):
+            for i in range(0, 4):
+                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(c1[8], c1[0], i)))
+        else:
+            print("\nJust a moment! New circles being drawn!")
+            os.mkdir("circles/{}/{}".format(c1[8], c1[0]))
+            for n in range(0, 4):
+                path = "circles/{}/{}.png".format(c1[8], n)
+                image = pygame.image.load(path)
 
-            image = pygame.image.load("circles/{}/{}.png".format(c0[0], i))
-            self.c0_images.append(image)
+                # loop through image, replace green pixels
+                for j in range(0, image.get_size()[0]):
+                    for k in range(0, image.get_size()[1]):
+                        pixel = image.get_at((j, k))
+                        if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
+                            image.set_at((j, k), c1[0])
+                        elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
+                            image.set_at((j, k), "dark" + c1[0])
+                        elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
+                            image.set_at((j, k), "light" + c1[0])
+
+                pygame.image.save(image, "circles/{}/{}/{}.png".format(c1[8], c1[0], n))
+                self.c1_images.append(image)
+
+        if os.path.isdir("circles/{}/{}".format(c0[8], c0[0])):
+            for i in range(0, 4):
+                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(c0[8], c0[0], i)))
+        else:
+            print("\nJust a moment! New circles being drawn!")
+            os.mkdir("circles/{}/{}".format(c0[8], c0[0]))
+            for n in range(0, 4):
+                path = "circles/{}/{}.png".format(c0[8], n)
+                image = pygame.image.load(path)
+
+                for j in range(0, image.get_size()[0]):
+                    for k in range(0, image.get_size()[1]):
+                        pixel = image.get_at((j, k))
+                        if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
+                            image.set_at((j, k), c0[0])
+
+                pygame.image.save(image, "circles/{}/{}/{}.png".format(c0[8], c0[0], n))
+                self.c0_images.append(image)
      
         self.powerups = [
             ["powerups/skull.png",   0],
@@ -1113,6 +1149,8 @@ class Circle(pygame.sprite.Sprite):
         self.game.createStatsScreen(False, True)
 
     def getNextImage(self, index):
+        print(index)
+
         multiplier = self.getRad() / 1024
         return pygame.transform.scale(self.images[index], (int(2048 * multiplier), int(2048 * multiplier)))
 
