@@ -5,7 +5,7 @@ circles = [
     # color         g_id    v       m       r       hp      atk     luck
     # ["orange",      0,      6,      7,      10,     120,    3,     10],
     ["blue",        0,      3,      10,     15,     110,    5,     8],
-    ["purple",      1,      4,      15,     20,     180,    2,     11],
+    ["purple",      1,      4,      15,     20,     170,    2,     10],
 ]
 
 class Game:
@@ -235,7 +235,7 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide(self, mem_1, mem_2):
-        # self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
+        self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
 
         # check if either member has a speed, if so, remove it
         # if 4 in mem_1.powerups: mem_1.removePowerup(4)
@@ -741,7 +741,9 @@ class Game:
                 if self.frames_done == 10 * self.fps:
                     self.showStats()
 
-            
+            num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+            if self.cur_rows != num_rows:
+                self.createStatsScreen(True)
 
             if self.stats_screen:
                 if self.frames % (self.fps / 2) == 0:
@@ -775,7 +777,7 @@ class Game:
                     
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
             if self.cur_rows != num_rows:
-                self.createStatsScreen()
+                self.createStatsScreen(True)
 
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
@@ -1359,7 +1361,6 @@ class CircleStats():
         self.muscles_used += 1
 
     def useSpeed(self):
-        print("using speed")
         self.speeds_used += 1
 
     def useBomb(self):
@@ -1525,9 +1526,19 @@ class Killfeed(pygame.sprite.Sprite):
         self.y = 260 + (60 * count)
         self.next_y = self.y
         self.screen = screen
+        self.surface = pygame.Surface((200, 60), pygame.SRCALPHA, 32)
         self.left_img = pygame.transform.scale(left_circle.image, (50, 50))
         self.right_img = pygame.transform.scale(right_circle.image, (50, 50))
         self.frames = 0
+
+        # self.surface.fill("gray")
+        # self.surface.set_colorkey((0, 0, 0))
+        self.surface.convert_alpha()
+        self.surface.blit(self.left_img, (10, 5))
+        self.draw_text(str(self.left_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.surface, 60, 42)
+        self.surface.blit(self.action_img, (80, 15))
+        self.surface.blit(self.right_img, (140, 5))
+        self.draw_text(str(self.right_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.surface, 190, 42)
 
     def update(self, cycle = False):
         # check if they are now cycled out 
@@ -1546,38 +1557,61 @@ class Killfeed(pygame.sprite.Sprite):
             self.kill()
             return 1
         elif self.frames < 60 * 5:
-            self.left_img.set_alpha(255)
-            self.right_img.set_alpha(255)
-            self.action_img.set_alpha(255)
+            self.surface.set_alpha(255)
+            # self.left_img.set_alpha(255)
+            # self.right_img.set_alpha(255)
+            # self.action_img.set_alpha(255)
         else:
             alpha = 255 + 30 * 5 - self.frames / 2
-            self.left_img.set_alpha(alpha)
-            self.right_img.set_alpha(alpha)
-            self.action_img.set_alpha(alpha)
+            self.surface.set_alpha(alpha)
+            # self.left_img.set_alpha(alpha)
+            # self.right_img.set_alpha(alpha)
+            # self.action_img.set_alpha(alpha)
 
         # draw elements
-        self.screen.blit(self.left_img, (self.x + 10, self.y))
-        self.draw_text(str(self.left_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 60, self.y + 40)
-        self.screen.blit(self.action_img, (self.x + 80, self.y + 10))
-        self.screen.blit(self.right_img, (self.x + 140, self.y))
-        self.draw_text(str(self.right_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 190, self.y + 40)
+        self.screen.blit(self.surface, (self.x, self.y))
+        # self.screen.blit(self.left_img, (self.x + 10, self.y))
+        # self.draw_text(str(self.left_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 60, self.y + 40)
+        # self.screen.blit(self.action_img, (self.x + 80, self.y + 10))
+        # self.screen.blit(self.right_img, (self.x + 140, self.y))
+        # self.draw_text(str(self.right_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 190, self.y + 40)
 
     def draw_text(self, text, font, color, surface, x, y):
         text_obj = font.render(text, 1, color)
         text_rect = text_obj.get_rect()
         text_rect.topleft = (x - font.size(text)[0] / 2, y)
         surface.blit(text_obj, text_rect)
-        
+
+def test():
+    img = pygame.image.load("circles/purple/0.png")
+    for i in range(0, img.get_size()[0]):
+        for j in range(0, img.get_size()[1]):
+            if img.get_at((i, j)) == (153, 37, 118, 255):
+                img.set_at((i, j), (255, 255, 255, 255))
+
+    screen = pygame.display.set_mode((2048,2048))  
+    done = False  
+    
+    while not done:  
+        for event in pygame.event.get():  
+            if event.type == pygame.QUIT:  
+                done = True 
+
+        screen.blit(img, (0, 0))
+        pygame.display.flip()
+
 def main():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
 
-    seed = False
+    # seed = False
+    seed = int.from_bytes(random.randbytes(4), "little")
     # seed = "Enter your seed here :)"
 
+    print("Playing game with seed: {}".format(seed))
     game = Game(circles[0], circles[1], seed)
     game.play_game()
     pygame.quit()
 
 main()
-
+# test()
