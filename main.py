@@ -1140,7 +1140,7 @@ class Circle(pygame.sprite.Sprite):
         # else:
         #     color = "white"
         
-        pygame.draw.rect(self.game.stats_surface, "gray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
+        pygame.draw.rect(self.game.stats_surface, "darkgray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
 
         # self.game.dead_circle = True
         if [id, stats] not in self.game.dead_stats[self.g_id]:
