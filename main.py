@@ -976,8 +976,6 @@ class Game:
                     member_counter += 1
                     continue
 
-                print("printing dead stats")
-
                 if member_counter % 2 == 0:
                     color = "lightgray"
                 else:
