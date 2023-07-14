@@ -5,16 +5,18 @@ colors = [
     # REGULAR LIGHT DARK
     ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)], #RED
     ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)], # ORANGE
-    [(), (), ()], #
-    [(), (), ()], #
-    [(), (), ()], #
-    [(), (), ()], #
+    ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)], #
+    ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)], #
+    ["blue", (0, 255, 255), (102, 255, 255), (0, 153, 153)], #
+    ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)], #
+    ["pink", (255, 0, 127), (255, 102, 178), (153, 0, 76)],
+    ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)]
 ]
 
 circles = [
     # color         g_id    v       m       r       hp      atk    luck     face_id
-    [colors[0],         0,      3,      10,     15,     110,    5,     8,       0],
-    [colors[1],        1,      4,      15,     20,     170,    2,     10,      1],
+    [colors[random.randint(0, len(colors)-1)],         0,      3,      10,     15,     110,    5,     8,       1],
+    [colors[random.randint(0, len(colors)-1)],        1,      4,      15,     20,     170,    2,     10,      1],
 ]
 
 class Game: 
@@ -1714,6 +1716,32 @@ class Killfeed(pygame.sprite.Sprite):
         text_rect.topleft = (x - font.size(text)[0] / 2, y)
         surface.blit(text_obj, text_rect)
 
+def generateAllCircles():
+    print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
+    for color in colors:
+        print("Generating all {} images".format(color[0]))
+        for id in range(0, 2):
+            if os.path.isdir("circles/{}/{}".format(id, color[0])):
+                pass
+            else:
+                os.mkdir("circles/{}/{}".format(id, color[0]))
+                for face in range(0, 4):
+                    path = "circles/{}/{}.png".format(id, face)
+                    image = pygame.image.load(path)
+
+                    # loop through image, replace green pixels
+                    for j in range(0, image.get_size()[0]):
+                        for k in range(0, image.get_size()[1]):
+                            pixel = image.get_at((j, k))
+                            if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
+                                image.set_at((j, k), color[1])
+                            elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
+                                image.set_at((j, k), color[3])
+                            elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
+                                image.set_at((j, k), color[2])
+
+                    pygame.image.save(image, "circles/{}/{}/{}.png".format(id, color[0], face))
+
 def test():
     img = pygame.image.load("circles/purple/0.png")
     for i in range(0, img.get_size()[0]):
@@ -1745,5 +1773,6 @@ def main():
     game.play_game()
     pygame.quit()
 
+# generateAllCircles()
 main()
 # test()
