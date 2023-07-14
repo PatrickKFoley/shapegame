@@ -129,6 +129,7 @@ class Game:
         self.spawned_counter = 0
         self.mode = "GAME"
         self.stats_screen = False
+        self.dead_circle = False
 
         # for loop for creating circles
         self.groups = []
@@ -138,6 +139,7 @@ class Game:
         self.spawn_count = 0
 
         self.dead_stats = [[], []]
+        self.stats = [[], []]
 
         # Something to take care of the "fortnite circle"
         self.fortnite_x = 0
@@ -680,6 +682,7 @@ class Game:
             if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < 10:
                 self.spawnPowerup(4)
 
+            # self.dead_circle = False
 
             # draw & update groups
             self.groups[0].draw(self.screen)
@@ -747,10 +750,17 @@ class Game:
 
             if self.stats_screen:
                 if self.frames % (self.fps / 2) == 0:
+                    for group in self.groups:
+                        for member in group:
+                            member.checkStatsChange()
+
                     self.createStatsScreen()
 
-                self.screen.blit(self.stats_surface, (10, 50))
-                    
+                    for group in self.groups:
+                        for member in group:
+                            member.old_stats.copy(member.stats)
+
+                self.screen.blit(self.stats_surface, (10, 50))        
 
             # limits FPS to 60
             self.clock.tick(self.fps)
@@ -859,7 +869,7 @@ class Game:
     def centerImageAt(self, image, x, y):
         self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
 
-    def createStatsScreen(self, first = False):
+    def createStatsScreen(self, first = False, second = False):
         # create stats screen image
         num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
         self.cur_rows = num_rows
@@ -867,6 +877,7 @@ class Game:
 
         if first:
             self.stats_surface = pygame.Surface((1710, num_rows * 30 + 215))
+            self.stats_surface.set_alpha(220)
             self.stats_surface.fill("darkgray")
 
             self.draw_text("{} Team".format(self.circles[0][0].capitalize()), font, self.circles[0][0], 500, 50, True, self.stats_surface)
@@ -903,18 +914,32 @@ class Game:
             self.stats_surface.blit(self.powerup_images_screen[7], (704 + 850, 150))
             self.stats_surface.blit(self.coffin_img, (754 + 850, 150))
 
-        for i in range(0, num_rows):
-            if i % 2 == 0:
-                color = "lightgray"
-            else:
-                color = "white"
-            pygame.draw.rect(self.stats_surface, color, (10, 195 + 30 * i, 1690, 30))
+        # for i in range(0, num_rows):
+        #     if i % 2 == 0:
+        #         color = "lightgray"
+        #     else:
+        #         color = "white"
+        #     pygame.draw.rect(self.stats_surface, color, (10, 195 + 30 * i, 1690, 30))
+
+        if second:
+            first = True
 
         # list all stats
         group_counter = 0
         for group in self.groups:
             member_counter = 0
             for member in group:
+                member_report = member.stats.report()
+                if not member.stats_changed and not first:  
+                    member_counter += 1
+                    continue
+
+                if member_counter % 2 == 0:
+                    color = "lightgray"
+                else:
+                    color = "white"
+                pygame.draw.rect(self.stats_surface, color, (10 + 850 * group_counter, 195 + 30 * member_counter, 845, 30))
+
                 if member.id < 10:
                     id = "0" + str(member.id)
                 else:
@@ -924,17 +949,17 @@ class Game:
 
                 id = "id: " + str(id)
                 hp = str(round(member.hp / member.max_hp * 100, 1)) + "%"
-                dmg_o = str(round(member.stats.report()[0]))
-                dmg_i = str(round(member.stats.report()[1]))
-                hp_h = str(round(member.stats.report()[2]))
-                p_r = str(member.stats.report()[3])
-                p_a = str(member.stats.report()[4])
-                i_u = str(member.stats.report()[5])
-                m_u = str(member.stats.report()[6])
-                s_u = str(member.stats.report()[7])
-                b_u = str(member.stats.report()[8])
-                l_h = str(member.stats.report()[9])
-                p_k = str(member.stats.report()[10])
+                dmg_o = str(round(member_report[0]))
+                dmg_i = str(round(member_report[1]))
+                hp_h = str(round(member_report[2]))
+                p_r = str(member_report[3])
+                p_a = str(member_report[4])
+                i_u = str(member_report[5])
+                m_u = str(member_report[6])
+                s_u = str(member_report[7])
+                b_u = str(member_report[8])
+                l_h = str(member_report[9])
+                p_k = str(member_report[10])
 
                 stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
                 stats.append(p_r); #stats.append(p_a); 
@@ -945,12 +970,26 @@ class Game:
                 member_counter += 1
 
             for stats_list in self.dead_stats[group_counter]:
+                stats = stats_list[1]
+
+                if not first:
+                    member_counter += 1
+                    continue
+
+                print("printing dead stats")
+
+                if member_counter % 2 == 0:
+                    color = "lightgray"
+                else:
+                    color = "white"
+                pygame.draw.rect(self.stats_surface, color, (10 + 850 * group_counter, 195 + 30 * member_counter, 845, 30))
+
                 if stats_list[0] < 10:
                     id = "0" + str(stats_list[0])
                 else:
                     id = str(stats_list[0])
 
-                stats = stats_list[1]
+                
                 id = "id: " + str(id)
                 hp = str(round(0, 1)) + "%"
                 dmg_o = str(round(stats.report()[0]))
@@ -994,6 +1033,8 @@ class Circle(pygame.sprite.Sprite):
         self.hud_images = hud_images
         self.smoke_images = smoke_images
         self.stats = CircleStats()
+        self.stats_changed = False
+        self.old_stats = CircleStats(True)
         self.colliding_with = []
 
         if VEL == 0:
@@ -1050,8 +1091,28 @@ class Circle(pygame.sprite.Sprite):
         id = self.id
         self.kill()
 
+        row_num = self.id - (len(self.game.groups[self.g_id]) - self.game.members_per_team)
+        row_num_last = len(self.game.groups[self.g_id])
+
+        if row_num % 2 == 0:
+            color = "lightgray"
+        else:
+            color = "white"
+        pygame.draw.rect(self.game.stats_surface, color, (10 + 850 * self.g_id, 195 + 30 * row_num, 845, 30))
+
+        # num_rows = max(len(self.game.groups[0].sprites()) + len(self.game.dead_stats[0]), len(self.game.groups[1].sprites()) + len(self.game.dead_stats[1]))
+        # if row_num_last % 2 == 0:
+        #     color = "lightgray"
+        # else:
+        #     color = "white"
+        
+        pygame.draw.rect(self.game.stats_surface, "gray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
+
+        # self.game.dead_circle = True
         if [id, stats] not in self.game.dead_stats[self.g_id]:
             self.game.dead_stats[self.g_id].append([id, stats])
+
+        self.game.createStatsScreen(False, True)
 
     def getNextImage(self, index):
         multiplier = self.getRad() / 1024
@@ -1249,6 +1310,12 @@ class Circle(pygame.sprite.Sprite):
         self.checkImageChange()
         self.dmg_counter = 144
 
+    def checkStatsChange(self):
+        if self.stats.report() != self.old_stats.report():
+            self.stats_changed = True
+        else:
+            self.stats_changed = False
+
     # return something on own death
     def getHitBy(self, enemy):
         self.hp = self.hp - enemy.attack
@@ -1315,7 +1382,7 @@ class Circle(pygame.sprite.Sprite):
         return self.id
 
 class CircleStats():
-    def __init__(self):
+    def __init__(self, flag = False):
         self.dmg_dealt = 0
         self.dmg_received = 0
         self.hp_healed = 0
@@ -1330,6 +1397,8 @@ class CircleStats():
         self.speeds_used = 0
         self.bombs_used = 0
         self.laser_hits = 0
+
+        if flag: self.dmg_dealt = 1
 
     def dealDamage(self, amount):
         self.dmg_dealt += amount
@@ -1383,6 +1452,22 @@ class CircleStats():
             self.laser_hits,
             self.kills
         ]
+
+    def copy(self, other):
+        self.dmg_dealt =        other.dmg_dealt
+        self.dmg_received =     other.dmg_received
+        self.hp_healed =        other.hp_healed
+        self.powerups_activated = other.powerups_activated
+        self.kills =            other.kills
+        self.players_killed =   other.players_killed
+
+        self.instakills_used =  other.instakills_used
+        self.players_resurrected = other.players_resurrected
+        self.stars_used =       other.stars_used
+        self.muscles_used =     other.muscles_used
+        self.speeds_used =      other.speeds_used
+        self.bombs_used =       other.bombs_used
+        self.laser_hits =       other.laser_hits
 
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, attributes, x, y):
