@@ -1158,18 +1158,18 @@ class Circle(pygame.sprite.Sprite):
                     surface.blit(image, (24 * p_counter, 0))
                     p_counter += 1
 
-            self.image.blit(surface, (self.image.get_size()[0] / 2 - surface.get_size()[0] / 2 + 2, self.image.get_size()[1] / 5.5 - surface.get_size()[1] / 2))
+            self.image.blit(surface, (self.image.get_size()[0] / 2 - surface.get_size()[0] / 2 + 2,  4 * self.image.get_size()[1] / 4.75 - surface.get_size()[1] / 2))
 
         self.image.blit(self.circle_image, (self.image.get_size()[0] / 4, self.image.get_size()[1] / 4))
 
         hp_circle_r = min(self.r/2, 16)
         offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
-        pygame.draw.circle(self.image, (64, 64, 64, 100), (self.image.get_size()[0] / 2 - offset, self.image.get_size()[1] / 2 + offset), hp_circle_r)
+        pygame.draw.circle(self.image, (64, 64, 64, 100), (self.image.get_size()[0] / 2 - offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
         
         font = pygame.font.Font("freesansbold.ttf", int(hp_circle_r * 1.4))
         text_obj = font.render(str(self.id), 1, "black")
         text_rect = text_obj.get_rect()
-        text_rect.topleft = (self.image.get_size()[0] / 2 - offset - font.size(str(self.id))[0] / 2, self.image.get_size()[1] / 2 + offset - font.size(str(self.id))[1] / 2)
+        text_rect.topleft = (self.image.get_size()[0] / 2 - offset - font.size(str(self.id))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(self.id))[1] / 2)
         self.image.blit(text_obj, text_rect)
 
 
@@ -1295,7 +1295,7 @@ class Circle(pygame.sprite.Sprite):
 
             hp_circle_r = min(self.r/2, 16)
             offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
-            self.image.blit(self.game.blood_image_small, (self.image.get_size()[0] / 2 + offset - 5, self.image.get_size()[1] / 2 - offset))
+            self.image.blit(self.game.blood_image_small, (self.image.get_size()[0] / 2 + self.r, self.image.get_size()[1] / 2 - self.game.blood_image_small.get_size()[0] - 5))
 
             if self.dmg_counter == 0:
                 flag = True
@@ -1315,12 +1315,12 @@ class Circle(pygame.sprite.Sprite):
 
             offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
 
-            pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 + offset), hp_circle_r)
+            pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
             
             font = pygame.font.Font("freesansbold.ttf", int(hp_circle_r * 1.4))
             text_obj = font.render(str(hp_p), 1, "black")
             text_rect = text_obj.get_rect()
-            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(str(hp_p))[0] / 2, self.image.get_size()[1] / 2 + offset - font.size(str(hp_p))[1] / 2)
+            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(str(hp_p))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
             self.image.blit(text_obj, text_rect)
 
             self.took_dmg = False
