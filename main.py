@@ -1145,12 +1145,10 @@ class Circle(pygame.sprite.Sprite):
 
     def constructSurface(self, powerups = False):
         if powerups:
-            print("showing new powerups")
             # show powerups
             self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
 
             num_powerups = len(self.powerups)
-            print(num_powerups)
             surface = pygame.Surface((24 * num_powerups, 20), pygame.SRCALPHA, 32)
 
             p_counter = 0
