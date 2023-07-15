@@ -1,22 +1,28 @@
-import pygame, random, math, numpy as np, sys, os
+import pygame, random, math, numpy as np, os
 from pygame.locals import *
 
 colors = [
     # REGULAR LIGHT DARK
-    ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)], #RED
-    ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)], # ORANGE
-    ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)], #
-    ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)], #
-    ["blue", (0, 255, 255), (102, 255, 255), (0, 153, 153)], #
-    ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)], #
+    ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)],
+    ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)],
+    ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)],
+    ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)],
+    ["blue", (0, 0, 204), (51, 51, 255), (0, 0, 102)],
+    ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)],
     ["pink", (255, 0, 127), (255, 102, 178), (153, 0, 76)],
-    ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)]
+    ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)],
 ]
+
+one = random.randint(0, len(colors)-2)
+two = random.randint(0, len(colors)-2)
+
+while one == two:
+    two = random.randint(0, len(colors)-2)
 
 circles = [
     # color         g_id    v       m       r       hp      atk    luck     face_id
-    [colors[random.randint(0, len(colors)-1)],         0,      3,      10,     15,     110,    5,     8,       1],
-    [colors[random.randint(0, len(colors)-1)],        1,      4,      15,     20,     170,    2,     10,      1],
+    [colors[one],         0,      3,      10,     15,     110,    5,     8,       1],
+    [colors[two],        1,      4,      15,     20,     170,    2,     10,      1],
 ]
 
 class Game: 
@@ -116,6 +122,7 @@ class Game:
 
         self.blood_image = pygame.transform.scale(pygame.image.load("powerups/blood.png"), (40, 40))
         self.sword_image = pygame.transform.scale(pygame.image.load("powerups/sword.png"), (40, 40))
+        self.blood_image_small = pygame.transform.scale(pygame.image.load("powerups/blood.png"), (30, 30))
 
         self.images = [self.c0_images, self.c1_images]
 
@@ -763,13 +770,13 @@ class Game:
             if self.fortnite_x_growing:
                 self.fortnite_x_counter += 1
                 if self.fortnite_x_counter % 3 == 0:
-                    if self.fortnite_x <= 770:
+                    if self.fortnite_x <= 350:
                         self.fortnite_x += 1
 
             if self.fortnite_y_growing:
                 self.fortnite_y_counter += 1
                 if self.fortnite_y_counter % 3 == 0:
-                    if self.fortnite_y <= 350:
+                    if self.fortnite_y <= 450:
                         self.fortnite_y += 1
 
             pygame.draw.rect(self.screen, "black", (self.fortnite_x, self.fortnite_y, self.screen_w - self.fortnite_x * 2, self.screen_h - self.fortnite_y * 2), 2)
@@ -1085,6 +1092,9 @@ class Circle(pygame.sprite.Sprite):
         self.stats_changed = False
         self.old_stats = CircleStats(True)
         self.colliding_with = []
+        self.took_dmg = False
+        self.powerups_changed = False
+        
 
         if VEL == 0:
             # Want a constant speed, but random direction to start
@@ -1111,8 +1121,10 @@ class Circle(pygame.sprite.Sprite):
         else:
             self.r = R
 
+        self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
+
         self.images = images
-        self.image = self.getNextImage(0)
+        self.circle_image = self.getNextImage(0)
 
         self.hp = self.max_hp = attributes[5]
         self.attack = attributes[6]
@@ -1123,17 +1135,46 @@ class Circle(pygame.sprite.Sprite):
         else:
             [self.x, self.y] = XY
 
-
-        self.rect = self.image.get_rect()
-
-        self.rect.center = [self.x, self.y]
-
-        # self.rotate()
-
-        self.dmg_counter = 0
-
         # Powerups array
         self.powerups = []
+        self.dmg_counter = 0
+
+        self.constructSurface()
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
+
+    def constructSurface(self, powerups = False):
+        if powerups:
+            print("showing new powerups")
+            # show powerups
+            self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
+
+            num_powerups = len(self.powerups)
+            print(num_powerups)
+            surface = pygame.Surface((24 * num_powerups, 20), pygame.SRCALPHA, 32)
+
+            p_counter = 0
+            if self.powerups != []:
+                for powerup in self.powerups:
+                    image = self.hud_images[powerup]
+                    surface.blit(image, (24 * p_counter, 0))
+                    p_counter += 1
+
+            self.image.blit(surface, (self.image.get_size()[0] / 2 - surface.get_size()[0] / 2 + 2, self.image.get_size()[1] / 5.5 - surface.get_size()[1] / 2))
+
+        self.image.blit(self.circle_image, (self.image.get_size()[0] / 4, self.image.get_size()[1] / 4))
+
+        hp_circle_r = min(self.r/2, 16)
+        offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
+        pygame.draw.circle(self.image, (64, 64, 64, 100), (self.image.get_size()[0] / 2 - offset, self.image.get_size()[1] / 2 + offset), hp_circle_r)
+        
+        font = pygame.font.Font("freesansbold.ttf", int(hp_circle_r * 1.4))
+        text_obj = font.render(str(self.id), 1, "black")
+        text_rect = text_obj.get_rect()
+        text_rect.topleft = (self.image.get_size()[0] / 2 - offset - font.size(str(self.id))[0] / 2, self.image.get_size()[1] / 2 + offset - font.size(str(self.id))[1] / 2)
+        self.image.blit(text_obj, text_rect)
+
+
 
     def killCircle(self):
         stats = self.stats
@@ -1199,6 +1240,9 @@ class Circle(pygame.sprite.Sprite):
             self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
             self.game.laser_sound.play()
 
+        # self.constructSurface()
+        self.powerups_changed = True
+
     def collectPowerup(self, id):
         self.powerups.append(id)
 
@@ -1216,6 +1260,9 @@ class Circle(pygame.sprite.Sprite):
         # check if picked up bomb (explode in some time)
         if id == 6:
             self.bomb_timer = 3 * self.game.fps
+
+        # self.constructSurface()
+        self.powerups_changed = True
 
     def update(self, game):
         if self.bomb_timer >= 0:
@@ -1240,30 +1287,49 @@ class Circle(pygame.sprite.Sprite):
             elif self.frames <= 50:
                 game.screen.blit(self.smoke_images[4], (self.x - self.smoke_images[4].get_size()[0] / 2, self.y - self.smoke_images[4].get_size()[1] / 2))
 
-        
-
         if type(self.powerups) == type(None):
             self.powerups = []
 
-        if self.game.mode == "GAME":
-            # show powerups
-            p_counter = 0
-            if self.powerups != []:
-                for powerup in self.powerups:
-                    image = self.hud_images[powerup]
-                    game.screen.blit(image, (self.x - self.max_hp / 2 + p_counter * 20, self.y - self.r - 25))
-                    p_counter += 1
+        # show damage indicator
+        flag = False
+        if self.dmg_counter > 0:
+            self.dmg_counter -= 1
 
-            # show damage indicator
-            if self.dmg_counter != 0:
-                self.dmg_counter -= 1
-                pygame.draw.circle(game.screen, "red", (self.x - self.r, self.y - self.r + 10), 3)
+            hp_circle_r = min(self.r/2, 16)
+            offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
+            self.image.blit(self.game.blood_image_small, (self.image.get_size()[0] / 2 + offset - 5, self.image.get_size()[1] / 2 - offset))
 
-            # show health
-            pygame.draw.rect(game.screen, "red", (self.x - self.max_hp / 2, self.y - self.r * 1, self.max_hp, 5))
-            pygame.draw.rect(game.screen, "green", (self.x - self.max_hp / 2, self.y - self.r * 1, self.hp, 5))
-        elif self.game.mode == "STATS":
-            pass
+            if self.dmg_counter == 0:
+                flag = True
+                self.constructSurface(True)
+        
+        if self.took_dmg or flag:
+            hp_p = round(self.hp / self.max_hp * 100)
+
+            if hp_p <= 33:
+                color = (255, 0, 0, 100)
+            elif 34 < hp_p <= 66:
+                color = (255, 255, 0, 100)
+            else:
+                color = (0, 255, 0, 100)
+
+            hp_circle_r = min(self.r/2, 16)
+
+            offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
+
+            pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 + offset), hp_circle_r)
+            
+            font = pygame.font.Font("freesansbold.ttf", int(hp_circle_r * 1.4))
+            text_obj = font.render(str(hp_p), 1, "black")
+            text_rect = text_obj.get_rect()
+            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(str(hp_p))[0] / 2, self.image.get_size()[1] / 2 + offset - font.size(str(hp_p))[1] / 2)
+            self.image.blit(text_obj, text_rect)
+
+            self.took_dmg = False
+
+        if self.powerups_changed:
+            self.constructSurface(True)
+            self.powerups_changed = False
 
         self.move(game)
 
@@ -1339,23 +1405,28 @@ class Circle(pygame.sprite.Sprite):
 
     def checkImageChange(self):
         if self.hp <= self.max_hp / 4:
-            self.image = self.getNextImage(3)
+            self.circle_image = self.getNextImage(3)
+            self.constructSurface()
 
         elif self.hp <= self.max_hp * 2 / 4:
-            self.image = self.getNextImage(2)
+            self.circle_image = self.getNextImage(2)
+            self.constructSurface()
 
         elif self.hp <= self.max_hp * 3 / 4:
-            self.image = self.getNextImage(1)
+            self.circle_image = self.getNextImage(1)
+            self.constructSurface()
 
         else:
-            self.image = self.getNextImage(0)
-
+            self.circle_image = self.getNextImage(0)
+            self.constructSurface()
+        
     def takeDamage(self, amount):
         if self.hp - amount <= 0:
             self.killCircle()
             return -1
 
         self.hp -= amount
+        self.took_dmg = True
         self.checkImageChange()
         self.dmg_counter = 144
 
@@ -1367,6 +1438,7 @@ class Circle(pygame.sprite.Sprite):
 
     # return something on own death
     def getHitBy(self, enemy):
+        self.took_dmg = True
         self.hp = self.hp - enemy.attack
         self.stats.receiveDamage(enemy.attack)
         self.dmg_counter = 144
@@ -1661,8 +1733,8 @@ class Killfeed(pygame.sprite.Sprite):
         self.next_y = self.y
         self.screen = screen
         self.surface = pygame.Surface((200, 60), pygame.SRCALPHA, 32)
-        self.left_img = pygame.transform.scale(left_circle.image, (50, 50))
-        self.right_img = pygame.transform.scale(right_circle.image, (50, 50))
+        self.left_img = pygame.transform.scale(left_circle.circle_image, (50, 50))
+        self.right_img = pygame.transform.scale(right_circle.circle_image, (50, 50))
         self.frames = 0
 
         # self.surface.fill("gray")
