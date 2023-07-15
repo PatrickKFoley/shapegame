@@ -3,18 +3,20 @@ from pygame.locals import *
 
 colors = [
     # REGULAR LIGHT DARK
-    ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)],
-    ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)],
-    ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)],
-    ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)],
-    ["blue", (0, 0, 204), (51, 51, 255), (0, 0, 102)],
-    ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)],
-    ["pink", (255, 0, 127), (255, 102, 178), (153, 0, 76)],
-    ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)],
+    # ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)],
+    # ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)],
+    # ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)],
+    # ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)],
+    # ["blue", (0, 0, 204), (51, 51, 255), (0, 0, 102)],
+    # ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)],
+    # ["pink", (255, 0, 127), (255, 102, 178), (153, 0, 76)],
+    # ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)],
     # SPECIAL COLORS - TAKE CARE
-    ["rainbow", "gradient1.png", (255, 255, 255), (180, 180, 180)],
-    ["grayscale", "gradient2.png", (255, 255, 255), (180, 180, 180)],
-    ["rose", "gradient3.png", (255, 0, 0), (255, 0, 0)],
+    ["rainbow", "gradient1.png", (255, 180, 180)],
+    ["grayscale", "gradient2.png", (100, 100, 100)],
+    ["rose", "gradient3.png", (255, 51, 153)],
+    ["lavender", "gradient4.png", (153, 153, 255)],
+    ["mint", "gradient5.png", (0, 255, 128)],
 ]
 
 one = random.randint(0, len(colors)-1)
@@ -26,7 +28,7 @@ while one == two:
 circles = [
     # color         g_id    v       m       r       hp      atk    luck     face_id
     [colors[one],   0,      3,      10,     25,     110,    5,     8,       1],
-    [colors[10],   1,      4,      15,     40,     170,    2,     10,      1],
+    [colors[two],   1,      4,      15,     40,     170,    2,     10,      1],
 ]
 
 class Game: 
@@ -793,7 +795,7 @@ class Game:
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
                 if type(self.circles[0][0][1]) == type("string"):
-                    color = "black"
+                    color = self.circles[0][0][2]
                 else:
                     color = self.circles[0][0][1]
                 self.draw_text("{} Wins!".format(self.circles[1][0][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
@@ -803,7 +805,7 @@ class Game:
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
                 if type(self.circles[1][0][1]) == type("string"):
-                    color = "black"
+                    color = self.circles[1][0][2]
                 else:
                     color = self.circles[1][0][1]
                 self.draw_text("{} Wins!".format(self.circles[0][0][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
@@ -956,13 +958,13 @@ class Game:
             self.stats_surface.fill("darkgray")
 
             if type(self.circles[0][0][1]) == type("string"):
-                color = "black"
+                color = self.circles[0][0][2]
             else:
                 color = self.circles[0][0][1]
             self.draw_text("{} Team".format(self.circles[0][0][0].capitalize()), font, color, 500, 50, True, self.stats_surface)
             
             if type(self.circles[1][0][1]) == type("string"):
-                color = "black"
+                color = self.circles[1][0][2]
             else:
                 color = self.circles[1][0][1]
             self.draw_text("{} Team".format(self.circles[1][0][0].capitalize()), font, color, 500 + 850, 50, True, self.stats_surface)
@@ -1842,7 +1844,7 @@ def generateAllCircles():
                                 if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
                                     image.set_at((j, k), background.get_at((j, k)))
                                 elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                                    image.set_at((j, k), color[3])
+                                    image.set_at((j, k), color[2])
                                 elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
                                     image.set_at((j, k), background.get_at((j, k)))
 
