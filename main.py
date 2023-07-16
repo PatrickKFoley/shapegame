@@ -407,6 +407,7 @@ class Game:
         loser_response = loser.getHitBy(winner)
         winner.hitEnemy(loser)
     
+        if loser_response != [0]:
             # winner has a resurrection and has killed loser
             if 2 in loser_response:
                 g = winner.getG_id()
@@ -1216,6 +1217,31 @@ class Circle(pygame.sprite.Sprite):
 
         self.image.blit(self.circle_image, (self.image.get_size()[0] / 4, self.image.get_size()[1] / 4))
 
+        hp_p = round(self.hp / self.max_hp * 100)
+        if hp_p <= 33:
+            color = (255, 0, 0, 100)
+        elif 34 < hp_p <= 66:
+            color = (255, 255, 0, 100)
+        else:
+            color = (0, 255, 0, 100)
+
+        hp_circle_r = min(self.r/2, 16)
+
+        offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
+
+        pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
+        
+        if hp_p == 100:
+            size = int(hp_circle_r * 1.1)
+        else:
+            size = int(hp_circle_r * 1.4)
+
+        font = pygame.font.Font("freesansbold.ttf", size)
+        text_obj = font.render(str(hp_p), 1, "black")
+        text_rect = text_obj.get_rect()
+        text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(str(hp_p))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
+        self.image.blit(text_obj, text_rect)
+
         hp_circle_r = min(self.r/2, 16)
         offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
         pygame.draw.circle(self.image, (64, 64, 64, 100), (self.image.get_size()[0] / 2 - offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
@@ -1271,11 +1297,14 @@ class Circle(pygame.sprite.Sprite):
         return self.powerups
     
     def removePowerup(self, id):
-        if len(self.powerups) == 1:
-            self.powerups = []
+        if id in self.powerups:
+            if len(self.powerups) == 1:
+                self.powerups = []
+            else:
+                self.powerups.remove(id)
+                self.stats.activatePowerup()
         else:
-            self.powerups.remove(id)
-            self.stats.activatePowerup()
+            return
 
         # If removing star, subtract luck
         if id == 2:
