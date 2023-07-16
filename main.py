@@ -254,7 +254,7 @@ class Game:
         self.max_hps = [0, 0]
         self.hps = []
 
-        self.members_per_team = 5
+        self.members_per_team = 16
         self.max_hps[0] += circles[0]["health"] * self.members_per_team
         self.max_hps[1] += circles[1]["health"] * self.members_per_team
         self.hps = [self.max_hps[0], self.max_hps[1]]
@@ -393,6 +393,8 @@ class Game:
             winner.removePowerup(3)
         if 4 in winner.powerups:
             winner.removePowerup(4)
+        if 7 in winner.powerups:
+            winner.removePowerup(7)
 
         if loser.hp <= 0:
             return 1
@@ -408,8 +410,7 @@ class Game:
 
         # check if dead loser has resurrect
         if 1 in loser.powerups:
-            self.memberResurrectMember(loser)
-            loser_resurrect = True
+            loser_resurrect = self.memberResurrectMember(loser)
 
         # remove powerup % update stats, kill circle
         winner.stats.killPlayer(loser.id)
@@ -458,6 +459,8 @@ class Game:
 
         # remove powerup
         god.removePowerup(1)
+
+        return new_circle.id
 
     def collide(self, mem_1, mem_2):
         self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
@@ -707,20 +710,33 @@ class Game:
 
                 if dist <= max_dist:
                     if not member_1.getId() in laser.ids_collided_with:
-                        laser.ids_collided_with.append(member_1.getId())
+                        # laser.ids_collided_with.append(member_1.getId())
                         if member_1.getG_id() != laser.g_id:
-                            self.laser_hit_sound.play()
-                            laser_damage = 25
-                            laser.circle.stats.laserHit()
-                            laser.circle.stats.dealDamage(laser_damage)
-                            if member_1.takeDamage(laser_damage) == -1:
-                                [x, y] = member_1.getXY()
-                                if self.mode == "GAME":
-                                    self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                                laser.circle.stats.killPlayer(member_1.id)
-                                self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
-                                self.addKillfeed(laser.circle, member_1, 7)
-                                
+                            self.laserHitMember(laser, member_1)
+                            # self.laser_hit_sound.play()
+                            # laser_damage = 25
+                            # laser.circle.stats.laserHit()
+                            # laser.circle.stats.dealDamage(laser_damage)
+                            # if member_1.takeDamage(laser_damage) == -1:
+                            #     [x, y] = member_1.getXY()
+                            #     if self.mode == "GAME":
+                            #         self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
+                            #     laser.circle.stats.killPlayer(member_1.id)
+                            #     self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+                            #     self.addKillfeed(laser.circle, member_1, 7)
+
+    def laserHitMember(self, laser, hit):
+        laser_damage = 25
+        laser.circle.stats.laserHit()
+        laser.circle.stats.dealDamage(laser_damage)
+        laser.ids_collided_with.append(hit.id)
+
+        hit.takeDamage(laser_damage)
+
+        if hit.hp <= 0:
+            possible_id = self.memberKillMember(laser.circle, hit, 7)
+            if possible_id: laser.ids_collided_with.append(possible_id); print("appending id: {} to laser ids".format(possible_id))
+
     def draw_text(self, text, font, color, x, y, center = True, screen = False):
         text_obj = font.render(text, 1, color)
         text_rect = text_obj.get_rect()
