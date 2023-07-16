@@ -826,20 +826,20 @@ class Game:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if type(self.circles[0]["color"][1]) == type("string"):
-                    color = self.circles[0]["color"][2]
+                if type(self.circles[1]["color"][1]) == type("string"):
+                    color = self.circles[1]["color"][2]
                 else:
-                    color = self.circles[0]["color"][1]
-                self.draw_text("{} Wins!".format(self.circles[1]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
+                    color = self.circles[1]["color"][1]
+                self.draw_text("{} Wins!".format(self.circles[1]["color"][1].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if type(self.circles[1]["color"][1]) == type("string"):
-                    color = self.circles[1]["color"][2]
+                if type(self.circles[0]["color"][1]) == type("string"):
+                    color = self.circles[0]["color"][2]
                 else:
-                    color = self.circles[1]["color"][1]
+                    color = self.circles[0]["color"][1]
                 self.draw_text("{} Wins!".format(self.circles[0]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
 
             
@@ -1223,7 +1223,7 @@ class Circle(pygame.sprite.Sprite):
 
         self.image.blit(self.circle_image, (self.image.get_size()[0] / 4, self.image.get_size()[1] / 4))
 
-        hp_p = round(self.hp / self.max_hp * 100)
+        hp_p = round(round(self.hp) / self.max_hp * 100)
         if hp_p <= 33:
             color = (255, 0, 0, 100)
         elif 34 < hp_p <= 66:
@@ -1255,7 +1255,7 @@ class Circle(pygame.sprite.Sprite):
         font = pygame.font.Font("freesansbold.ttf", size)
         text_obj = font.render(text, 1, "black")
         text_rect = text_obj.get_rect()
-        text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
+        text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(text)[1] / 2)
         self.image.blit(text_obj, text_rect)
 
         hp_circle_r = min(self.r/2, 16)
@@ -1408,7 +1408,7 @@ class Circle(pygame.sprite.Sprite):
                 self.constructSurface(True)
         
         if self.took_dmg or flag:
-            hp_p = round(self.hp / self.max_hp * 100)
+            hp_p = round(round(self.hp) / self.max_hp * 100)
 
             if hp_p <= 33:
                 color = (255, 0, 0, 100)
@@ -1441,7 +1441,7 @@ class Circle(pygame.sprite.Sprite):
             font = pygame.font.Font("freesansbold.ttf", size)
             text_obj = font.render(text, 1, "black")
             text_rect = text_obj.get_rect()
-            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
+            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(text)[1] / 2)
             self.image.blit(text_obj, text_rect)
 
             self.took_dmg = False
@@ -1522,8 +1522,11 @@ class Circle(pygame.sprite.Sprite):
     def getAttack(self):
         velocity = math.sqrt(self.getVel()[0]**2 + self.getVel()[1]**2)
 
+        if velocity == np.nan:
+            velocity = 0
+
         # print("attacking for: {} after changes: {}".format(self.attack, self.dmg_multiplier * velocity))
-        return self.dmg_multiplier * velocity
+        return round(self.dmg_multiplier * velocity)
 
     def checkImageChange(self):
         if self.hp <= self.max_hp / 4:
