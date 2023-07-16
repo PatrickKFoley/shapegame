@@ -407,9 +407,8 @@ class Game:
         loser_response = loser.getHitBy(winner)
         winner.hitEnemy(loser)
     
-        if loser_response != 0:
             # winner has a resurrection and has killed loser
-            if loser_response == 2:
+            if 2 in loser_response:
                 g = winner.getG_id()
                 xy = loser.getXY()
                 r = loser.getRad()
@@ -422,9 +421,10 @@ class Game:
                 self.choir_sound.play()
                 pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
                 winner.removePowerup(1)
+                if 0 in winner.powerups: winner.removePowerup(0)
                 return 1
             # winner has killed loser with insta kill
-            elif loser_response == 6:     
+            elif 6 in loser_response:     
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
@@ -434,7 +434,7 @@ class Game:
                 self.addKillfeed(winner, loser, 0)
                 return 1
             # winner has killed loser with muscle
-            elif loser_response == 3:     
+            elif 3 in loser_response:     
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
@@ -443,7 +443,7 @@ class Game:
                 self.addKillfeed(winner, loser, 3)
                 return 1
             # winner has killed loser with speed
-            elif loser_response == 5:
+            elif 5 in loser_response:
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
@@ -452,7 +452,7 @@ class Game:
                 self.addKillfeed(winner, loser, 4)
                 return 1
             # winner has killed loser
-            elif loser_response == 1:     
+            elif 1 in loser_response:     
                 [x, y] = loser.getXY()
                 if self.mode == "GAME":
                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
@@ -632,8 +632,8 @@ class Game:
                     self.addKillfeed(circle, member, 6)
                     kill_counter += 1
 
-        if kill_counter >= 1:
-            new_circle = self.addCircle(g_id, [x, y])
+        if kill_counter >= 1 and 1 not in circle.powerups:
+            new_circle = self.addCircle(g_id, [x + 1, y + 1])
             self.addKillfeed(circle, new_circle, 1)
             circle.stats.resurrectPlayer()
 
@@ -1234,6 +1234,7 @@ class Circle(pygame.sprite.Sprite):
             self.stats.resurrectPlayer()
             self.game.choir_sound.play()
             pygame.mixer.Sound.fadeout(self.game.choir_sound, 1000)
+            self.game.createStatsScreen(True)
 
         stats = self.stats
         id = self.id
@@ -1516,31 +1517,36 @@ class Circle(pygame.sprite.Sprite):
         # Check if you had a star, if so remove it
         if 2 in self.powerups: self.removePowerup(2)
 
+        response = []
+
         # if you died
         if self.hp <= 0:
 
             if 1 in enemy.powerups:
                 self.killCircle()
-                return 2
+                response.append(2)
             elif 0 in enemy.powerups:     
                 enemy.removePowerup(0)
                 self.killCircle()
-                return 6
+                response.append(6)
             elif 3 in enemy.powerups:
                 self.killCircle()
-                return 3
+                response.append(3)
             elif 4 in enemy.powerups:
                 self.killCircle()
-                return 5
+                response.append(5)
             else:
                 self.killCircle()
-                return 1
+                response.append(1)
+            return response
         else:
             if 2 in enemy.powerups:
-                return 4
+                response.append(4)
             if 3 in enemy.powerups:
-                return 7
-            return 0
+                response.append(2)
+            response.append(0)
+        
+        return response
 
     def hitEnemy(self, enemy):
         self.stats.dealDamage(self.getAttack())
