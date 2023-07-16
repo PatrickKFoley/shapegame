@@ -31,6 +31,33 @@ circles = [
     [colors[two],   1,      4,      15,     40,     170,    2,     10,      1],
 ]
 
+circles = [
+    {
+        "color": colors[one],
+        "face_id": 1,
+        "group_id": 0,
+        "density": 10,
+        "velocity": 3,
+        "mass": 10,
+        "radius": 25,
+        "health": 110,
+        "attack": 5,
+        "luck": 8,
+    },
+    {
+        "color": colors[two],
+        "face_id": 1,
+        "group_id": 1,
+        "density": 10,
+        "velocity": 4,
+        "mass": 15,
+        "radius_max": 40,
+        "health": 170,
+        "attack": 2,
+        "luck": 10,
+    },
+]
+
 class Game: 
     def __init__(self, c0, c1, seed = False):
         if seed != False:
@@ -61,14 +88,14 @@ class Game:
             self.smoke_images.append(image)
 
         # Circles
-        if os.path.isdir("circles/{}/{}".format(c1[8], c1[0][0])):
+        if os.path.isdir("circles/{}/{}".format(circles[1]["face_id"], circles[1]["color"][0])):
             for i in range(0, 4):
-                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(c1[8], c1[0][0], i)))
+                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(circles[1]["face_id"], circles[1]["color"][0], i)))
         else:
             print("\nJust a moment! New circles being drawn!")
-            os.mkdir("circles/{}/{}".format(c1[8], c1[0][0]))
+            os.mkdir("circles/{}/{}".format(circles[1]["face_id"], circles[1]["color"][0]))
             for n in range(0, 4):
-                path = "circles/{}/{}.png".format(c1[8], n)
+                path = "circles/{}/{}.png".format(circles[1]["face_id"], n)
                 image = pygame.image.load(path)
 
                 # loop through image, replace green pixels
@@ -76,36 +103,36 @@ class Game:
                     for k in range(0, image.get_size()[1]):
                         pixel = image.get_at((j, k))
                         if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), c1[0][1])
+                            image.set_at((j, k), circles[1]["color"][1])
                         elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), c1[0][3])
+                            image.set_at((j, k), circles[1]["color"][3])
                         elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
-                            image.set_at((j, k), c1[0][2])
+                            image.set_at((j, k), circles[1]["color"][2])
 
-                pygame.image.save(image, "circles/{}/{}/{}.png".format(c1[8], c1[0][0], n))
+                pygame.image.save(image, "circles/{}/{}/{}.png".format(circles[1]["face_id"], circles[1]["color"][0], n))
                 self.c1_images.append(image)
 
-        if os.path.isdir("circles/{}/{}".format(c0[8], c0[0][0])):
+        if os.path.isdir("circles/{}/{}".format(circles[0]["face_id"], circles[0]["color"][0])):
             for i in range(0, 4):
-                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(c0[8], c0[0][0], i)))
+                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(circles[0]["face_id"], circles[0]["color"][0], i)))
         else:
             print("\nJust a moment! New circles being drawn!")
-            os.mkdir("circles/{}/{}".format(c0[8], c0[0][0]))
+            os.mkdir("circles/{}/{}".format(circles[0]["face_id"], circles[0]["color"][0]))
             for n in range(0, 4):
-                path = "circles/{}/{}.png".format(c0[8], n)
+                path = "circles/{}/{}.png".format(circles[0]["face_id"], n)
                 image = pygame.image.load(path)
 
                 for j in range(0, image.get_size()[0]):
                     for k in range(0, image.get_size()[1]):
                         pixel = image.get_at((j, k))
                         if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), c0[0][1])
+                            image.set_at((j, k), circles[0]["color"][1])
                         elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), c0[0][3])
+                            image.set_at((j, k), circles[0]["color"][3])
                         elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
-                            image.set_at((j, k), c0[0][2])
+                            image.set_at((j, k), circles[0]["color"][2])
 
-                pygame.image.save(image, "circles/{}/{}/{}.png".format(c0[8], c0[0][0], n))
+                pygame.image.save(image, "circles/{}/{}/{}.png".format(circles[0]["face_id"], circles[0]["color"][0], n))
                 self.c0_images.append(image)
      
         self.powerups = [
@@ -229,8 +256,8 @@ class Game:
         self.hps = []
 
         self.members_per_team = 16
-        self.max_hps[0] += c0[5] * self.members_per_team
-        self.max_hps[1] += c1[5] * self.members_per_team
+        self.max_hps[0] += circles[0]["health"] * self.members_per_team
+        self.max_hps[1] += circles[1]["health"] * self.members_per_team
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
         self.total_count = self.members_per_team * 2
@@ -794,21 +821,21 @@ class Game:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if type(self.circles[0][0][1]) == type("string"):
-                    color = self.circles[0][0][2]
+                if type(self.circles[0]["color"][1]) == type("string"):
+                    color = self.circles[0]["color"][2]
                 else:
-                    color = self.circles[0][0][1]
-                self.draw_text("{} Wins!".format(self.circles[1][0][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
+                    color = self.circles[0]["color"][1]
+                self.draw_text("{} Wins!".format(self.circles[1]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if type(self.circles[1][0][1]) == type("string"):
-                    color = self.circles[1][0][2]
+                if type(self.circles[1]["color"][1]) == type("string"):
+                    color = self.circles[1]["color"][2]
                 else:
-                    color = self.circles[1][0][1]
-                self.draw_text("{} Wins!".format(self.circles[0][0][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
+                    color = self.circles[1]["color"][1]
+                self.draw_text("{} Wins!".format(self.circles[0]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
 
             
             if self.done and self.play_sound:
@@ -957,17 +984,17 @@ class Game:
             self.stats_surface.set_alpha(220)
             self.stats_surface.fill("darkgray")
 
-            if type(self.circles[0][0][1]) == type("string"):
-                color = self.circles[0][0][2]
+            if type(self.circles[0]["color"][1]) == type("string"):
+                color = self.circles[0]["color"][2]
             else:
-                color = self.circles[0][0][1]
-            self.draw_text("{} Team".format(self.circles[0][0][0].capitalize()), font, color, 500, 50, True, self.stats_surface)
+                color = self.circles[0]["color"][1]
+            self.draw_text("{} Team".format(self.circles[0]["color"][0].capitalize()), font, color, 500, 50, True, self.stats_surface)
             
-            if type(self.circles[1][0][1]) == type("string"):
-                color = self.circles[1][0][2]
+            if type(self.circles[1]["color"][1]) == type("string"):
+                color = self.circles[1]["color"][2]
             else:
-                color = self.circles[1][0][1]
-            self.draw_text("{} Team".format(self.circles[1][0][0].capitalize()), font, color, 500 + 850, 50, True, self.stats_surface)
+                color = self.circles[1]["color"][1]
+            self.draw_text("{} Team".format(self.circles[1]["color"][0].capitalize()), font, color, 500 + 850, 50, True, self.stats_surface)
 
             self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30, 10))
             self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850, 10))
@@ -1104,15 +1131,15 @@ class Game:
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
         super().__init__()
-        self.g_id = attributes[1]
+        self.g_id = attributes["group_id"]
         self.id = id
         self.game = game
         self.frames = 0
         self.new = NEW
         self.alive = True
-        self.luck = attributes[7]
+        self.luck = attributes["luck"]
         self.bonus_luck = 0
-        self.color = attributes[0][0]
+        self.color = attributes["color"][0]
         self.bomb_timer = -1
         self.hud_images = hud_images
         self.smoke_images = smoke_images
@@ -1126,7 +1153,7 @@ class Circle(pygame.sprite.Sprite):
 
         if VEL == 0:
             # Want a constant speed, but random direction to start
-            speed = attributes[2]
+            speed = attributes["velocity"]
             # Speed in x direction random, 0 - 100% max speed
             self.v_x = random.uniform(0, speed)
             # Speed in y direction determined according to the equation of a circle, where r = speed
@@ -1143,9 +1170,9 @@ class Circle(pygame.sprite.Sprite):
 
         # self.angle = 0
         
-        self.m = attributes[3]
+        self.m = attributes["mass"]
         if R == 0:
-            self.r = 30 + random.randint(0, attributes[4])
+            self.r = 30 + random.randint(0, attributes["radius"])
         else:
             self.r = R
 
@@ -1154,8 +1181,8 @@ class Circle(pygame.sprite.Sprite):
         self.images = images
         self.circle_image = self.getNextImage(0)
 
-        self.hp = self.max_hp = attributes[5]
-        self.attack = attributes[6]
+        self.hp = self.max_hp = attributes["health"]
+        self.attack = attributes["attack"]
 
         if XY == 0:
             # Need some sort of smart spawning so that they can't overlap 
