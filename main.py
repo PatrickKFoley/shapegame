@@ -1,4 +1,4 @@
-import pygame, random, math, numpy as np, os
+import pygame, random, math, numpy as np, os, copy
 from pygame.locals import *
 
 colors = [
@@ -254,7 +254,7 @@ class Game:
         self.max_hps = [0, 0]
         self.hps = []
 
-        self.members_per_team = 16
+        self.members_per_team = 5
         self.max_hps[0] += circles[0]["health"] * self.members_per_team
         self.max_hps[1] += circles[1]["health"] * self.members_per_team
         self.hps = [self.max_hps[0], self.max_hps[1]]
@@ -325,6 +325,139 @@ class Game:
 
         self.spawn_count += 1
         return [100 + (w_int * x), 100 + (h_int * y)]
+
+    def collide_v2(self, mem_1, mem_2):
+        self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
+
+        if 0 in mem_1.powerups or 0 in mem_2.powerups:
+            if 0 in mem_1.powerups: self.memberHitMember(mem_1, mem_2)
+            if 0 in mem_2.powerups: self.memberHitMember(mem_2, mem_1)
+            return 1
+
+        else:
+            roll_1 = random.randint(1, 20) + mem_1.luck + mem_1.bonus_luck
+            roll_2 = random.randint(1, 20) + mem_2.luck + mem_2.bonus_luck
+
+            if roll_1 > roll_2:
+                return self.memberHitMember(mem_1, mem_2)
+            else:
+                return self.memberHitMember(mem_2, mem_1)
+                
+    def memberHitMember(self, winner, loser):
+        loser_copy = loser
+        loser_resurrect = False
+
+        # Handle if winner has insta kill
+        if 0 in winner.powerups:
+            # Check if loser had resurrect, if so, they get to res a teammate
+            loser_resurrect = self.memberInstaKillMember(winner, loser)
+
+            if 1 in winner.powerups and not loser_resurrect:
+                self.memberResurrectMember(winner, loser)
+            return
+        
+        # Collide like normal
+        dmg_amount = winner.getAttack()
+
+        loser.takeDamage(dmg_amount)
+        winner.dealDamage(dmg_amount)
+
+        if loser.hp <= 0:
+            # default action (coffin) for killfeed)
+            action = -1
+
+            # Determine if any powerups were used for killfeed
+            if 3 in winner.powerups:
+                action = 3
+            if 4 in winner.powerups:
+                action = 4
+
+            loser_resurrect = self.memberKillMember(winner, loser, action)
+
+            # determine if winner can use resurrect if they have it
+            if 1 in winner.powerups and not loser_resurrect:
+                self.memberResurrectMember(winner, loser)
+
+        # Determine if any powerups were used for stats
+        if 2 in winner.powerups:
+            winner.stats.useStar()
+        if 3 in winner.powerups:
+            winner.stats.useMuscle()
+        if 4 in winner.powerups:
+            winner.stats.useSpeed()
+
+        # Clear winner of any powerups they should lose
+        if 2 in winner.powerups:
+            winner.removePowerup(2)
+        if 3 in winner.powerups:
+            winner.removePowerup(3)
+        if 4 in winner.powerups:
+            winner.removePowerup(4)
+
+        if loser.hp <= 0:
+            return 1
+        else:
+            return 0
+        
+    def memberKillMember(self, winner, loser, action = -1):
+        loser_resurrect = False
+
+        # Create killfeed, play sound
+        self.addKillfeed(winner, loser, action)
+        self.death_sounds[len(self.death_sounds)-1].play()
+
+        # check if dead loser has resurrect
+        if 1 in loser.powerups:
+            self.memberResurrectMember(loser)
+            loser_resurrect = True
+
+        # remove powerup % update stats, kill circle
+        winner.stats.killPlayer(loser.id)
+        loser.killCircle()
+
+        return loser_resurrect
+
+    def memberInstaKillMember(self, winner, loser):
+        loser_resurrect = False
+
+        # Create killfeed, play sound
+        self.addKillfeed(winner, loser, 0)
+        self.shotgun_sound.play()
+
+        # check if dead loser has resurrect
+        if 1 in loser.powerups:
+            self.memberResurrectMember(loser)
+            loser_resurrect = True
+
+        # remove powerup % update stats, kill circle
+        winner.removePowerup(0)
+        winner.stats.useInstakill()
+        winner.stats.dealDamage(loser.hp)
+        winner.stats.killPlayer(loser.id)
+        loser.killCircle()
+
+        return loser_resurrect
+
+    def memberResurrectMember(self, god, dead_circle = False):
+        # determine if new circle is modeled after god or dead circle
+        if dead_circle == False:
+            new_circle_before = god
+        else:
+            new_circle_before = dead_circle
+
+        # create circle
+        new_circle = self.addCircle(god.g_id, new_circle_before.getXY(), new_circle_before.r, new_circle_before.getVel(), True)
+
+        # killfeed and stats
+        self.addKillfeed(god, new_circle, 1)
+        god.stats.resurrectPlayer()
+
+        # sounds
+        self.choir_sound.play()
+        pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
+
+        # remove powerup
+        god.removePowerup(1)
 
     def collide(self, mem_1, mem_2):
         self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
@@ -470,7 +603,7 @@ class Game:
         mem_2.move(self, -1)
 
         if flag == 1:
-            if self.collide(mem_1, mem_2) == 1: return
+            if self.collide_v2(mem_1, mem_2) == 1: return
 
         # STEP 1
 
@@ -620,24 +753,15 @@ class Game:
             [mx, my] = member.getXY()
             dist = math.sqrt( (mx - x)**2 + (my - y)** 2)
 
-            if dist == 0:
-                member.takeDamage(1000)
-                self.addKillfeed(circle, circle, 6)
+            if dist <= 200:
+                member.takeDamage(200 - dist)
 
-            elif dist <= 200:
-                if member.takeDamage(200 - dist) == -1:
-                    if self.mode == "GAME":
-                        self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
-                    circle.stats.killPlayer(member.id)
+            if member.hp <= 0:
+                self.bombKillMember(circle, member)
+                kill_counter += 1
 
-                    self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
-                    self.addKillfeed(circle, member, 6)
-                    kill_counter += 1
-
-        if kill_counter >= 1 and 1 not in circle.powerups:
-            new_circle = self.addCircle(g_id, [x + 1, y + 1])
-            self.addKillfeed(circle, new_circle, 1)
-            circle.stats.resurrectPlayer()
+        if kill_counter >= 2 and 1 not in circle.powerups:
+            self.memberResurrectMember(circle)
 
     def checkLaserCollision(self):
         members = []
@@ -665,7 +789,19 @@ class Game:
                                     self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
                                 laser.circle.stats.killPlayer(member.id)
                                 self.death_sounds[random.randint(0, len(self.death_sounds-1))].play()
-                    
+
+    def bombKillMember(self, bomb_holder, killed):
+        self.clouds_group.add(Clouds(killed.x, killed.y, self.smoke_images, self.screen))
+        bomb_holder.stats.killPlayer(killed.id)
+
+        self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+        self.addKillfeed(bomb_holder, killed, 6)
+
+        killed.killCircle()
+
+        if 1 in killed.powerups:
+            self.memberResurrectMember(killed)
+
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
             image = self.images[0][3]
@@ -830,7 +966,7 @@ class Game:
                     color = self.circles[1]["color"][2]
                 else:
                     color = self.circles[1]["color"][1]
-                self.draw_text("{} Wins!".format(self.circles[1]["color"][1].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.circles[1]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
@@ -1200,7 +1336,7 @@ class Circle(pygame.sprite.Sprite):
         self.powerups = []
         self.dmg_counter = 0
 
-        self.constructSurface()
+        self.constructSurface(True)
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
 
@@ -1269,14 +1405,16 @@ class Circle(pygame.sprite.Sprite):
         self.image.blit(text_obj, text_rect)
 
     def killCircle(self):
-        if 1 in self.powerups:
-            new_circle = self.game.addCircle(self.g_id, self.getXY(), self.r - 10, self.getVel(), True)
+        # if 1 in self.powerups:
+        #     new_circle = self.game.addCircle(self.g_id, self.getXY(), self.r - 10, self.getVel(), True)
 
-            self.game.addKillfeed(self, new_circle, 1)
-            self.stats.resurrectPlayer()
-            self.game.choir_sound.play()
-            pygame.mixer.Sound.fadeout(self.game.choir_sound, 1000)
-            self.game.createStatsScreen(True)
+        #     self.game.addKillfeed(self, new_circle, 1)
+        #     self.stats.resurrectPlayer()
+        #     self.game.choir_sound.play()
+        #     pygame.mixer.Sound.fadeout(self.game.choir_sound, 1000)
+        #     self.game.createStatsScreen(True)
+
+        self.game.clouds_group.add(Clouds(self.x, self.y, self.game.smoke_images, self.game.screen))
 
         stats = self.stats
         id = self.id
@@ -1290,12 +1428,6 @@ class Circle(pygame.sprite.Sprite):
         else:
             color = "white"
         pygame.draw.rect(self.game.stats_surface, color, (10 + 850 * self.g_id, 195 + 30 * row_num, 845, 30))
-
-        # num_rows = max(len(self.game.groups[0].sprites()) + len(self.game.dead_stats[0]), len(self.game.groups[1].sprites()) + len(self.game.dead_stats[1]))
-        # if row_num_last % 2 == 0:
-        #     color = "lightgray"
-        # else:
-        #     color = "white"
         
         pygame.draw.rect(self.game.stats_surface, "darkgray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
 
@@ -1545,12 +1677,17 @@ class Circle(pygame.sprite.Sprite):
             self.circle_image = self.getNextImage(0)
             self.constructSurface()
         
+    def dealDamage(self, amount):
+        self.stats.dealDamage(amount)
+
     def takeDamage(self, amount):
-        if self.hp - amount <= 0:
-            self.killCircle()
-            return -1
+        # if self.hp - amount <= 0:
+        #     self.killCircle()
+        #     return -1
 
         self.hp -= amount
+
+        self.stats.receiveDamage(amount)
         self.took_dmg = True
         self.checkImageChange()
         self.dmg_counter = 144
