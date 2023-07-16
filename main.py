@@ -27,7 +27,7 @@ while one == two:
 
 circles = [
     {
-        "color": colors[0],
+        "color": colors[one],
         "face_id": 1,
         "group_id": 0,
         "density": 10,
@@ -41,7 +41,7 @@ circles = [
         "luck": 8,
     },
     {
-        "color": colors[1],
+        "color": colors[two],
         "face_id": 1,
         "group_id": 1,
         "density": 10,
@@ -218,7 +218,8 @@ class Game:
         self.spawned_counter = 0
         self.mode = "GAME"
         self.stats_screen = False
-        self.dead_circle = False
+        self.dead_circle = True
+        self.hp_mode = False
 
         # for loop for creating circles
         self.groups = []
@@ -751,6 +752,11 @@ class Game:
 
                 # keyboard click event
                 if event.type == KEYDOWN:
+                    if event.key == 104:
+                        self.hp_mode = not self.hp_mode
+                        for group in self.groups:
+                            for member in group:
+                                member.took_dmg = True
                     if event.key == 9:
                         self.stats_screen = not self.stats_screen
                     else:
@@ -1231,15 +1237,25 @@ class Circle(pygame.sprite.Sprite):
 
         pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
         
-        if hp_p == 100:
-            size = int(hp_circle_r * 1.1)
+        if self.game.hp_mode:
+            if hp_p == 100:
+                size = int(hp_circle_r * 1.1)
+            else:
+                size = int(hp_circle_r * 1.4)
+
+            text = str(hp_p)
         else:
-            size = int(hp_circle_r * 1.4)
+            if self.hp >= 100:
+                size = int(hp_circle_r * 1.1)
+            else:
+                size = int(hp_circle_r * 1.4)
+
+            text = str(round(self.hp))
 
         font = pygame.font.Font("freesansbold.ttf", size)
-        text_obj = font.render(str(hp_p), 1, "black")
+        text_obj = font.render(text, 1, "black")
         text_rect = text_obj.get_rect()
-        text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(str(hp_p))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
+        text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
         self.image.blit(text_obj, text_rect)
 
         hp_circle_r = min(self.r/2, 16)
@@ -1407,10 +1423,25 @@ class Circle(pygame.sprite.Sprite):
 
             pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
             
-            font = pygame.font.Font("freesansbold.ttf", int(hp_circle_r * 1.4))
-            text_obj = font.render(str(hp_p), 1, "black")
+            if self.game.hp_mode:
+                if hp_p == 100:
+                    size = int(hp_circle_r * 1.1)
+                else:
+                    size = int(hp_circle_r * 1.4)
+
+                text = str(hp_p)
+            else:
+                if self.hp >= 100:
+                    size = int(hp_circle_r * 1.1)
+                else:
+                    size = int(hp_circle_r * 1.4)
+
+                text = str(round(self.hp))
+
+            font = pygame.font.Font("freesansbold.ttf", size)
+            text_obj = font.render(text, 1, "black")
             text_rect = text_obj.get_rect()
-            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(str(hp_p))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
+            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(hp_p))[1] / 2)
             self.image.blit(text_obj, text_rect)
 
             self.took_dmg = False

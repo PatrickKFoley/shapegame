@@ -3,6 +3,7 @@
         "blit",
         "bluecircle",
         "colorkey",
+        "darkgray",
         "flac",
         "fortnite",
         "freesansbold",
@@ -11,12 +12,14 @@
         "instakills",
         "KEYDOWN",
         "Killfeed",
+        "lightgray",
         "MOUSEBUTTONDOWN",
         "orangecircle",
         "powerup",
         "powerups",
         "pygame",
         "soundpygame",
+        "SRCALPHA",
         "topleft"
     ]
 }
