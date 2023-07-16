@@ -26,33 +26,31 @@ while one == two:
     two = random.randint(0, len(colors)-2)
 
 circles = [
-    # color         g_id    v       m       r       hp      atk    luck     face_id
-    [colors[one],   0,      3,      10,     25,     110,    5,     8,       1],
-    [colors[two],   1,      4,      15,     40,     170,    2,     10,      1],
-]
-
-circles = [
     {
-        "color": colors[one],
+        "color": colors[0],
         "face_id": 1,
         "group_id": 0,
         "density": 10,
         "velocity": 3,
         "mass": 10,
-        "radius": 25,
+        "radius_min": 0,
+        "radius_max": 15,
         "health": 110,
+        "dmg_multiplier": 1.5,
         "attack": 5,
         "luck": 8,
     },
     {
-        "color": colors[two],
+        "color": colors[1],
         "face_id": 1,
         "group_id": 1,
         "density": 10,
         "velocity": 4,
         "mass": 15,
-        "radius_max": 40,
+        "radius_min": 10,
+        "radius_max": 25,
         "health": 170,
+        "dmg_multiplier": 1,
         "attack": 2,
         "luck": 10,
     },
@@ -1172,7 +1170,7 @@ class Circle(pygame.sprite.Sprite):
         
         self.m = attributes["mass"]
         if R == 0:
-            self.r = 30 + random.randint(0, attributes["radius"])
+            self.r = 30 + random.randint(attributes["radius_min"], attributes["radius_max"])
         else:
             self.r = R
 
@@ -1183,6 +1181,7 @@ class Circle(pygame.sprite.Sprite):
 
         self.hp = self.max_hp = attributes["health"]
         self.attack = attributes["attack"]
+        self.dmg_multiplier = attributes["dmg_multiplier"]
 
         if XY == 0:
             # Need some sort of smart spawning so that they can't overlap 
@@ -1280,12 +1279,12 @@ class Circle(pygame.sprite.Sprite):
         # If removing star, subtract luck
         if id == 2:
             self.bonus_luck -= 5
-        # if removing muscle, divide attack
+        # if removing muscle, divide dmg_multiplier
         if id == 3:
-            self.attack /= 5
-        # if removing speed, divide attack
+            self.dmg_multiplier /= 3
+        # if removing speed, divide dmg_multiplier
         if id == 4:
-            self.attack /= 2
+            self.dmg_multiplier /= 1.5
         # if removing health, gain health
         if id == 5:
             self.game.heal_sound.play()
@@ -1308,12 +1307,12 @@ class Circle(pygame.sprite.Sprite):
         # check if picked up star (+5 luck)
         if id == 2:
             self.bonus_luck += 5
-        # check if picked up muscle (5x damage)
+        # check if picked up muscle (3x dmg_multiplier)
         if id == 3:
-            self.attack *= 5
-        # check if picked up muscle (double speed + damage)
+            self.dmg_multiplier *= 3
+        # check if picked up muscle (double speed + dmg_multiplier)
         if id == 4:
-            self.attack *= 2
+            self.dmg_multiplier *= 1.5
             self.v_x *= 2
             self.v_y *= 2
         # check if picked up bomb (explode in some time)
@@ -1460,7 +1459,10 @@ class Circle(pygame.sprite.Sprite):
         return self.m
     
     def getAttack(self):
-        return self.attack
+        velocity = math.sqrt(self.getVel()[0]**2 + self.getVel()[1]**2)
+
+        # print("attacking for: {} after changes: {}".format(self.attack, self.dmg_multiplier * velocity))
+        return self.dmg_multiplier * velocity
 
     def checkImageChange(self):
         if self.hp <= self.max_hp / 4:
@@ -1498,8 +1500,11 @@ class Circle(pygame.sprite.Sprite):
     # return something on own death
     def getHitBy(self, enemy):
         self.took_dmg = True
-        self.hp = self.hp - enemy.attack
-        self.stats.receiveDamage(enemy.attack)
+
+        amount = enemy.getAttack()
+
+        self.hp = self.hp - amount
+        self.stats.receiveDamage(amount)
         self.dmg_counter = 144
         
         self.checkImageChange()
