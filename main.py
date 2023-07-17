@@ -1339,7 +1339,12 @@ class Circle(pygame.sprite.Sprite):
             self.game.addKillfeed(self, self, 5)
         # if removing laser, spawn laser in same direction as circle
         if id == 7:
-            self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x, self.v_y, self.game.powerup_images_screen[7]))
+            # want to limit the speed of laser to 10
+            desired_speed = 8
+            current_speed = math.sqrt(self.v_x**2 + self.v_y**2)
+            multiplier = desired_speed / current_speed
+
+            self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
             self.game.laser_sound.play()
 
         # self.constructSurface()
