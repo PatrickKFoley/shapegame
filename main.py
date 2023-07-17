@@ -220,6 +220,7 @@ class Game:
         self.stats_screen = False
         self.dead_circle = True
         self.hp_mode = False
+        self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
 
         # for loop for creating circles
         self.groups = []
@@ -595,6 +596,7 @@ class Game:
         laser.circle.stats.laserHit()
         laser.circle.stats.dealDamage(laser_damage)
         laser.ids_collided_with.append(hit.id)
+        self.laser_hit_sound.play()
 
         hit.takeDamage(laser_damage)
 
@@ -692,13 +694,10 @@ class Game:
                 # button click event
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        self.spawn_count += 1
-                        if self.spawn_count % 2 == 1:
-                            self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
-                        else:
-                            self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
+                        self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
+                        self.createStatsScreen(True)
             
-                    if event.button == 3:
+                    elif event.button == 2:
                         self.fortnite_x = 0
                         self.fortnite_x_counter = 0
                         self.fortnite_x_growing = False
@@ -706,13 +705,14 @@ class Game:
                         self.fortnite_y_counter = 0
                         self.fortnite_y_growing = False
 
+                    elif event.button == 3:
+                        self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
+                        self.createStatsScreen(True)
+
                 # keyboard click event
                 if event.type == KEYDOWN:
                     if event.key == 104:
-                        self.hp_mode = not self.hp_mode
-                        for group in self.groups:
-                            for member in group:
-                                member.took_dmg = True
+                        self.toggleHealthMode()
                     if event.key == 9:
                         self.stats_screen = not self.stats_screen
                     else:
@@ -725,6 +725,7 @@ class Game:
             # flip() the display to put your work on screen
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.hp_mode_surface, (self.screen_w + 100, self.screen_h - 100))
 
             # Every x seconds spawn a random powerup
             if not self.done and self.frames % (5 * self.fps) == 0:
@@ -831,6 +832,19 @@ class Game:
             self.clock.tick(self.fps)
             font = pygame.font.Font("freesansbold.ttf", 40)
             self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
+
+    def toggleHealthMode(self):
+        self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
+        self.hp_mode = not self.hp_mode
+        for group in self.groups:
+            for member in group:
+                member.took_dmg = True
+
+        # font = pygame.font.Font("freesansbold.ttf", 40)
+        # if self.hp_mode:
+        #     self.draw_text("Health: Percentage", font, self.screen_w, self.screen_h - 100, True, self.hp_mode_surface)
+        # else:
+        #     self.draw_text("Health: Values", font, self.screen_w, self.screen_h - 100, True, self.hp_mode_surface)
 
     def showStats(self):
         self.mode = "STATS"
