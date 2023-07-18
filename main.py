@@ -28,7 +28,7 @@ while one == two:
 circles = [
     {
         "color": colors[one],
-        "face_id": 1,
+        "face_id": 0,
         "group_id": 0,
         "density": 10,
         "velocity": 3,
@@ -57,7 +57,7 @@ circles = [
 ]
 
 class Game: 
-    def __init__(self, c0, c1, seed = False):
+    def __init__(self, c0, c1, screen, seed = False):
         if seed != False:
             random.seed(seed)
         
@@ -208,7 +208,7 @@ class Game:
         self.screen_h = 1070
         self.fps = 60
         self.font = pygame.font.Font("freesansbold.ttf", 160)
-        self.screen = pygame.display.set_mode((self.screen_w + 200, self.screen_h))
+        self.screen = screen
         self.clock = pygame.time.Clock()
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.running = True
@@ -724,6 +724,7 @@ class Game:
             self.killfeed_group.add(new)
 
     def addCircle(self, g_id, xy = 0, r = 0, v = 0, new = False):
+        print(g_id)
         if new:
             self.total_count += 1
 
@@ -2020,13 +2021,146 @@ def main():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
 
-    # seed = False
-    seed = int.from_bytes(random.randbytes(4), "little")
-    # seed = "Enter your seed here :)"
+    screen = pygame.display.set_mode((1920, 1070))
+    background = pygame.image.load("backgrounds/BG1.png")
+    title = pygame.image.load("backgrounds/title.png")
+    play = pygame.image.load("backgrounds/play.png")
+    play_rect = play.get_rect()
+    play_rect.center = [1920 / 2, 1000]
 
-    print("Playing game with seed: {}".format(seed))
-    game = Game(circles[0], circles[1], seed)
-    game.play_game()
+    num_faces = 2
+
+    face_0 = 0
+    color_0 = 0
+    face_1 = 1
+    color_1 = 1
+
+    shown_circles = [[face_0, colors[color_0][0]], [face_1, colors[color_1][0]]]
+
+    running = True
+    while running:
+        play_clicked = False
+        shown_circles = [[face_0, colors[color_0][0]], [face_1, colors[color_1][0]]]
+
+        circle_1 = pygame.transform.scale(pygame.image.load("circles/{}/{}/0.png".format(shown_circles[0][0], shown_circles[0][1])), (200, 200))
+        circle_2 = pygame.transform.scale(pygame.image.load("circles/{}/{}/0.png".format(shown_circles[1][0], shown_circles[1][1])), (200, 200))
+
+        # Draw some shit
+        pygame.display.flip()
+        screen.blit(background, (0, 0))
+        screen.blit(title, (1920 / 2 - title.get_size()[0] / 2, 1070 / 2 - title.get_size()[1] / 2))
+        screen.blit(play, play_rect)
+
+        # Show two circles 
+        screen.blit(circle_1, (2 * 1920 / 3 - circle_1.get_size()[0] / 2, 2 * 1070 / 3))
+        screen.blit(circle_2, (1920 / 3 - circle_2.get_size()[0] / 2, 2 * 1070 / 3))
+
+        # draw arrows
+        color_right_1 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
+        color_right_1_rect = color_right_1.get_rect()
+        color_right_1_rect.center = (1920 / 3 + 50, 2 * 1070 / 3 + 230)
+
+        color_left_1 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
+        color_left_1_rect = color_right_1.get_rect()
+        color_left_1_rect.center = (1920 / 3 - 50, 2 * 1070 / 3 + 230)
+
+        face_right_1 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
+        face_right_1_rect = face_right_1.get_rect()
+        face_right_1_rect.center = (1920 / 3 + 50, 2 * 1070 / 3 + 270)
+
+        face_left_1 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
+        face_left_1_rect = face_right_1.get_rect()
+        face_left_1_rect.center = (1920 / 3 - 50, 2 * 1070 / 3 + 270)
+
+        screen.blit(color_right_1, color_right_1_rect)
+        screen.blit(color_left_1, color_left_1_rect)
+        screen.blit(face_right_1, face_right_1_rect)
+        screen.blit(face_left_1, face_left_1_rect)
+
+        color_right_0 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
+        color_right_0_rect = color_right_0.get_rect()
+        color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1070 / 3 + 230)
+
+        color_left_0 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
+        color_left_0_rect = color_right_0.get_rect()
+        color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1070 / 3 + 230)
+
+        face_right_0 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
+        face_right_0_rect = face_right_0.get_rect()
+        face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1070 / 3 + 270)
+
+        face_left_0 = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
+        face_left_0_rect = face_right_0.get_rect()
+        face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1070 / 3 + 270)
+
+        screen.blit(color_right_0, color_right_0_rect)
+        screen.blit(color_left_0, color_left_0_rect)
+        screen.blit(face_right_0, face_right_0_rect)
+        screen.blit(face_left_0, face_left_0_rect)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: running = False
+
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        color_1 += 1
+                        if color_1 == len(colors): color_1 = 0
+
+                    elif color_left_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        color_1 -= 1
+                        if color_1 == -1: color_1 = len(colors) - 1
+                        # play_clicked = True
+
+                    elif face_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        face_1 += 1
+                        if face_1 == num_faces: face_1 = 0
+
+                    elif face_left_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        face_1 -= 1
+                        if face_1 == -1: face_1 = num_faces - 1
+
+                    elif color_right_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        color_0 += 1
+                        if color_0 == len(colors): color_0 = 0
+
+                    elif color_left_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        color_0 -= 1
+                        if color_0 == -1: color_0 = len(colors) - 1
+                        # play_clicked = True
+
+                    elif face_right_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        face_0 += 1
+                        if face_0 == num_faces: face_0 = 0
+
+                    elif face_left_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        face_0 -= 1
+                        if face_0 == -1: face_0 = num_faces - 1
+
+                    elif play_rect.collidepoint(pygame.mouse.get_pos()):
+                        play_clicked = True
+
+        if play_clicked:
+            circle_0 = circles[face_0]
+            print(circle_0)
+            circle_0["color"] = colors[color_0]
+            circle_0["group_id"] = 0
+            print(circle_0)
+
+            
+            circle_1 = circles[face_1]
+            print(circle_1)
+            circle_1["color"] = colors[color_1]
+            circle_1["group_id"] = 1
+            print(circle_1)
+
+            # imagine not being able to generate 4 byes
+            # seed = int.from_bytes(random.randbytes(4), "little")
+            seed = False
+            print("Playing game with seed: {}".format(seed))
+            game = Game(circle_0, circle_1, screen, seed)
+            game.play_game()
+
     pygame.quit()
 
 generateAllCircles()
