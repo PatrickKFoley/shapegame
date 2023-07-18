@@ -35,8 +35,8 @@ circles = [
         "mass": 10,
         "radius_min": 0,
         "radius_max": 15,
-        "health": 110,
-        "dmg_multiplier": 1.5,
+        "health": 130,
+        "dmg_multiplier": 1.7,
         "attack": 5,
         "luck": 8,
     },
@@ -141,7 +141,8 @@ class Game:
             ["powerups/speed.png",   4],
             ["powerups/health.png",  5],
             ["powerups/bomb.png",    6],
-            ["powerups/laser.png",   7]
+            ["powerups/laser.png",   7],
+            ["powerups/blue_laser.png", 8]
         ]
 
         self.coffin_img = pygame.transform.scale(pygame.image.load("powerups/coffin.png"), (40, 40))
@@ -243,6 +244,7 @@ class Game:
         # Powerups
         self.powerup_group = pygame.sprite.Group()
         self.laser_group = pygame.sprite.Group()
+        self.blue_laser_group = pygame.sprite.Group()
 
         # Clouds & explosions
         self.clouds_group = pygame.sprite.Group()
@@ -380,30 +382,46 @@ class Game:
                 self.memberResurrectMember(winner, loser)
 
         # Determine if any powerups were used for stats
-        if 2 in winner.powerups:
-            winner.stats.useStar()
-        if 3 in winner.powerups:
-            winner.stats.useMuscle()
-        if 4 in winner.powerups:
-            winner.stats.useSpeed()
-
         # Clear winner of any powerups they should win
         if 2 in winner.powerups:
             winner.removePowerup(2)
+            winner.stats.useStar()
         if 3 in winner.powerups:
             winner.removePowerup(3)
+            winner.stats.useMuscle()
         if 4 in winner.powerups:
             winner.removePowerup(4)
+            winner.stats.useSpeed()
         if 5 in winner.powerups:
             winner.removePowerup(5)
         if 7 in winner.powerups:
             winner.removePowerup(7)
+        if 8 in winner.powerups:
+            winner.removePowerup(8)
+            # Will switch real brains of each removePowerup call to be done by Game, starting with this
+            self.memberSpawnBlueLasers(winner)
+
 
         if loser.hp <= 0:
             return 1
         else:
             return 0
         
+    def memberSpawnBlueLasers(self, circle):
+        directions = [
+            [0, 30],
+            [21, 21], 
+            [30, 0],
+            [21, -21],
+            [0, -30],
+            [-21, -21],
+            [-30, 0],
+            [-21, 21]
+        ]
+        
+        for direction in directions:
+            self.blue_laser_group.add(BlueLaser(circle, direction, self.powerup_images_screen[8]))
+
     def memberKillMember(self, winner, loser, action = -1):
         loser_resurrect = False
 
@@ -543,7 +561,7 @@ class Game:
         self.hps = [0, 0]
         for member_1 in members:
             self.hps[member_1.getG_id()] += member_1.getHp()
-            self.powerups[member_1.getG_id()].append(member_1.getPowerups())
+            # self.powerups[member_1.getG_id()].append(member_1.getPowerups())
 
             [m1_x, m1_y] = member_1.getXY()
             m1_r = member_1.getRad()
@@ -560,6 +578,8 @@ class Game:
                         if member_2.getId() in member_1.colliding_with or member_1.getId() in member_2.colliding_with:
                             pass
                         else:
+                            member_1.colliding_with.append(member_2.getId())
+                            member_2.colliding_with.append(member_1.getId());
                             self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
                     else:
                         if member_2.getId() in member_1.colliding_with:
@@ -591,6 +611,18 @@ class Game:
                             #     self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
                             #     self.addKillfeed(laser.circle, member_1, 7)
 
+            for laser in self.blue_laser_group.sprites():
+                [lx, ly] = [laser.x, laser.y]
+                lr = laser.r
+
+                dist = math.sqrt( (m1_x - lx)**2 + (m1_y - ly)**2 )
+                max_dist = lr + m1_r
+
+                if dist <= max_dist:
+                    if not member_1.getId() in laser.ids_collided_with:
+                        if member_1.getG_id() != laser.g_id:
+                            self.blueLaserHitMember(laser, member_1)
+
     def laserHitMember(self, laser, hit):
         laser_damage = 25
         laser.circle.stats.laserHit()
@@ -603,6 +635,25 @@ class Game:
         if hit.hp <= 0:
             possible_id = self.memberKillMember(laser.circle, hit, 7)
             if possible_id: laser.ids_collided_with.append(possible_id)
+
+            if 1 in laser.circle.powerups and not possible_id:
+                self.memberResurrectMember(laser.circle, hit)
+
+    def blueLaserHitMember(self, laser, hit):
+        laser_damage = 10
+        laser.circle.stats.blueLaserHit()
+        laser.circle.stats.dealDamage(laser_damage)
+        laser.ids_collided_with.append(hit.id)
+        self.laser_hit_sound.play()
+
+        hit.takeDamage(laser_damage)
+
+        if hit.hp <= 0:
+            possible_id = self.memberKillMember(laser.circle, hit, 8)
+            if possible_id: laser.ids_collided_with.append(possible_id)
+
+            if 1 in laser.circle.powerups and not possible_id:
+                self.memberResurrectMember(laser.circle, hit)
 
     def draw_text(self, text, font, color, x, y, center = True, screen = False):
         text_obj = font.render(text, 1, color)
@@ -744,6 +795,7 @@ class Game:
 
             self.groups[0].update(self)
             self.laser_group.update(self)
+            self.blue_laser_group.update(self)
             self.check_collisions()
             self.groups[1].update(self)
             self.check_collisions()
@@ -1020,7 +1072,8 @@ class Game:
             self.stats_surface.blit(self.powerup_images_screen[4], (604 - 10, 150))
             self.stats_surface.blit(self.powerup_images_screen[6], (654 - 10, 150))
             self.stats_surface.blit(self.powerup_images_screen[7], (704 - 10, 150))
-            self.stats_surface.blit(self.coffin_img, (754 - 10, 150))
+            self.stats_surface.blit(self.powerup_images_screen[8], (754 - 10, 150))
+            self.stats_surface.blit(self.coffin_img, (804 - 10, 150))
 
             self.stats_surface.blit(self.sword_image, (256 + 850 - 10, 150))
             self.stats_surface.blit(self.blood_image, (329 + 850 - 10, 150))
@@ -1032,7 +1085,8 @@ class Game:
             self.stats_surface.blit(self.powerup_images_screen[4], (604 + 850 - 10, 150))
             self.stats_surface.blit(self.powerup_images_screen[6], (654 + 850 - 10, 150))
             self.stats_surface.blit(self.powerup_images_screen[7], (704 + 850 - 10, 150))
-            self.stats_surface.blit(self.coffin_img, (754 + 850 - 10, 150))
+            self.stats_surface.blit(self.powerup_images_screen[8], (754 + 850 - 10, 150))
+            self.stats_surface.blit(self.coffin_img, (804 + 850 - 10, 150))
 
         # for i in range(0, num_rows):
         #     if i % 2 == 0:
@@ -1079,12 +1133,13 @@ class Game:
                 s_u = str(member_report[7])
                 b_u = str(member_report[8])
                 l_h = str(member_report[9])
-                p_k = str(member_report[10])
+                b_l_h = str(member_report[10])
+                p_k = str(member_report[11])
 
                 stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
                 stats.append(p_r); #stats.append(p_a); 
                 stats.append(i_u); stats.append(m_u); stats.append(s_u)
-                stats.append(b_u); stats.append(l_h); stats.append(p_k)
+                stats.append(b_u); stats.append(l_h); stats.append(b_l_h); stats.append(p_k)
                 self.printStat(stats, 65 + group_counter * 850, 200 + member_counter * 30)
 
                 member_counter += 1
@@ -1120,13 +1175,15 @@ class Game:
                 s_u = str(stats.report()[7])
                 b_u = str(stats.report()[8])
                 l_h = str(stats.report()[9])
-                p_k = str(stats.report()[10])
+                b_l_h = str(stats.report()[10])
+                p_k = str(stats.report()[11])
+
 
                 stats = []
                 stats.append(id); stats.append(hp); stats.append(dmg_o); stats.append(dmg_i); stats.append(hp_h)
                 stats.append(p_r); #stats.append(p_a); 
                 stats.append(i_u); stats.append(m_u); stats.append(s_u)
-                stats.append(b_u); stats.append(l_h); stats.append(p_k)
+                stats.append(b_u); stats.append(l_h); stats.append(b_l_h); stats.append(p_k)
 
 
                 self.printStat(stats, 65 + group_counter * 850, 200 + member_counter * 30, True)
@@ -1346,6 +1403,7 @@ class Circle(pygame.sprite.Sprite):
 
             self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
             self.game.laser_sound.play()
+            
 
         # self.constructSurface()
         self.powerups_changed = True
@@ -1580,6 +1638,7 @@ class CircleStats():
         self.speeds_used = 0
         self.bombs_used = 0
         self.laser_hits = 0
+        self.blue_laser_hits = 0
 
         if flag: self.dmg_dealt = 1
 
@@ -1621,6 +1680,9 @@ class CircleStats():
     def laserHit(self):
         self.laser_hits += 1
 
+    def blueLaserHit(self):
+        self.blue_laser_hits += 1
+
     def report(self):
         return [
             self.dmg_dealt,
@@ -1633,7 +1695,8 @@ class CircleStats():
             self.speeds_used,
             self.bombs_used,
             self.laser_hits,
-            self.kills
+            self.blue_laser_hits,
+            self.kills,
         ]
 
     def copy(self, other):
@@ -1774,15 +1837,50 @@ class Laser(pygame.sprite.Sprite):
             self.y = self.r + game.fortnite_y
             self.vy = -1 * self.vy
 
-        if game.mode == "GAME":
-            self.image.set_alpha(255)
-            game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
+        self.image.set_alpha(255)
+        game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
         
         # game.screen.blit(self.image, self.x, self.y)
 
         self.frames += 1
         if self.frames >= game.fps * 5:
             self.kill()
+
+class BlueLaser(pygame.sprite.Sprite):
+    def __init__(self, circle, directions, image):
+        super().__init__()
+        self.circle = circle
+        self.g_id = circle.getG_id()
+        self.x = circle.getXY()[0]
+        self.y = circle.getXY()[1]
+        self.vx = directions[0]
+        self.vy = directions[1]
+        self.image = image
+        self.r = image.get_size()[0]/2
+        self.ids_collided_with = []
+
+    def update(self, game):
+        self.x += self.vx
+        self.y += self.vy
+
+        flag = False
+        # ensure laser stays within bounds
+        if self.x > game.screen_w - self.r - game.fortnite_x:
+            flag = True
+
+        if self.x < self.r + game.fortnite_x:
+            flag = True
+
+        if self.y > game.screen_h - self.r - game.fortnite_y:
+            flag = True
+
+        if self.y < self.r + game.fortnite_y:
+            flag = True
+
+        if flag == True: self.kill()
+
+        self.image.set_alpha(255)
+        game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2))) 
 
 class Killfeed(pygame.sprite.Sprite):
     def __init__(self, left_circle, right_circle, action_img, x, count, screen):
