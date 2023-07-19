@@ -858,7 +858,7 @@ class Game:
             if self.done:
                 self.frames_done += 1
                 if self.frames_done == 10 * self.fps:
-                    self.showStats()
+                    self.stats_screen = True
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
             if self.cur_rows != num_rows:
@@ -895,83 +895,6 @@ class Game:
         #     self.draw_text("Health: Percentage", font, self.screen_w, self.screen_h - 100, True, self.hp_mode_surface)
         # else:
         #     self.draw_text("Health: Values", font, self.screen_w, self.screen_h - 100, True, self.hp_mode_surface)
-
-    def showStats(self):
-        self.mode = "STATS"
-        while self.running:
-            self.frames += 1
-            for event in pygame.event.get():
-                # quit event
-                if event.type == pygame.QUIT:
-                    self.running = False
-                if event.type == MOUSEBUTTONDOWN:
-                    if event.button == 2:
-                        self.mode = "GAME"
-                        return
-                # keyboard click event
-                if event.type == KEYDOWN:
-                    if event.key == 9:
-                        self.mode = "GAME"
-                        return
-                    
-            num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-            if self.cur_rows != num_rows:
-                self.createStatsScreen(True)
-
-            pygame.display.flip()
-            self.screen.blit(self.background, (0, 0))
-
-            # Every x seconds spawn a random powerup
-            if not self.done and self.frames % (5 * self.fps) == 0:
-                self.spawnPowerup()
-            
-            # Every x seconds there there is less than 10 circles spawn a speed powerup
-            if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < 10:
-                self.spawnPowerup(4)
-
-            # update all groups (and check for collisions) w/o drawing them
-            self.groups[0].update(self)
-            self.laser_group.update(self)
-            self.check_collisions()
-            self.groups[1].update(self)
-            self.clouds_group.update()
-            self.explosions_group.update()
-            for killfeed in self.killfeed_group.sprites():
-                if killfeed.update() == 1:
-                    self.killfeed_group.update(True)
-            self.powerup_group.update(self)
-            
-
-            # other functions
-            self.checkPowerupCollect()
-            self.drawStats()
-
-            # Do fortnite circle things
-            if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= 10:
-                self.fortnite_x_growing = self.fortnite_y_growing = True
-
-            if self.fortnite_x_growing:
-                self.fortnite_x_counter += 1
-                if self.fortnite_x_counter % 3 == 0:
-                    if self.fortnite_x <= 770:
-                        self.fortnite_x += 1
-
-            if self.fortnite_y_growing:
-                self.fortnite_y_counter += 1
-                if self.fortnite_y_counter % 3 == 0:
-                    if self.fortnite_y <= 350:
-                        self.fortnite_y += 1
-
-
-            if self.frames % (self.fps / 2) == 0:
-                self.createStatsScreen()
-
-            self.screen.blit(self.stats_surface, (10, 50))
-
-
-            self.clock.tick(self.fps)
-            font = pygame.font.Font("freesansbold.ttf", 40)
-            self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
 
     def drawStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
