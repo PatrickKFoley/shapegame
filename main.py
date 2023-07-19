@@ -152,6 +152,10 @@ class Game:
 
         self.images = [self.c0_images, self.c1_images]
 
+        self.exit = pygame.image.load("backgrounds/exit.png")
+        self.exit_rect = self.exit.get_rect()
+        self.exit_rect.center = (1870, 1050)
+
         # Sounds
         self.death_sounds = []
         self.death_sounds.append(pygame.mixer.Sound("sounds/death/1.wav"))
@@ -743,8 +747,11 @@ class Game:
                 # button click event
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
-                        self.createStatsScreen(True)
+                        if self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.running = False
+                        else:
+                            self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
+                            self.createStatsScreen(True)
             
                     elif event.button == 2:
                         self.fortnite_x = 0
@@ -774,6 +781,7 @@ class Game:
             # flip() the display to put your work on screen
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.exit, self.exit_rect)
             self.screen.blit(self.hp_mode_surface, (self.screen_w + 100, self.screen_h - 100))
 
             # Every x seconds spawn a random powerup
@@ -880,8 +888,10 @@ class Game:
 
             # limits FPS to 60
             self.clock.tick(self.fps)
-            font = pygame.font.Font("freesansbold.ttf", 40)
-            self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
+
+            # fps counter
+            # font = pygame.font.Font("freesansbold.ttf", 40)
+            # self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
 
     def toggleHealthMode(self):
         self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
@@ -1910,6 +1920,11 @@ class preGame():
         self.play_rect.center = [1920 / 2, 1000]
         self.clock = pygame.time.Clock()
 
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1070 / 2 - self.title.get_size()[1] / 2))
+        pygame.display.set_caption("shapegame")
+        pygame.display.update()
+
         self.num_faces = 2
 
         self.face_0 = 0
@@ -1933,6 +1948,12 @@ class preGame():
 
         self.arrow_right = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
         self.arrow_left = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
+
+        self.exit = pygame.image.load("backgrounds/exit.png")
+        self.exit_rect = self.exit.get_rect()
+        self.exit_rect.center = (1870, 1050)
+
+        self.loading = pygame.image.load("backgrounds/loading.png")
 
     def createCircleStatsSurfaces(self):
         surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
@@ -2089,6 +2110,7 @@ class preGame():
             self.screen.blit(self.background, (0, 0))
             self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1070 / 2 - self.title.get_size()[1] / 2))
             self.screen.blit(self.play, self.play_rect)
+            self.screen.blit(self.exit, self.exit_rect)
 
             # Show two circles 
             self.screen.blit(self.circle_1, (2 * 1920 / 3 - self.circle_1.get_size()[0] / 2, 2 * 1070 / 3))
@@ -2184,9 +2206,16 @@ class preGame():
                         elif self.play_rect.collidepoint(pygame.mouse.get_pos()):
                             play_clicked = True
 
+                        elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                            running = False
+
                         self.changeCircles()
 
             if play_clicked:
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1070 / 2 - self.loading.get_size()[1] / 2))
+                pygame.display.update()
+
                 circle_0 = circles[self.face_0].copy()
                 circle_1 = circles[self.face_1].copy()
 

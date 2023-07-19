@@ -21,6 +21,7 @@
         "pygame",
         "soundpygame",
         "SRCALPHA",
-        "topleft"
+        "topleft",
+        "topright"
     ]
 }
