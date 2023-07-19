@@ -1886,26 +1886,43 @@ class Killfeed(pygame.sprite.Sprite):
         surface.blit(text_obj, text_rect)
 
 class SimpleCircle(pygame.sprite.Sprite):
-    def __init__(self, xy, v):
+    def __init__(self, xy, image):
         super().__init__()
         self.x = xy[0]
         self.y = xy[1]
-        self.vx = v[0]
-        self.vy = v[1]
-        self.r = random.randint(50, 100)
+        self.vx = random.randint(-6, 6)
+        self.vy = random.randint(-5, 5)
+        self.r = random.randint(50, 60)
         self.m = random.randint(10, 15)
         self.frames = 0
 
         self.face_id = random.randint(0, 1)
         self.color_string = colors[random.randint(0, len(colors)-1)][0]
-        self.image = pygame.transform.scale(pygame.image.load("circles/{}/{}/0.png".format(self.face_id, self.color_string)), (self.r * 2, self.r * 2))
+        self.image = pygame.transform.scale(image, (self.r * 2, self.r * 2))
 
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
 
     def update(self):
-        if (self.x > 2020 or self.x < -100 or self.y > 1170 or self.y < -100) and self.frames >= 100:
-            self.kill()
+         # ensure circle stays within bounds
+        if self.x > 1920 - self.r:
+            self.x = 1920 - self.r
+            self.vx = -1 * self.vx
+
+        if self.x < self.r:
+            self.x = self.r
+            self.vx = -1 * self.vx
+
+        if self.y > 450 - self.r:
+            self.y = 450 - self.r
+            self.vy = -1 * self.vy
+
+        if self.y < self.r:
+            self.y = self.r
+            self.vy = -1 * self.vy
+
+        # update position
+        self.rect.center = [self.x, self.y]
         
         self.x += self.vx
         self.y += self.vy
@@ -2016,82 +2033,125 @@ class preGame():
         return [surface_0, surface_1]
 
     def addNewCircles(self):
-        y1 = random.randint(-1, 1)
-        y2 = random.randint(-1, 1)
+        self.new_circle_images = [0, 0]
+        self.new_circle_images[0] = self.circle_images[0].copy()
+        self.new_circle_images[1] = self.circle_images[1].copy()
 
-        self.circles.add(SimpleCircle((-100, 200), (10, y1)))
-        self.circles.add(SimpleCircle((2020, 200), (-10, y2)))
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((1 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((2 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((3 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((4 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((1 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((2 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((3 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((4 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
+        self.new_circle_images[self.face_id].pop(self.color_id)
 
     def checkCollisions(self):
-        if len(self.circles.sprites()) < 2:
-            return
+        for c1 in self.circles.sprites():
+            for c2 in self.circles.sprites():
+                if c1 == c2:
+                    continue
 
-        dist = math.sqrt( (self.circles.sprites()[0].x - self.circles.sprites()[1].x)**2 + (self.circles.sprites()[0].y - self.circles.sprites()[1].y)**2 )
-        max_dist = self.circles.sprites()[0].r + self.circles.sprites()[1].r
-        
-        if dist <= max_dist:
-            self.circles.sprites()[0].x -= self.circles.sprites()[0].vx
-            self.circles.sprites()[0].y -= self.circles.sprites()[0].vy
-            self.circles.sprites()[1].x -= self.circles.sprites()[1].vx
-            self.circles.sprites()[1].y -= self.circles.sprites()[1].vy
+                dist = math.sqrt( (c1.x - c2.x)**2 + (c1.y - c2.y)**2 )
+                max_dist = c1.r + c2.r
+                
+                if dist <= max_dist:
+                    self.collide(c1, c2)
 
-            # STEP 1
+    def collide(self, c1, c2):
+        c1.x -= c1.vx
+        c1.y -= c1.vy
+        c2.x -= c2.vx
+        c2.y -= c2.vy
 
-            [x2, y2] = [self.circles.sprites()[1].x, self.circles.sprites()[1].y]
-            [x1, y1] = [self.circles.sprites()[0].x, self.circles.sprites()[0].y]
+        # STEP 1
 
-            norm_vec = np.array([x2 - x1, y2 - y1])
+        [x2, y2] = [c2.x, c2.y]
+        [x1, y1] = [c1.x, c1.y]
 
-            divisor = math.sqrt(norm_vec[0]**2 + norm_vec[1]**2)
-            unit_vec = np.array([norm_vec[0] / divisor, norm_vec[1] / divisor])
+        norm_vec = np.array([x2 - x1, y2 - y1])
 
-            unit_tan_vec = np.array([-1 * unit_vec[1], unit_vec[0]])
+        divisor = math.sqrt(norm_vec[0]**2 + norm_vec[1]**2)
+        unit_vec = np.array([norm_vec[0] / divisor, norm_vec[1] / divisor])
 
-            # STEP 2
+        unit_tan_vec = np.array([-1 * unit_vec[1], unit_vec[0]])
 
-            v1 = np.array([self.circles.sprites()[0].vx, self.circles.sprites()[0].vy])
-            m1 = self.circles.sprites()[0].m
+        # STEP 2
 
-            v2 = np.array([self.circles.sprites()[1].vx, self.circles.sprites()[1].vy])
-            m2 = self.circles.sprites()[1].m
+        v1 = np.array([c1.vx, c1.vy])
+        m1 = c1.m
 
-            # STEP 3
+        v2 = np.array([c2.vx, c2.vy])
+        m2 = c2.m
 
-            v1n = np.dot(unit_vec, v1)
+        # STEP 3
 
-            v1t = np.dot(unit_tan_vec, v1)
+        v1n = np.dot(unit_vec, v1)
 
-            v2n = np.dot(unit_vec, v2)
+        v1t = np.dot(unit_tan_vec, v1)
 
-            v2t = np.dot(unit_tan_vec, v2)
+        v2n = np.dot(unit_vec, v2)
 
-            # STEP 4
+        v2t = np.dot(unit_tan_vec, v2)
 
-            v1tp = v1t
+        # STEP 4
 
-            v2tp = v2t
+        v1tp = v1t
 
-            # STEP 5
+        v2tp = v2t
 
-            v1np = ((v1n * (m1 - m2)) + (2 * m2 * v2n)) / (m1 + m2)
+        # STEP 5
 
-            v2np = ((v2n * (m2 - m1)) + (2 * m1 * v1n)) / (m1 + m2)
+        v1np = ((v1n * (m1 - m2)) + (2 * m2 * v2n)) / (m1 + m2)
 
-            # STEP 6
+        v2np = ((v2n * (m2 - m1)) + (2 * m1 * v1n)) / (m1 + m2)
 
-            v1np_ = v1np * unit_vec
-            v1tp_ = v1tp * unit_tan_vec
+        # STEP 6
 
-            v2np_ = v2np * unit_vec
-            v2tp_ = v2tp * unit_tan_vec
+        v1np_ = v1np * unit_vec
+        v1tp_ = v1tp * unit_tan_vec
 
-            # STEP 7
+        v2np_ = v2np * unit_vec
+        v2tp_ = v2tp * unit_tan_vec
 
-            v1p = v1np_ + v1tp_
-            self.circles.sprites()[0].setVel(v1p)
+        # STEP 7
 
-            v2p = v2np_ + v2tp_
-            self.circles.sprites()[1].setVel(v2p)
+        v1p = v1np_ + v1tp_
+        c1.setVel(v1p)
+
+        v2p = v2np_ + v2tp_
+        c2.setVel(v2p)
 
     def show(self):
         running = True
@@ -2190,7 +2250,7 @@ class preGame():
 
                         elif face_left_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 -= 1
-                            if self.face_1 == -1: self.face_1 = self.self.num_faces - 1
+                            if self.face_1 == -1: self.face_1 = self.num_faces - 1
 
                         elif color_right_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 += 1
