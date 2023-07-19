@@ -86,14 +86,14 @@ class Game:
             self.smoke_images.append(image)
 
         # Circles
-        if os.path.isdir("circles/{}/{}".format(circles[1]["face_id"], circles[1]["color"][0])):
+        if os.path.isdir("circles/{}/{}".format(self.circles[1]["face_id"], self.circles[1]["color"][0])):
             for i in range(0, 4):
-                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(circles[1]["face_id"], circles[1]["color"][0], i)))
+                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[1]["face_id"], self.circles[1]["color"][0], i)))
         else:
             print("\nJust a moment! New circles being drawn!")
-            os.mkdir("circles/{}/{}".format(circles[1]["face_id"], circles[1]["color"][0]))
+            os.mkdir("circles/{}/{}".format(self.circles[1]["face_id"], self.circles[1]["color"][0]))
             for n in range(0, 4):
-                path = "circles/{}/{}.png".format(circles[1]["face_id"], n)
+                path = "circles/{}/{}.png".format(self.circles[1]["face_id"], n)
                 image = pygame.image.load(path)
 
                 # loop through image, replace green pixels
@@ -101,36 +101,36 @@ class Game:
                     for k in range(0, image.get_size()[1]):
                         pixel = image.get_at((j, k))
                         if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), circles[1]["color"][1])
+                            image.set_at((j, k), self.circles[1]["color"][1])
                         elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), circles[1]["color"][3])
+                            image.set_at((j, k), self.circles[1]["color"][3])
                         elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
-                            image.set_at((j, k), circles[1]["color"][2])
+                            image.set_at((j, k), self.circles[1]["color"][2])
 
-                pygame.image.save(image, "circles/{}/{}/{}.png".format(circles[1]["face_id"], circles[1]["color"][0], n))
+                pygame.image.save(image, "circles/{}/{}/{}.png".format(self.circles[1]["face_id"], self.circles[1]["color"][0], n))
                 self.c1_images.append(image)
 
-        if os.path.isdir("circles/{}/{}".format(circles[0]["face_id"], circles[0]["color"][0])):
+        if os.path.isdir("circles/{}/{}".format(self.circles[0]["face_id"], self.circles[0]["color"][0])):
             for i in range(0, 4):
-                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(circles[0]["face_id"], circles[0]["color"][0], i)))
+                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[0]["face_id"], self.circles[0]["color"][0], i)))
         else:
             print("\nJust a moment! New circles being drawn!")
-            os.mkdir("circles/{}/{}".format(circles[0]["face_id"], circles[0]["color"][0]))
+            os.mkdir("circles/{}/{}".format(self.circles[0]["face_id"], self.circles[0]["color"][0]))
             for n in range(0, 4):
-                path = "circles/{}/{}.png".format(circles[0]["face_id"], n)
+                path = "circles/{}/{}.png".format(self.circles[0]["face_id"], n)
                 image = pygame.image.load(path)
 
                 for j in range(0, image.get_size()[0]):
                     for k in range(0, image.get_size()[1]):
                         pixel = image.get_at((j, k))
                         if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), circles[0]["color"][1])
+                            image.set_at((j, k), self.circles[0]["color"][1])
                         elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), circles[0]["color"][3])
+                            image.set_at((j, k), self.circles[0]["color"][3])
                         elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
-                            image.set_at((j, k), circles[0]["color"][2])
+                            image.set_at((j, k), self.circles[0]["color"][2])
 
-                pygame.image.save(image, "circles/{}/{}/{}.png".format(circles[0]["face_id"], circles[0]["color"][0], n))
+                pygame.image.save(image, "circles/{}/{}/{}.png".format(self.circles[0]["face_id"], self.circles[0]["color"][0], n))
                 self.c0_images.append(image)
      
         self.powerups = [
@@ -258,8 +258,12 @@ class Game:
         self.hps = []
 
         self.members_per_team = 16
-        self.max_hps[0] += circles[0]["health"] * self.members_per_team
-        self.max_hps[1] += circles[1]["health"] * self.members_per_team
+
+        # Fixed a bug by swapping the array index on self.circles[]["health"]
+        # no clue how that works but it works
+
+        self.max_hps[0] += self.circles[1]["health"] * self.members_per_team
+        self.max_hps[1] += self.circles[0]["health"] * self.members_per_team
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
         self.total_count = self.members_per_team * 2
@@ -724,10 +728,9 @@ class Game:
             self.killfeed_group.add(new)
 
     def addCircle(self, g_id, xy = 0, r = 0, v = 0, new = False):
-        print(g_id)
         if new:
             self.total_count += 1
-
+        
         new_circle = Circle(self.circles[g_id], self.id_count[g_id], self, self.images[g_id], self.powerup_images_hud, xy, r, v, new, self.smoke_images)
         self.id_count[g_id] += 1
         self.groups[g_id].add(new_circle)
@@ -2141,24 +2144,22 @@ def main():
                         play_clicked = True
 
         if play_clicked:
-            circle_0 = circles[face_0]
-            print(circle_0)
+            circle_0 = circles[face_0].copy()
+            circle_1 = circles[face_1].copy()
+
             circle_0["color"] = colors[color_0]
             circle_0["group_id"] = 0
-            print(circle_0)
 
-            
-            circle_1 = circles[face_1]
-            print(circle_1)
             circle_1["color"] = colors[color_1]
             circle_1["group_id"] = 1
-            print(circle_1)
 
             # imagine not being able to generate 4 byes
             # seed = int.from_bytes(random.randbytes(4), "little")
             seed = False
             print("Playing game with seed: {}".format(seed))
-            game = Game(circle_0, circle_1, screen, seed)
+            print(circle_0)
+            print(circle_1)
+            game = Game(circle_1, circle_0, screen, seed)
             game.play_game()
 
     pygame.quit()
