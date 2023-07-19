@@ -2,21 +2,21 @@ import pygame, random, math, numpy as np, os, copy
 from pygame.locals import *
 
 colors = [
-    # REGULAR LIGHT DARK
-    # ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)],
-    # ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)],
-    # ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)],
-    # ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)],
-    # ["blue", (0, 0, 204), (51, 51, 255), (0, 0, 102)],
-    # ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)],
-    # ["pink", (255, 0, 127), (255, 102, 178), (153, 0, 76)],
-    # ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)],
     # SPECIAL COLORS - TAKE CARE
     ["rainbow", "gradient1.png", (255, 180, 180)],
     ["grayscale", "gradient2.png", (100, 100, 100)],
     ["rose", "gradient3.png", (255, 51, 153)],
     ["lavender", "gradient4.png", (153, 153, 255)],
     ["mint", "gradient5.png", (0, 255, 128)],
+    # REGULAR LIGHT DARK
+    ["red", (255, 0, 0), (255, 102, 102), (102, 0, 0)],
+    ["orange", (255, 128, 0), (255, 178, 102), (153, 76, 0)],
+    ["yellow", (255, 255, 0), (255, 255, 102), (153, 153, 0)],
+    ["green", (0, 204, 0), (51, 255, 51), (0, 153, 0)],
+    ["blue", (0, 0, 204), (51, 51, 255), (0, 0, 102)],
+    ["purple", (102, 0, 204), (153, 51, 255), (51, 0, 102)],
+    ["pink", (255, 0, 127), (255, 102, 178), (153, 0, 76)],
+    ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)],
 ]
 
 one = random.randint(0, len(colors)-1)
@@ -27,9 +27,6 @@ while one == two:
 
 circles = [
     {
-        "color": colors[one],
-        "face_id": 0,
-        "group_id": 0,
         "density": 10,
         "velocity": 3,
         "mass": 10,
@@ -41,9 +38,6 @@ circles = [
         "luck": 8,
     },
     {
-        "color": colors[two],
-        "face_id": 1,
-        "group_id": 1,
         "density": 10,
         "velocity": 4,
         "mass": 15,
@@ -262,8 +256,8 @@ class Game:
         # Fixed a bug by swapping the array index on self.circles[]["health"]
         # no clue how that works but it works
 
-        self.max_hps[0] += self.circles[1]["health"] * self.members_per_team
-        self.max_hps[1] += self.circles[0]["health"] * self.members_per_team
+        self.max_hps[0] += self.circles[0]["health"] * self.members_per_team
+        self.max_hps[1] += self.circles[1]["health"] * self.members_per_team
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
         self.total_count = self.members_per_team * 2
@@ -990,9 +984,9 @@ class Game:
             image = self.images[0][0]
         image = pygame.transform.scale(image, (85, 85))
 
-        self.screen.blit(image, (self.screen_w + 10, 10))
-        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 52, 105)
-        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 60, 130)
+        self.screen.blit(image, (self.screen_w + 105, 10))
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 147, 105)
+        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 155, 130)
 
         # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
         # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
@@ -1009,9 +1003,9 @@ class Game:
         image = pygame.transform.scale(image, (85, 85))
 
         offset = self.screen_w / 2 - 100
-        self.screen.blit(image, (self.screen_w + 105, 10))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 147, 105)
-        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 155, 130)
+        self.screen.blit(image, (self.screen_w + 10, 10))
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 52, 105)
+        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 60, 130)
 
     def printStat(self, stats, x, y, dead = False):
         font = pygame.font.Font("freesansbold.ttf", 25)
@@ -2020,6 +2014,61 @@ def test():
         screen.blit(img, (0, 0))
         pygame.display.flip()
 
+def createCircleStatsSurfaces(face_0, face_1):
+    surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
+    surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
+    font = pygame.font.Font("freesansbold.ttf", 30)
+
+    keys = ["Density:", "Velocity:", "Mass:", "Radius:", "Health:", "Damage x:", "Attack:", "Luck:"]
+    values_0 = [str(circles[face_0]["density"]), str(circles[face_0]["velocity"]), str(circles[face_0]["mass"]), 
+                str(circles[face_0]["radius_min"]) + " - " + str(circles[face_0]["radius_max"]), 
+                str(circles[face_0]["health"]), str(circles[face_0]["dmg_multiplier"]), 
+                str(circles[face_0]["attack"]), str(circles[face_0]["luck"])]
+    
+    values_1 = [str(circles[face_1]["density"]), str(circles[face_1]["velocity"]), str(circles[face_1]["mass"]), 
+                str(circles[face_1]["radius_min"]) + " - " + str(circles[face_1]["radius_max"]), 
+                str(circles[face_1]["health"]), str(circles[face_1]["dmg_multiplier"]), 
+                str(circles[face_1]["attack"]), str(circles[face_1]["luck"])]
+
+    element_count = 0
+    for element in keys:
+        key_obj = font.render(element, 1, "white")
+        key_rect = key_obj.get_rect()
+        key_rect.topright = (250, element_count * 30)
+
+        surface_0.blit(key_obj, key_rect)
+        element_count += 1
+
+    element_count = 0
+    for element in values_0:
+        key_obj = font.render(element, 1, "white")
+        key_rect = key_obj.get_rect()
+        key_rect.topleft = (270, element_count * 30)
+
+        surface_0.blit(key_obj, key_rect)
+        element_count += 1
+
+    element_count = 0
+    for element in keys:
+        key_obj = font.render(element, 1, "white")
+        key_rect = key_obj.get_rect()
+        key_rect.topright = (250, element_count * 30)
+
+        surface_1.blit(key_obj, key_rect)
+        element_count += 1
+
+    element_count = 0
+    for element in values_1:
+        key_obj = font.render(element, 1, "white")
+        key_rect = key_obj.get_rect()
+        key_rect.topleft = (270, element_count * 30)
+
+        surface_1.blit(key_obj, key_rect)
+        element_count += 1
+
+    return [surface_0, surface_1]
+
+
 def main():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -2101,6 +2150,11 @@ def main():
         screen.blit(face_right_0, face_right_0_rect)
         screen.blit(face_left_0, face_left_0_rect)
 
+        [surface_0, surface_1] = createCircleStatsSurfaces(face_0, face_1)
+
+        screen.blit(surface_0, (1300, 750))
+        screen.blit(surface_1, (150, 750))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT: running = False
 
@@ -2149,17 +2203,17 @@ def main():
 
             circle_0["color"] = colors[color_0]
             circle_0["group_id"] = 0
+            circle_0["face_id"] = face_0
 
             circle_1["color"] = colors[color_1]
             circle_1["group_id"] = 1
+            circle_1["face_id"] = face_1
 
             # imagine not being able to generate 4 byes
             # seed = int.from_bytes(random.randbytes(4), "little")
             seed = False
             print("Playing game with seed: {}".format(seed))
-            print(circle_0)
-            print(circle_1)
-            game = Game(circle_1, circle_0, screen, seed)
+            game = Game(circle_0, circle_1, screen, seed)
             game.play_game()
 
     pygame.quit()
