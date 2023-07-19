@@ -1890,8 +1890,8 @@ class SimpleCircle(pygame.sprite.Sprite):
         super().__init__()
         self.x = xy[0]
         self.y = xy[1]
-        self.vx = random.randint(-6, 6)
-        self.vy = random.randint(-5, 5)
+        self.vx = random.randint(-4, 4)
+        self.vy = random.randint(-3, 3)
         self.r = random.randint(50, 60)
         self.m = random.randint(10, 15)
         self.frames = 0
@@ -1913,8 +1913,8 @@ class SimpleCircle(pygame.sprite.Sprite):
             self.x = self.r
             self.vx = -1 * self.vx
 
-        if self.y > 450 - self.r:
-            self.y = 450 - self.r
+        if self.y > 400 - self.r:
+            self.y = 400 - self.r
             self.vy = -1 * self.vy
 
         if self.y < self.r:
@@ -2039,43 +2039,62 @@ class preGame():
 
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((1 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
+        self.circles.add(SimpleCircle((1 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((2 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((3 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((4 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((5 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
+
+        self.face_id = random.randint(0, 1)
+        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
+        self.circles.add(SimpleCircle((1 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         self.new_circle_images[self.face_id].pop(self.color_id)
 
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((2 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
+        self.circles.add(SimpleCircle((2 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
 
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((3 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
+        self.circles.add(SimpleCircle((3 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
 
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((4 * 1920 / 5, 200), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
+        self.circles.add(SimpleCircle((4 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
 
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((1 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
-
-        self.face_id = random.randint(0, 1)
-        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((2 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
-
-        self.face_id = random.randint(0, 1)
-        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((3 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
-
-        self.face_id = random.randint(0, 1)
-        self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((4 * 1920 / 5, 400), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
+        self.circles.add(SimpleCircle((5 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
 
     def checkCollisions(self):
         for c1 in self.circles.sprites():
@@ -2230,6 +2249,8 @@ class preGame():
             self.screen.blit(surface_0, (1300, 750))
             self.screen.blit(surface_1, (150, 750))
 
+            pygame.draw.rect(self.screen, "white", (-10, -10, 1940, 410), 2)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: running = False
 
@@ -2302,6 +2323,7 @@ class preGame():
                 
             # limits FPS to 60
             self.clock.tick(60)
+            # print(self.clock.get_fps())
     
     def changeCircles(self):
         self.circle_1 = self.circle_images[self.face_0][self.color_0]
