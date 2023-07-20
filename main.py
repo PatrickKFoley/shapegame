@@ -36,8 +36,8 @@ circles = [
         "density": 10,
         "velocity": 3,
         "mass": 10,
-        "radius_min": 0,
-        "radius_max": 15,
+        "radius_min": 30,
+        "radius_max": 45,
         "health": 130,
         "dmg_multiplier": 1.7,
         "attack": 5,
@@ -47,8 +47,8 @@ circles = [
         "density": 10,
         "velocity": 4,
         "mass": 15,
-        "radius_min": 10,
-        "radius_max": 25,
+        "radius_min": 40,
+        "radius_max": 55,
         "health": 170,
         "dmg_multiplier": 1,
         "attack": 2,
@@ -57,13 +57,17 @@ circles = [
 ]
 
 class Game: 
-    def __init__(self, c0, c1, screen, seed = False):
+    def __init__(self, c0, c0_count, c1, c1_count, screen, seed = False):
         if seed != False:
             random.seed(seed)
         
         self.c0 = c0
         self.c1 = c1
         self.circles = [c0, c1]
+
+        self.c0_count = c0_count
+        self.c1_count = c1_count
+        self.circle_counts = [self.c0_count, self.c1_count]
 
         # Preprocess images
         self.c0_images = []
@@ -261,19 +265,34 @@ class Game:
         self.max_hps = [0, 0]
         self.hps = []
 
-        self.members_per_team = 16
+        # self.members_per_team = 11
 
         # Fixed a bug by swapping the array index on self.circles[]["health"]
         # no clue how that works but it works
 
-        self.max_hps[0] += self.circles[0]["health"] * self.members_per_team
-        self.max_hps[1] += self.circles[1]["health"] * self.members_per_team
+        self.max_hps[0] += self.circles[0]["health"] * self.circle_counts[0]
+        self.max_hps[1] += self.circles[1]["health"] * self.circle_counts[1]
         self.hps = [self.max_hps[0], self.max_hps[1]]
 
-        self.total_count = self.members_per_team * 2
+        self.spawn_locations = [
+            [
+                (150, self.screen_h / 6),  (150, 2 * self.screen_h / 6), (150, 3 * self.screen_h / 6), (150, 4 * self.screen_h / 6), (150, 5 * self.screen_h / 6),
+                (300, self.screen_h / 6),  (300, 2 * self.screen_h / 6), (300, 3 * self.screen_h / 6), (300, 4 * self.screen_h / 6), (300, 5 * self.screen_h / 6),
+                (450, self.screen_h / 6),  (450, 2 * self.screen_h / 6), (450, 3 * self.screen_h / 6), (450, 4 * self.screen_h / 6), (450, 5 * self.screen_h / 6),
+                (600, self.screen_h / 6),  (600, 2 * self.screen_h / 6), (600, 3 * self.screen_h / 6), (600, 4 * self.screen_h / 6), (600, 5 * self.screen_h / 6),
+            ], [
+                (self.screen_w - 150, self.screen_h / 6),  (self.screen_w - 150, 2 * self.screen_h / 6), (self.screen_w - 150, 3 * self.screen_h / 6), (self.screen_w - 150, 4 * self.screen_h / 6), (self.screen_w - 150, 5 * self.screen_h / 6),
+                (self.screen_w - 300, self.screen_h / 6),  (self.screen_w - 300, 2 * self.screen_h / 6), (self.screen_w - 300, 3 * self.screen_h / 6), (self.screen_w - 300, 4 * self.screen_h / 6), (self.screen_w - 300, 5 * self.screen_h / 6),
+                (self.screen_w - 450, self.screen_h / 6),  (self.screen_w - 450, 2 * self.screen_h / 6), (self.screen_w - 450, 3 * self.screen_h / 6), (self.screen_w - 450, 4 * self.screen_h / 6), (self.screen_w - 450, 5 * self.screen_h / 6),
+                (self.screen_w - 600, self.screen_h / 6),  (self.screen_w - 600, 2 * self.screen_h / 6), (self.screen_w - 600, 3 * self.screen_h / 6), (self.screen_w - 600, 4 * self.screen_h / 6), (self.screen_w - 600, 5 * self.screen_h / 6),
+            ],
+        ]
+
+        self.total_count = self.circle_counts[0] + self.circle_counts[1]
         # ----------------------
-        for i in range(self.members_per_team):
+        for i in range(self.circle_counts[0]):
             self.addCircle(0)
+        for i in range(self.circle_counts[1]):
             self.addCircle(1)
 
         self.createStatsScreen(True)
@@ -734,6 +753,22 @@ class Game:
     def addCircle(self, g_id, xy = 0, r = 0, v = 0, new = False):
         if new:
             self.total_count += 1
+
+
+        if xy == 0:
+            xy = self.spawn_locations[g_id][self.id_count[g_id]-1]
+
+            if self.circle_counts[g_id] % 5 != 0:
+                remainder = (self.circle_counts[g_id] // 5) -1
+                print(remainder)
+
+                
+                # if you are one of the remainders, change your y coordinate
+                if self.id_count[g_id] - 1 >= self.circle_counts[g_id] - remainder:
+
+                    xy = (xy[0], ((self.id_count[g_id] // 5) -1 ) * self.screen_h / (remainder + 1))
+                    print("remainder sent to : {}".format(xy))
+
         
         new_circle = Circle(self.circles[g_id], self.id_count[g_id], self, self.images[g_id], self.powerup_images_hud, xy, r, v, new, self.smoke_images)
         self.id_count[g_id] += 1
@@ -1173,7 +1208,7 @@ class Circle(pygame.sprite.Sprite):
         
         self.m = attributes["mass"]
         if R == 0:
-            self.r = 30 + random.randint(attributes["radius_min"], attributes["radius_max"])
+            self.r = random.randint(attributes["radius_min"], attributes["radius_max"])
         else:
             self.r = R
 
@@ -1188,7 +1223,7 @@ class Circle(pygame.sprite.Sprite):
 
         if XY == 0:
             # Need some sort of smart spawning so that they can't overlap 
-            [self.x, self.y] = game.getSafeSpawn()
+            [self.x, self.y] = game.spawn_locations[self.g_id][self.id]
         else:
             [self.x, self.y] = XY
 
@@ -1280,16 +1315,16 @@ class Circle(pygame.sprite.Sprite):
         id = self.id
         self.kill()
 
-        row_num = self.id - (len(self.game.groups[self.g_id]) - self.game.members_per_team)
-        row_num_last = len(self.game.groups[self.g_id])
+        # row_num = self.id - (len(self.game.groups[self.g_id]) - self.game.circle_counts[self.g_id])
+        # # row_num_last = len(self.game.groups[self.g_id])
 
-        if row_num % 2 == 0:
-            color = "lightgray"
-        else:
-            color = "white"
-        pygame.draw.rect(self.game.stats_surface, color, (10 + 850 * self.g_id, 195 + 30 * row_num, 845, 30))
+        # if row_num % 2 == 0:
+        #     color = "lightgray"
+        # else:
+        #     color = "white"
+        # pygame.draw.rect(self.game.stats_surface, color, (10 + 850 * self.g_id, 195 + 30 * row_num, 845, 30))
         
-        pygame.draw.rect(self.game.stats_surface, "darkgray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
+        # pygame.draw.rect(self.game.stats_surface, "darkgray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
 
         # self.game.dead_circle = True
         if [id, stats] not in self.game.dead_stats[self.g_id]:
@@ -1942,6 +1977,7 @@ class preGame():
         self.play_rect = self.play.get_rect()
         self.play_rect.center = [1920 / 2, 1000]
         self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font("freesansbold.ttf", 80)
 
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1070 / 2 - self.title.get_size()[1] / 2))
@@ -1954,6 +1990,9 @@ class preGame():
         self.color_0 = 0
         self.face_1 = 1
         self.color_1 = 1
+
+        self.c0_count = 15
+        self.c1_count = 15
 
         self.shown_circles = [[self.face_0, colors[self.color_0][0]], [self.face_1, colors[self.color_1][0]]]
 
@@ -2070,7 +2109,8 @@ class preGame():
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((1 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
-        self.new_circle_images[self.face_id].pop(self.color_id)
+        for element in self.new_circle_images:
+            element.pop(self.color_id)
 
         self.face_id = random.randint(0, 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
@@ -2249,7 +2289,40 @@ class preGame():
             self.screen.blit(surface_0, (1300, 750))
             self.screen.blit(surface_1, (150, 750))
 
-            pygame.draw.rect(self.screen, "white", (-10, -10, 1940, 410), 2)
+            # pygame.draw.rect(self.screen, "white", (-10, -10, 1940, 410), 2)
+
+            # draw counts + arrows
+            l_count_obj = self.font.render(str(self.c0_count), 1, "white")
+            l_count_rect = l_count_obj.get_rect()
+            l_count_rect.center = (1920 - 125, 820)
+            
+            l_left = self.arrow_left
+            l_left_rect = l_left.get_rect()
+            l_left_rect.center = (1920 - 150, 880)
+
+            l_right = self.arrow_right
+            l_right_rect = l_right.get_rect()
+            l_right_rect.center = (1920 - 95, 880)
+
+            self.screen.blit(l_count_obj, l_count_rect)
+            self.screen.blit(l_left, l_left_rect)
+            self.screen.blit(l_right, l_right_rect)
+
+            r_count_obj = self.font.render(str(self.c1_count), 1, "white")
+            r_count_rect = r_count_obj.get_rect()
+            r_count_rect.center = (125, 820)
+            
+            r_left = self.arrow_left
+            r_left_rect = r_left.get_rect()
+            r_left_rect.center = (100, 880)
+
+            r_right = self.arrow_right
+            r_right_rect = r_right.get_rect()
+            r_right_rect.center = (150, 880)
+
+            self.screen.blit(r_count_obj, r_count_rect)
+            self.screen.blit(r_left, r_left_rect)
+            self.screen.blit(r_right, r_right_rect)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: running = False
@@ -2293,6 +2366,18 @@ class preGame():
                         elif self.play_rect.collidepoint(pygame.mouse.get_pos()):
                             play_clicked = True
 
+                        elif l_left_rect.collidepoint(pygame.mouse.get_pos()):
+                            if self.c0_count != 1: self.c0_count -= 1
+
+                        elif l_right_rect.collidepoint(pygame.mouse.get_pos()):
+                            if self.c0_count != 20: self.c0_count += 1
+
+                        elif r_left_rect.collidepoint(pygame.mouse.get_pos()):
+                            if self.c1_count != 1: self.c1_count -= 1
+
+                        elif r_right_rect.collidepoint(pygame.mouse.get_pos()):
+                            if self.c1_count != 20: self.c1_count += 1
+
                         elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
                             running = False
 
@@ -2318,7 +2403,7 @@ class preGame():
                 # seed = int.from_bytes(random.randbytes(4), "little")
                 seed = False
                 print("Playing game with seed: {}".format(seed))
-                game = Game(circle_0, circle_1, self.screen, seed)
+                game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed)
                 game.play_game()
                 
             # limits FPS to 60
