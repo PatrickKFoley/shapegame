@@ -411,7 +411,6 @@ class Game:
         # Determine if any powerups were used for stats
         # Clear winner of any powerups they should win
         if 2 in winner.powerups:
-            winner.removePowerup(2)
             winner.stats.useStar()
         if 3 in winner.powerups:
             winner.removePowerup(3)
@@ -427,6 +426,9 @@ class Game:
             winner.removePowerup(8)
             # Will switch real brains of each removePowerup call to be done by Game, starting with this
             self.memberSpawnBlueLasers(winner)
+
+        if 2 in loser.powerups:
+            loser.removePowerup(2)
 
 
         if loser.hp <= 0:
