@@ -761,14 +761,12 @@ class Game:
             xy = self.spawn_locations[g_id][self.id_count[g_id]-1]
 
             if self.circle_counts[g_id] % 5 != 0:
-                remainder = (self.circle_counts[g_id] // 5) -1
-                print(remainder)
+                remainder = (self.circle_counts[g_id] % 5)
 
                 
                 # if you are one of the remainders, change your y coordinate
                 if self.id_count[g_id] - 1 >= self.circle_counts[g_id] - remainder:
-
-                    xy = (xy[0], ((self.id_count[g_id] // 5) -1 ) * self.screen_h / (remainder + 1))
+                    xy = (xy[0], (self.id_count[g_id] % 5) * self.screen_h / (remainder + 1))
                     print("remainder sent to : {}".format(xy))
 
         
