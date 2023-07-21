@@ -1,4 +1,4 @@
-import pygame, random, math, numpy as np, os, copy
+import pygame, random, math, numpy as np, os, time
 from pygame.locals import *
 
 colors = [
@@ -50,6 +50,17 @@ circles = [
         "radius_min": 40,
         "radius_max": 55,
         "health": 170,
+        "dmg_multiplier": 1,
+        "attack": 2,
+        "luck": 10,
+    },
+    {
+        "density": 10,
+        "velocity": 4,
+        "mass": 15,
+        "radius_min": 50,
+        "radius_max": 60,
+        "health": 150,
         "dmg_multiplier": 1,
         "attack": 2,
         "luck": 10,
@@ -213,7 +224,7 @@ class Game:
             sound.set_volume(.5)
 
         self.screen_w = 1720
-        self.screen_h = 1070
+        self.screen_h = 1080
         self.fps = 60
         self.font = pygame.font.Font("freesansbold.ttf", 160)
         self.screen = screen
@@ -230,6 +241,7 @@ class Game:
         self.dead_circle = True
         self.hp_mode = False
         self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
+        self.loading = pygame.image.load("backgrounds/loading.png")
 
         # for loop for creating circles
         self.groups = []
@@ -608,7 +620,7 @@ class Game:
                             pass
                         else:
                             member_1.colliding_with.append(member_2.getId())
-                            member_2.colliding_with.append(member_1.getId());
+                            member_2.colliding_with.append(member_1.getId())
                             self.handle_collision(member_1, member_2, member_1.getG_id() != member_2.getG_id())
                     else:
                         if member_2.getId() in member_1.colliding_with:
@@ -781,10 +793,6 @@ class Game:
             self.frames += 1
             # poll for events
             for event in pygame.event.get():
-                # quit event
-                if event.type == pygame.QUIT:
-                    self.running = False
-
                 # button click event
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
@@ -817,7 +825,7 @@ class Game:
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
             if self.cur_rows != num_rows:
-                self.createStatsScreen()
+                self.createStatsScreen(True)
 
             # flip() the display to put your work on screen
             pygame.display.flip()
@@ -882,21 +890,13 @@ class Game:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if type(self.circles[1]["color"][1]) == type("string"):
-                    color = self.circles[1]["color"][2]
-                else:
-                    color = self.circles[1]["color"][1]
-                self.draw_text("{} Wins!".format(self.circles[1]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.circles[1]["color"][0].capitalize()), self.font, "white", self.screen_w / 2, self.screen_h / 6)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if type(self.circles[0]["color"][1]) == type("string"):
-                    color = self.circles[0]["color"][2]
-                else:
-                    color = self.circles[0]["color"][1]
-                self.draw_text("{} Wins!".format(self.circles[0]["color"][0].capitalize()), self.font, color, self.screen_w / 2, self.screen_h / 6)
+                self.draw_text("{} Wins!".format(self.circles[0]["color"][0].capitalize()), self.font, "white", self.screen_w / 2, self.screen_h / 6)
 
             
             if self.done and self.play_sound:
@@ -933,6 +933,11 @@ class Game:
             # fps counter
             # font = pygame.font.Font("freesansbold.ttf", 40)
             # self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
+
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
+        pygame.display.update()
+        time.sleep(0.5)
 
     def toggleHealthMode(self):
         self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
@@ -1931,7 +1936,7 @@ class SimpleCircle(pygame.sprite.Sprite):
         self.m = random.randint(10, 15)
         self.frames = 0
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_string = colors[random.randint(0, len(colors)-1)][0]
         self.image = pygame.transform.scale(image, (self.r * 2, self.r * 2))
 
@@ -1970,7 +1975,7 @@ class SimpleCircle(pygame.sprite.Sprite):
 
 class preGame():
     def __init__(self):
-        self.screen = pygame.display.set_mode((1920, 1070))
+        self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.title = pygame.image.load("backgrounds/title.png")
         self.play = pygame.image.load("backgrounds/play.png")
@@ -1980,16 +1985,16 @@ class preGame():
         self.font = pygame.font.Font("freesansbold.ttf", 80)
 
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1070 / 2 - self.title.get_size()[1] / 2))
+        self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
         pygame.display.set_caption("shapegame")
         pygame.display.update()
 
-        self.num_faces = 2
+        self.num_faces = 3
 
-        self.face_0 = 0
-        self.color_0 = 0
+        self.face_0 = 2
+        self.color_0 = random.randint(0, len(colors)-1)
         self.face_1 = 1
-        self.color_1 = 1
+        self.color_1 = random.randint(0, len(colors)-1)
 
         self.c0_count = 15
         self.c1_count = 15
@@ -1999,7 +2004,7 @@ class preGame():
         self.circles = pygame.sprite.Group()
 
         self.circle_images = []
-        for i in range(0, 2):
+        for i in range(0, 3):
             self.circle_images.append([])
             for color in colors:
                 self.circle_images[i].append(pygame.transform.scale(pygame.image.load("circles/{}/{}/0.png".format(i, color[0])), (200, 200)))
@@ -2072,65 +2077,68 @@ class preGame():
         return [surface_0, surface_1]
 
     def addNewCircles(self):
-        self.new_circle_images = [0, 0]
+
+        # CHANGE WHEN ADDING FACE_IDS
+        self.new_circle_images = [0, 0, 0]
         self.new_circle_images[0] = self.circle_images[0].copy()
         self.new_circle_images[1] = self.circle_images[1].copy()
+        self.new_circle_images[2] = self.circle_images[2].copy()
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((1 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((2 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((3 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((4 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((5 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((1 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((2 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((3 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((4 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 1)
+        self.face_id = random.randint(0, 2)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((5 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
@@ -2233,30 +2241,30 @@ class preGame():
             # Draw some shit
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1070 / 2 - self.title.get_size()[1] / 2))
+            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
             self.screen.blit(self.play, self.play_rect)
             self.screen.blit(self.exit, self.exit_rect)
 
             # Show two circles 
-            self.screen.blit(self.circle_1, (2 * 1920 / 3 - self.circle_1.get_size()[0] / 2, 2 * 1070 / 3))
-            self.screen.blit(self.circle_2, (1920 / 3 - self.circle_2.get_size()[0] / 2, 2 * 1070 / 3))
+            self.screen.blit(self.circle_1, (2 * 1920 / 3 - self.circle_1.get_size()[0] / 2, 2 * 1080 / 3))
+            self.screen.blit(self.circle_2, (1920 / 3 - self.circle_2.get_size()[0] / 2, 2 * 1080 / 3))
 
             # draw arrows
             color_right_1 = self.arrow_right
             color_right_1_rect = color_right_1.get_rect()
-            color_right_1_rect.center = (1920 / 3 + 50, 2 * 1070 / 3 + 230)
+            color_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 230)
 
             color_left_1 = self.arrow_left
             color_left_1_rect = color_right_1.get_rect()
-            color_left_1_rect.center = (1920 / 3 - 50, 2 * 1070 / 3 + 230)
+            color_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 230)
 
             face_right_1 = self.arrow_right
             face_right_1_rect = face_right_1.get_rect()
-            face_right_1_rect.center = (1920 / 3 + 50, 2 * 1070 / 3 + 270)
+            face_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 270)
 
             face_left_1 = self.arrow_left
             face_left_1_rect = face_right_1.get_rect()
-            face_left_1_rect.center = (1920 / 3 - 50, 2 * 1070 / 3 + 270)
+            face_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 270)
 
             self.screen.blit(color_right_1, color_right_1_rect)
             self.screen.blit(color_left_1, color_left_1_rect)
@@ -2265,19 +2273,19 @@ class preGame():
 
             color_right_0 = self.arrow_right
             color_right_0_rect = color_right_0.get_rect()
-            color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1070 / 3 + 230)
+            color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 230)
 
             color_left_0 = self.arrow_left
             color_left_0_rect = color_right_0.get_rect()
-            color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1070 / 3 + 230)
+            color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 230)
 
             face_right_0 = self.arrow_right
             face_right_0_rect = face_right_0.get_rect()
-            face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1070 / 3 + 270)
+            face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 270)
 
             face_left_0 = self.arrow_left
             face_left_0_rect = face_right_0.get_rect()
-            face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1070 / 3 + 270)
+            face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 270)
 
             self.screen.blit(color_right_0, color_right_0_rect)
             self.screen.blit(color_left_0, color_left_0_rect)
@@ -2325,8 +2333,6 @@ class preGame():
             self.screen.blit(r_right, r_right_rect)
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT: running = False
-
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
                         if color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
@@ -2385,7 +2391,7 @@ class preGame():
 
             if play_clicked:
                 self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1070 / 2 - self.loading.get_size()[1] / 2))
+                self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
                 pygame.display.update()
 
                 circle_0 = circles[self.face_0].copy()
@@ -2417,7 +2423,7 @@ class preGame():
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
     for color in colors:
-        for id in range(0, 2):
+        for id in range(0, 3):
             if os.path.isdir("circles/{}/{}".format(id, color[0])):
                 pass
             else:
@@ -2471,7 +2477,7 @@ def test():
             if img.get_at((i, j)) == (153, 37, 118, 255):
                 img.set_at((i, j), (255, 255, 255, 255))
 
-    screen = pygame.display.set_mode((2048,2048))  
+    screen = pygame.display.set_mode((2048,2048), pygame.NOFRAME)  
     done = False  
     
     while not done:  
