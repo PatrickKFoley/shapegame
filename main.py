@@ -31,50 +31,60 @@ colors = [
     # ["gray", (96, 96, 96), (160, 160, 160), (64, 64, 64)],
 ]
 
+mins = {
+    "density": 1,
+    "velocity": 1,
+    "radius": 5,
+    "health": 25,
+    "dmg_multiplier": 0.1,
+    "luck": 1,
+}
+
+maxes = {
+    "density": 99,
+    "velocity": 9,
+    "radius": 300,
+    "health": 999,
+    "dmg_multiplier": 9.9,
+    "luck": 99,
+}
+
 circles = [
     {
-        "density": 10,
+        "density": 1,
         "velocity": 3,
-        "mass": 10,
         "radius_min": 30,
         "radius_max": 45,
         "health": 130,
         "dmg_multiplier": 1.7,
-        "attack": 5,
         "luck": 8,
     },
     {
-        "density": 10,
+        "density": 2,
         "velocity": 4,
-        "mass": 15,
         "radius_min": 40,
         "radius_max": 55,
         "health": 170,
         "dmg_multiplier": 1,
-        "attack": 2,
         "luck": 10,
     },
     {
-        "density": 10,
+        "density": 2,
         "velocity": 4,
-        "mass": 15,
         "radius_min": 50,
         "radius_max": 60,
         "health": 60,
         "dmg_multiplier": 3,
-        "attack": 2,
-        "luck": 20,
+        "luck": 15,
     },
     {
-        "density": 10,
+        "density": 1,
         "velocity": 4,
-        "mass": 15,
-        "radius_min": 50,
-        "radius_max": 60,
+        "radius_min": 30,
+        "radius_max": 40,
         "health": 80,
         "dmg_multiplier": 2.5,
-        "attack": 2,
-        "luck": 15,
+        "luck": 12,
     },
 ]
 
@@ -1204,29 +1214,34 @@ class Circle(pygame.sprite.Sprite):
         
 
         if VEL == 0:
-            # Want a constant speed, but random direction to start
-            speed = attributes["velocity"]
-            # Speed in x direction random, 0 - 100% max speed
-            self.v_x = random.uniform(0, speed)
-            # Speed in y direction determined according to the equation of a circle, where r = speed
-            self.v_y = math.sqrt(speed**2 - self.v_x**2)
+            # # Want a constant speed, but random direction to start
+            # speed = attributes["velocity"]
+            # # Speed in x direction random, 0 - 100% max speed
+            # self.v_x = random.uniform(0, speed)
+            # # Speed in y direction determined according to the equation of a circle, where r = speed
+            # self.v_y = math.sqrt(speed**2 - self.v_x**2)
+
+            self.v_x = attributes["velocity"] * (-1 ** (self.g_id + 1))
+            self.v_y = random.randint(-1, 1)
         else:
             [self.v_x, self.v_y] = VEL 
 
-        #flip some coins for changing direction
-        if random.randint(0, 1) == 0:
-            self.v_x = self.v_x * -1
+        # #flip some coins for changing direction
+        # if random.randint(0, 1) == 0:
+        #     self.v_x = self.v_x * -1
 
-        if random.randint(0, 1) == 0:
-            self.v_y = self.v_y * -1
+        # if random.randint(0, 1) == 0:
+        #     self.v_y = self.v_y * -1
 
         # self.angle = 0
         
-        self.m = attributes["mass"]
+        
         if R == 0:
             self.r = random.randint(attributes["radius_min"], attributes["radius_max"])
         else:
             self.r = R
+
+        self.m = round(attributes["density"] * (3/4) * 3.14 * self.r**3)
 
         self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
 
@@ -1234,7 +1249,6 @@ class Circle(pygame.sprite.Sprite):
         self.circle_image = self.getNextImage(0)
 
         self.hp = self.max_hp = attributes["health"]
-        self.attack = attributes["attack"]
         self.dmg_multiplier = attributes["dmg_multiplier"]
 
         if XY == 0:
@@ -2007,6 +2021,8 @@ class preGame():
         self.face_1 = 1
         self.color_1 = random.randint(0, len(colors)-1)
 
+        self.face_ids = [self.face_0, self.face_1]
+
         self.c0_count = 15
         self.c1_count = 15
 
@@ -2033,21 +2049,81 @@ class preGame():
 
         self.loading = pygame.image.load("backgrounds/loading.png")
 
+        # draw arrows
+        self.color_right_1 = self.arrow_right
+        self.color_right_1_rect = self.color_right_1.get_rect()
+        self.color_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 230)
+
+        self.color_left_1 = self.arrow_left
+        self.color_left_1_rect = self.color_right_1.get_rect()
+        self.color_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 230)
+
+        self.face_right_1 = self.arrow_right
+        self.face_right_1_rect = self.face_right_1.get_rect()
+        self.face_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 270)
+
+        self.face_left_1 = self.arrow_left
+        self.face_left_1_rect = self.face_right_1.get_rect()
+        self.face_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 270)
+
+        self.color_right_0 = self.arrow_right
+        self.color_right_0_rect = self.color_right_0.get_rect()
+        self.color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 230)
+
+        self.color_left_0 = self.arrow_left
+        self.color_left_0_rect = self.color_right_0.get_rect()
+        self.color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 230)
+
+        self.face_right_0 = self.arrow_right
+        self.face_right_0_rect = self.face_right_0.get_rect()
+        self.face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 270)
+
+        self.face_left_0 = self.arrow_left
+        self.face_left_0_rect = self.face_right_0.get_rect()
+        self.face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 270)
+
+
+        self.l_count_obj = self.font.render(str(self.c0_count), 1, "white")
+        self.l_count_rect = self.l_count_obj.get_rect()
+        self.l_count_rect.center = (1920 - 125, 820)
+        
+        self.l_left = self.arrow_left
+        self.l_left_rect = self.l_left.get_rect()
+        self.l_left_rect.center = (1920 - 150, 880)
+
+        self.l_right = self.arrow_right
+        self.l_right_rect = self.l_right.get_rect()
+        self.l_right_rect.center = (1920 - 95, 880)
+
+        self.r_count_obj = self.font.render(str(self.c1_count), 1, "white")
+        self.r_count_rect = self.r_count_obj.get_rect()
+        self.r_count_rect.center = (125, 820)
+        
+        self.r_left = self.arrow_left
+        self.r_left_rect = self.r_left.get_rect()
+        self.r_left_rect.center = (100, 880)
+
+        self.r_right = self.arrow_right
+        self.r_right_rect = self.r_right.get_rect()
+        self.r_right_rect.center = (150, 880)
+
+        self.stat_rects = [{}, {}]
+
     def createCircleStatsSurfaces(self):
         surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
         surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
         font = pygame.font.Font("freesansbold.ttf", 30)
 
-        keys = ["Density:", "Velocity:", "Mass:", "Radius:", "Health:", "Damage x:", "Attack:", "Luck:"]
-        values_0 = [str(circles[self.face_0]["density"]), str(circles[self.face_0]["velocity"]), str(circles[self.face_0]["mass"]), 
+        keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:"]
+        values_0 = [str(circles[self.face_0]["density"]), str(circles[self.face_0]["velocity"]), 
                     str(circles[self.face_0]["radius_min"]) + " - " + str(circles[self.face_0]["radius_max"]), 
                     str(circles[self.face_0]["health"]), str(circles[self.face_0]["dmg_multiplier"]), 
-                    str(circles[self.face_0]["attack"]), str(circles[self.face_0]["luck"])]
+                    str(circles[self.face_0]["luck"])]
         
-        values_1 = [str(circles[self.face_1]["density"]), str(circles[self.face_1]["velocity"]), str(circles[self.face_1]["mass"]), 
+        values_1 = [str(circles[self.face_1]["density"]), str(circles[self.face_1]["velocity"]), 
                     str(circles[self.face_1]["radius_min"]) + " - " + str(circles[self.face_1]["radius_max"]), 
                     str(circles[self.face_1]["health"]), str(circles[self.face_1]["dmg_multiplier"]), 
-                    str(circles[self.face_1]["attack"]), str(circles[self.face_1]["luck"])]
+                    str(circles[self.face_1]["luck"])]
 
         element_count = 0
         for element in keys:
@@ -2058,6 +2134,8 @@ class preGame():
             surface_0.blit(key_obj, key_rect)
             element_count += 1
 
+        keys_for_rects = ["density", "velocity", "radius", "health", "dmg_multiplier", "luck"]
+
         element_count = 0
         for element in values_0:
             key_obj = font.render(element, 1, "white")
@@ -2065,6 +2143,8 @@ class preGame():
             key_rect.topleft = (270, element_count * 30)
 
             surface_0.blit(key_obj, key_rect)
+
+            self.stat_rects[0][str(keys_for_rects[element_count])] = key_rect
             element_count += 1
 
         element_count = 0
@@ -2083,12 +2163,13 @@ class preGame():
             key_rect.topleft = (270, element_count * 30)
 
             surface_1.blit(key_obj, key_rect)
+
+            self.stat_rects[1][str(keys_for_rects[element_count])] = key_rect
             element_count += 1
 
         return [surface_0, surface_1]
 
     def addNewCircles(self):
-
         # CHANGE WHEN ADDING FACE_IDS
         self.new_circle_images = [0, 0, 0, 0]
         self.new_circle_images[0] = self.circle_images[0].copy()
@@ -2261,139 +2342,162 @@ class preGame():
             self.screen.blit(self.circle_1, (2 * 1920 / 3 - self.circle_1.get_size()[0] / 2, 2 * 1080 / 3))
             self.screen.blit(self.circle_2, (1920 / 3 - self.circle_2.get_size()[0] / 2, 2 * 1080 / 3))
 
-            # draw arrows
-            color_right_1 = self.arrow_right
-            color_right_1_rect = color_right_1.get_rect()
-            color_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 230)
 
-            color_left_1 = self.arrow_left
-            color_left_1_rect = color_right_1.get_rect()
-            color_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 230)
+            self.screen.blit(self.color_right_1, self.color_right_1_rect)
+            self.screen.blit(self.color_left_1, self.color_left_1_rect)
+            self.screen.blit(self.face_right_1, self.face_right_1_rect)
+            self.screen.blit(self.face_left_1, self.face_left_1_rect)
 
-            face_right_1 = self.arrow_right
-            face_right_1_rect = face_right_1.get_rect()
-            face_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 270)
 
-            face_left_1 = self.arrow_left
-            face_left_1_rect = face_right_1.get_rect()
-            face_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 270)
+            self.screen.blit(self.color_right_0, self.color_right_0_rect)
+            self.screen.blit(self.color_left_0, self.color_left_0_rect)
+            self.screen.blit(self.face_right_0, self.face_right_0_rect)
+            self.screen.blit(self.face_left_0, self.face_left_0_rect)
 
-            self.screen.blit(color_right_1, color_right_1_rect)
-            self.screen.blit(color_left_1, color_left_1_rect)
-            self.screen.blit(face_right_1, face_right_1_rect)
-            self.screen.blit(face_left_1, face_left_1_rect)
+            [self.surface_0, self.surface_1] = self.createCircleStatsSurfaces()
 
-            color_right_0 = self.arrow_right
-            color_right_0_rect = color_right_0.get_rect()
-            color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 230)
-
-            color_left_0 = self.arrow_left
-            color_left_0_rect = color_right_0.get_rect()
-            color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 230)
-
-            face_right_0 = self.arrow_right
-            face_right_0_rect = face_right_0.get_rect()
-            face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 270)
-
-            face_left_0 = self.arrow_left
-            face_left_0_rect = face_right_0.get_rect()
-            face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 270)
-
-            self.screen.blit(color_right_0, color_right_0_rect)
-            self.screen.blit(color_left_0, color_left_0_rect)
-            self.screen.blit(face_right_0, face_right_0_rect)
-            self.screen.blit(face_left_0, face_left_0_rect)
-
-            [surface_0, surface_1] = self.createCircleStatsSurfaces()
-
-            self.screen.blit(surface_0, (1300, 750))
-            self.screen.blit(surface_1, (150, 750))
+            self.screen.blit(self.surface_0, (1300, 735))
+            self.screen.blit(self.surface_1, (150, 735))
 
             # pygame.draw.rect(self.screen, "white", (-10, -10, 1940, 410), 2)
+            self.l_count_obj = self.font.render(str(self.c0_count), 1, "white")
+            self.l_count_rect = self.l_count_obj.get_rect()
+            self.l_count_rect.center = (1920 - 125, 820)
+
+            self.r_count_obj = self.font.render(str(self.c1_count), 1, "white")
+            self.r_count_rect = self.r_count_obj.get_rect()
+            self.r_count_rect.center = (125, 820)
 
             # draw counts + arrows
-            l_count_obj = self.font.render(str(self.c0_count), 1, "white")
-            l_count_rect = l_count_obj.get_rect()
-            l_count_rect.center = (1920 - 125, 820)
-            
-            l_left = self.arrow_left
-            l_left_rect = l_left.get_rect()
-            l_left_rect.center = (1920 - 150, 880)
+            self.screen.blit(self.l_count_obj, self.l_count_rect)
+            self.screen.blit(self.l_left, self.l_left_rect)
+            self.screen.blit(self.l_right, self.l_right_rect)
 
-            l_right = self.arrow_right
-            l_right_rect = l_right.get_rect()
-            l_right_rect.center = (1920 - 95, 880)
-
-            self.screen.blit(l_count_obj, l_count_rect)
-            self.screen.blit(l_left, l_left_rect)
-            self.screen.blit(l_right, l_right_rect)
-
-            r_count_obj = self.font.render(str(self.c1_count), 1, "white")
-            r_count_rect = r_count_obj.get_rect()
-            r_count_rect.center = (125, 820)
-            
-            r_left = self.arrow_left
-            r_left_rect = r_left.get_rect()
-            r_left_rect.center = (100, 880)
-
-            r_right = self.arrow_right
-            r_right_rect = r_right.get_rect()
-            r_right_rect.center = (150, 880)
-
-            self.screen.blit(r_count_obj, r_count_rect)
-            self.screen.blit(r_left, r_left_rect)
-            self.screen.blit(r_right, r_right_rect)
+            self.screen.blit(self.r_count_obj, self.r_count_rect)
+            self.screen.blit(self.r_left, self.r_left_rect)
+            self.screen.blit(self.r_right, self.r_right_rect)
 
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        if color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        # loop through stats rects and check if any of them got clicked?
+                        for key, item in self.stat_rects[0].items():
+                            if item.collidepoint((pygame.mouse.get_pos()[0]-1300, pygame.mouse.get_pos()[1]-735)):
+
+                                amount = 1
+                                pressed_keys = pygame.key.get_pressed()
+                                counter = 0
+                                for pressed_key in pressed_keys:
+                                    if pressed_key == 1 and counter == 225:
+                                        amount *= 10
+                                    if pressed_key == 1 and counter == 224:
+                                        amount *= -1
+                                    counter += 1
+
+                                if key == "radius":
+                                    circles[self.face_ids[0]]["radius_min"] += amount
+                                    circles[self.face_ids[0]]["radius_max"] += amount
+
+                                    if circles[self.face_ids[0]]["radius_max"] > maxes["radius"]:
+                                        circles[self.face_ids[0]]["radius_max"] = maxes["radius"]
+                                        circles[self.face_ids[0]]["radius_min"] = maxes["radius"] - 10
+
+                                    if circles[self.face_ids[0]]["radius_min"] < mins["radius"]:
+                                        circles[self.face_ids[0]]["radius_max"] = mins["radius"]
+                                        circles[self.face_ids[0]]["radius_min"] = mins["radius"] - 10
+                                else:
+                                    circles[self.face_ids[0]][key] += amount
+
+                                    if circles[self.face_ids[0]][key] > maxes[key]:
+                                        circles[self.face_ids[0]][key] = maxes[key]
+
+                                    if circles[self.face_ids[0]][key] < mins[key]:
+                                        circles[self.face_ids[0]][key] = mins[key]
+                                
+                                [self.surface_0, self.surface_1] = self.createCircleStatsSurfaces()
+                        for key, item in self.stat_rects[1].items():
+                            if item.collidepoint((pygame.mouse.get_pos()[0]-150, pygame.mouse.get_pos()[1]-735)):
+
+                                amount = 1
+                                pressed_keys = pygame.key.get_pressed()
+                                counter = 0
+                                for pressed_key in pressed_keys:
+                                    if pressed_key == 1 and counter == 225:
+                                        amount *= 10
+                                    if pressed_key == 1 and counter == 224:
+                                        amount *= -1
+                                    counter += 1
+
+                                if key == "radius":
+                                    circles[self.face_ids[1]]["radius_min"] += amount
+                                    circles[self.face_ids[1]]["radius_max"] += amount
+
+                                    if circles[self.face_ids[1]]["radius_max"] > maxes["radius"]:
+                                        circles[self.face_ids[1]]["radius_max"] = maxes["radius"]
+                                        circles[self.face_ids[1]]["radius_min"] = maxes["radius"] - 10
+
+                                    if circles[self.face_ids[1]]["radius_min"] < mins["radius"]:
+                                        circles[self.face_ids[1]]["radius_max"] = mins["radius"]
+                                        circles[self.face_ids[1]]["radius_min"] = mins["radius"] - 1
+                                else:
+                                    circles[self.face_ids[1]][key] += amount
+
+                                    if circles[self.face_ids[1]][key] > maxes[key]:
+                                        circles[self.face_ids[1]][key] = maxes[key]
+
+                                    if circles[self.face_ids[1]][key] < mins[key]:
+                                        circles[self.face_ids[1]][key] = mins[key]
+                                
+                                [self.surface_0, self.surface_1] = self.createCircleStatsSurfaces()
+
+
+                        if self.color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 += 1
                             if self.color_1 == len(colors): self.color_1 = 0
 
-                        elif color_left_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_left_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 -= 1
                             if self.color_1 == -1: self.color_1 = len(colors) - 1
                             # play_clicked = True
 
-                        elif face_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_right_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 += 1
                             if self.face_1 == self.num_faces: self.face_1 = 0
 
-                        elif face_left_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_left_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 -= 1
                             if self.face_1 == -1: self.face_1 = self.num_faces - 1
 
-                        elif color_right_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_right_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 += 1
                             if self.color_0 == len(colors): self.color_0 = 0
 
-                        elif color_left_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_left_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 -= 1
                             if self.color_0 == -1: self.color_0 = len(colors) - 1
                             # play_clicked = True
 
-                        elif face_right_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_right_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_0 += 1
                             if self.face_0 == self.num_faces: self.face_0 = 0
 
-                        elif face_left_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_left_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_0 -= 1
                             if self.face_0 == -1: self.face_0 = self.num_faces - 1
 
                         elif self.play_rect.collidepoint(pygame.mouse.get_pos()):
                             play_clicked = True
 
-                        elif l_left_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.l_left_rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c0_count != 1: self.c0_count -= 1
 
-                        elif l_right_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.l_right_rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c0_count != 20: self.c0_count += 1
 
-                        elif r_left_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.r_left_rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c1_count != 1: self.c1_count -= 1
 
-                        elif r_right_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.r_right_rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c1_count != 20: self.c1_count += 1
 
                         elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
@@ -2431,6 +2535,7 @@ class preGame():
     def changeCircles(self):
         self.circle_1 = self.circle_images[self.face_0][self.color_0]
         self.circle_2 = self.circle_images[self.face_1][self.color_1]
+        self.face_ids = [self.face_0, self.face_1]
 
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
@@ -2483,21 +2588,23 @@ def generateAllCircles():
                         pygame.image.save(image, "circles/{}/{}/{}.png".format(id, color[0], face))
 
 def test():
-    img = pygame.image.load("circles/purple/0.png")
-    for i in range(0, img.get_size()[0]):
-        for j in range(0, img.get_size()[1]):
-            if img.get_at((i, j)) == (153, 37, 118, 255):
-                img.set_at((i, j), (255, 255, 255, 255))
-
-    screen = pygame.display.set_mode((2048,2048), pygame.NOFRAME)  
+    screen = pygame.display.set_mode((500,500))  
     done = False  
-    
     while not done:  
+
         for event in pygame.event.get():  
+
+            if event.type == MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        pressed = pygame.key.get_pressed()
+                        counter = 0
+                        for key in pressed:
+                            if key == 1: print(key, ", ", counter)
+                            counter += 1
+
             if event.type == pygame.QUIT:  
                 done = True 
 
-        screen.blit(img, (0, 0))
         pygame.display.flip()
 
 def main():

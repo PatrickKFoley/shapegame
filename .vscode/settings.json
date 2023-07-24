@@ -19,6 +19,7 @@
         "powerup",
         "powerups",
         "pygame",
+        "rects",
         "soundpygame",
         "SRCALPHA",
         "topleft",
