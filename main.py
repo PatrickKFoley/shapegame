@@ -968,6 +968,8 @@ class Game:
         self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
         pygame.display.update()
         time.sleep(0.5)
+        self.createStatsScreen(True)
+        return self.stats_surface
 
     def toggleHealthMode(self):
         self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
