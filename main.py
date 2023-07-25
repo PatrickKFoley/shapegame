@@ -345,7 +345,6 @@ class Game:
             if sound == self.fuse_sound:
                 sound.play(9)
 
-
     def spawnPowerup(self, id = -1, location = False):
         if location == False:
             location = (random.randint(self.fortnite_x + 10, self.screen_w - self.fortnite_x - 10), random.randint(self.fortnite_y + 10, self.screen_h - self.fortnite_y - 10))
@@ -843,6 +842,7 @@ class Game:
                         self.toggleHealthMode()
                     if event.key == 9:
                         self.stats_screen = not self.stats_screen
+                        self.createStatsScreen(True)
                     else:
                         self.spawnPowerup(event.key - 49, pygame.mouse.get_pos())
 
@@ -1063,16 +1063,16 @@ class Game:
                 color = self.circles[0]["color"][2]
             else:
                 color = self.circles[0]["color"][1]
-            self.draw_text("{} Team".format(self.circles[0]["color"][0].capitalize()), font, color, 500 - 10, 50, True, self.stats_surface)
+            self.draw_text("{} Team".format(self.circles[0]["color"][0].capitalize()), font, color, 500 + 850 - 10, 50, True, self.stats_surface)
             
             if type(self.circles[1]["color"][1]) == type("string"):
                 color = self.circles[1]["color"][2]
             else:
                 color = self.circles[1]["color"][1]
-            self.draw_text("{} Team".format(self.circles[1]["color"][0].capitalize()), font, color, 500 + 850 - 10, 50, True, self.stats_surface)
+            self.draw_text("{} Team".format(self.circles[1]["color"][0].capitalize()), font, color, 500 - 10, 50, True, self.stats_surface)
 
-            self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30 - 10, 10))
-            self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 + 850 - 10, 10))
+            self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30 + 850 - 10, 10))
+            self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 - 10, 10))
 
             self.stats_surface.blit(self.sword_image, (256 - 10, 150))
             self.stats_surface.blit(self.blood_image, (329 - 10, 150))
@@ -1115,8 +1115,9 @@ class Game:
             first = True
 
         # list all stats
-        group_counter = 0
-        for group in self.groups:
+        group_counter = 1
+        offset_counter = 0
+        for group in reversed(self.groups):
             member_counter = 0
             for member in group:
                 member_report = member.stats.report()
@@ -1128,7 +1129,7 @@ class Game:
                     color = "lightgray"
                 else:
                     color = "white"
-                pygame.draw.rect(self.stats_surface, color, (10 + 850 * group_counter, 195 + 30 * member_counter, 845, 30))
+                pygame.draw.rect(self.stats_surface, color, (10 + 850 * offset_counter, 195 + 30 * member_counter, 845, 30))
 
                 if member.id < 10:
                     id = "0" + str(member.id)
@@ -1156,7 +1157,7 @@ class Game:
                 stats.append(p_r); #stats.append(p_a); 
                 stats.append(i_u); stats.append(m_u); stats.append(s_u)
                 stats.append(b_u); stats.append(l_h); stats.append(b_l_h); stats.append(p_k)
-                self.printStat(stats, 65 + group_counter * 850, 200 + member_counter * 30)
+                self.printStat(stats, 65 + offset_counter * 850, 200 + member_counter * 30)
 
                 member_counter += 1
 
@@ -1171,7 +1172,7 @@ class Game:
                     color = "lightgray"
                 else:
                     color = "white"
-                pygame.draw.rect(self.stats_surface, color, (10 + 850 * group_counter, 195 + 30 * member_counter, 845, 30))
+                pygame.draw.rect(self.stats_surface, color, (10 + 850 * offset_counter, 195 + 30 * member_counter, 845, 30))
 
                 if stats_list[0] < 10:
                     id = "0" + str(stats_list[0])
@@ -1202,11 +1203,12 @@ class Game:
                 stats.append(b_u); stats.append(l_h); stats.append(b_l_h); stats.append(p_k)
 
 
-                self.printStat(stats, 65 + group_counter * 850, 200 + member_counter * 30, True)
+                self.printStat(stats, 65 + offset_counter * 850, 200 + member_counter * 30, True)
 
                 member_counter += 1
             
-            group_counter += 1
+            group_counter -= 1
+            offset_counter += 1
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
@@ -2061,9 +2063,9 @@ class preGame():
 
         self.num_faces = 4
 
-        self.face_0 = 2
+        self.face_0 = random.randint(0, 3)
         self.color_0 = random.randint(0, len(colors)-1)
-        self.face_1 = 1
+        self.face_1 = random.randint(0, 3)
         self.color_1 = random.randint(0, len(colors)-1)
 
         self.face_ids = [self.face_0, self.face_1]
@@ -2614,7 +2616,6 @@ class preGame():
                 self.stats_surface = game.play_game()
                 self.game_played = True
 
-                
             # limits FPS to 60
             self.clock.tick(60)
             # print(self.clock.get_fps())
