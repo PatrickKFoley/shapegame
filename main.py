@@ -332,6 +332,20 @@ class Game:
 
         self.createStatsScreen(True)
 
+    def playSound(self, sound):
+        if not self.real:
+            return
+
+        if sound.get_num_channels() <= 1:
+            sound.play()
+            if sound == self.wind_sound:
+                pygame.mixer.Sound.fadeout(sound, 1500)
+            elif sound == self.choir_sound:
+                pygame.mixer.Sound.fadeout(sound, 1000)
+            if sound == self.fuse_sound:
+                sound.play(9)
+
+
     def spawnPowerup(self, id = -1, location = False):
         if location == False:
             location = (random.randint(self.fortnite_x + 10, self.screen_w - self.fortnite_x - 10), random.randint(self.fortnite_y + 10, self.screen_h - self.fortnite_y - 10))
@@ -362,15 +376,15 @@ class Game:
 
                 if dist <= max_dist:
                     # Member has collected powerup
-                    if self.real: self.pop_sound.play()
+                    self.playSound(self.pop_sound)
                     member.collectPowerup(powerup.getId())
 
                     if powerup.getId() == 6:
-                        if self.real: self.fuse_sound.play(10)
+                        self.playSound(self.fuse_sound)
                     elif powerup.getId() == 4:
-                        if self.real: self.wind_sound.play(); pygame.mixer.Sound.fadeout(self.wind_sound, 1500)
+                        self.playSound(self.wind_sound)
                     elif powerup.getId() == 2:
-                        if self.real: self.twinkle_sound.play()
+                        self.playSound(self.twinkle_sound)
                     
                     powerup.kill()
 
@@ -391,7 +405,7 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide_v2(self, mem_1, mem_2):
-        if self.real: self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)].play()
+        self.playSound(self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)])
 
         if 0 in mem_1.powerups or 0 in mem_2.powerups:
             if 0 in mem_1.powerups: self.memberHitMember(mem_1, mem_2)
@@ -490,7 +504,7 @@ class Game:
 
         # Create killfeed, play sound
         self.addKillfeed(winner, loser, action)
-        if self.real: self.death_sounds[len(self.death_sounds)-1].play()
+        self.playSound(self.death_sounds[len(self.death_sounds)-1])
 
         # check if dead loser has resurrect
         if 1 in loser.powerups:
@@ -507,7 +521,7 @@ class Game:
 
         # Create killfeed, play sound
         self.addKillfeed(winner, loser, 0)
-        if self.real: self.shotgun_sound.play()
+        self.playSound(self.shotgun_sound)
 
         # check if dead loser has resurrect
         if 1 in loser.powerups:
@@ -538,8 +552,7 @@ class Game:
         god.stats.resurrectPlayer()
 
         # sounds
-        if self.real: self.choir_sound.play()
-        pygame.mixer.Sound.fadeout(self.choir_sound, 1000)
+        self.playSound(self.choir_sound)
 
         # remove powerup
         god.removePowerup(1)
@@ -659,20 +672,8 @@ class Game:
 
                 if dist <= max_dist:
                     if not member_1.getId() in laser.ids_collided_with:
-                        # laser.ids_collided_with.append(member_1.getId())
                         if member_1.getG_id() != laser.g_id:
                             self.laserHitMember(laser, member_1)
-                            # self.laser_hit_sound.play()
-                            # laser_damage = 25
-                            # laser.circle.stats.laserHit()
-                            # laser.circle.stats.dealDamage(laser_damage)
-                            # if member_1.takeDamage(laser_damage) == -1:
-                            #     [x, y] = member_1.getXY()
-                            #     if self.mode == "GAME":
-                            #         self.clouds_group.add(Clouds(x, y, self.smoke_images, self.screen))
-                            #     laser.circle.stats.killPlayer(member_1.id)
-                            #     self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
-                            #     self.addKillfeed(laser.circle, member_1, 7)
 
             for laser in self.blue_laser_group.sprites():
                 [lx, ly] = [laser.x, laser.y]
@@ -691,7 +692,7 @@ class Game:
         laser.circle.stats.laserHit()
         laser.circle.stats.dealDamage(laser_damage)
         laser.ids_collided_with.append(hit.id)
-        if self.real: self.laser_hit_sound.play()
+        self.playSound(self.laser_hit_sound)
 
         hit.takeDamage(laser_damage)
 
@@ -707,7 +708,7 @@ class Game:
         laser.circle.stats.blueLaserHit()
         laser.circle.stats.dealDamage(laser_damage)
         laser.ids_collided_with.append(hit.id)
-        if self.real: self.laser_hit_sound.play()
+        self.playSound(self.laser_hit_sound)
 
         hit.takeDamage(laser_damage)
 
@@ -737,7 +738,7 @@ class Game:
         # Deal damage to everyone close to this point
         if self.mode == "GAME":
             self.explosions_group.add(Explosion(x, y, self.explosion_images, self.screen))
-        if self.real: self.explosion_sound.play()
+        self.playSound(self.explosion_sound)
         circle.stats.useBomb()
         kill_counter = 0
         
@@ -764,7 +765,7 @@ class Game:
         self.clouds_group.add(Clouds(killed.x, killed.y, self.smoke_images, self.screen))
         bomb_holder.stats.killPlayer(killed.id)
 
-        self.death_sounds[random.randint(0, len(self.death_sounds)-1)].play()
+        self.playSound(self.death_sounds[random.randint(0, len(self.death_sounds)-1)])
         self.addKillfeed(bomb_holder, killed, 6)
 
         killed.killCircle()
@@ -850,6 +851,7 @@ class Game:
                 self.createStatsScreen(True)
 
             # flip() the display to put your work on screen
+            
             if self.real:
                 pygame.display.flip()
                 self.screen.blit(self.background, (0, 0))
@@ -870,7 +872,12 @@ class Game:
             if self.real:
                 self.groups[0].draw(self.screen)
                 self.groups[1].draw(self.screen)
+                self.laser_group.draw(self.screen)
+                self.blue_laser_group.draw(self.screen)
                 self.powerup_group.draw(self.screen)
+                self.killfeed_group.draw(self.screen)
+                self.clouds_group.draw(self.screen)
+                self.explosions_group.draw(self.screen)
 
             self.groups[0].update(self)
             self.laser_group.update(self)
@@ -928,7 +935,7 @@ class Game:
             if self.done and self.play_sound:
                 self.play_sound = False
                 if self.win_sound.get_num_channels() == 0:
-                    if self.real: self.win_sound.play()
+                    self.playSound(self.win_sound)
 
             if self.done:
                 self.frames_done += 1
@@ -940,10 +947,10 @@ class Game:
                 return self.stats_surface
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-            if self.cur_rows != num_rows:
+            if self.cur_rows != num_rows and self.real:
                 self.createStatsScreen(True)
 
-            if self.stats_screen:
+            if self.stats_screen and self.real:
                 if self.frames % (self.fps / 2) == 0:
                     for group in self.groups:
                         for member in group:
@@ -1341,15 +1348,6 @@ class Circle(pygame.sprite.Sprite):
         self.image.blit(text_obj, text_rect)
 
     def killCircle(self):
-        # if 1 in self.powerups:
-        #     new_circle = self.game.addCircle(self.g_id, self.getXY(), self.r - 10, self.getVel(), True)
-
-        #     self.game.addKillfeed(self, new_circle, 1)
-        #     self.stats.resurrectPlayer()
-        #     self.game.choir_sound.play()
-        #     pygame.mixer.Sound.fadeout(self.game.choir_sound, 1000)
-        #     self.game.createStatsScreen(True)
-
         self.game.clouds_group.add(Clouds(self.x, self.y, self.game.smoke_images, self.game.screen))
 
         stats = self.stats
@@ -1401,7 +1399,7 @@ class Circle(pygame.sprite.Sprite):
             self.dmg_multiplier /= 1.5
         # if removing health, gain health
         if id == 5:
-            if self.game.real: self.game.heal_sound.play()
+            self.game.playSound(self.game.heal_sound)
             new_hp = min(self.hp + self.max_hp / 2, self.max_hp)
             self.stats.heal(new_hp - self.hp)
             self.hp = new_hp
@@ -1415,7 +1413,7 @@ class Circle(pygame.sprite.Sprite):
             multiplier = desired_speed / current_speed
 
             self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
-            if self.game.real: self.game.laser_sound.play()
+            self.game.playSound(self.game.laser_sound)
             
 
         # self.constructSurface()
@@ -1453,17 +1451,17 @@ class Circle(pygame.sprite.Sprite):
 
         # puff of smoke animation
         self.frames += 2
-        if self.frames <= 50 and self.new:
-            if self.frames <= 10:
-                game.screen.blit(self.smoke_images[0], (self.x - self.smoke_images[0].get_size()[0] / 2, self.y - self.smoke_images[0].get_size()[1] / 2))
-            elif self.frames <= 20:
-                game.screen.blit(self.smoke_images[1], (self.x - self.smoke_images[1].get_size()[0] / 2, self.y - self.smoke_images[1].get_size()[1] / 2))
-            elif self.frames <= 30:
-                game.screen.blit(self.smoke_images[2], (self.x - self.smoke_images[2].get_size()[0] / 2, self.y - self.smoke_images[2].get_size()[1] / 2))
-            elif self.frames <= 40:
-                game.screen.blit(self.smoke_images[3], (self.x - self.smoke_images[3].get_size()[0] / 2, self.y - self.smoke_images[3].get_size()[1] / 2))
-            elif self.frames <= 50:
-                game.screen.blit(self.smoke_images[4], (self.x - self.smoke_images[4].get_size()[0] / 2, self.y - self.smoke_images[4].get_size()[1] / 2))
+        # if self.frames <= 50 and self.new:
+        #     if self.frames <= 10:
+        #         self.image.blit(self.smoke_images[0], (self.x - self.smoke_images[0].get_size()[0] / 2, self.y - self.smoke_images[0].get_size()[1] / 2))
+        #     elif self.frames <= 20:
+        #         self.image.blit(self.smoke_images[1], (self.x - self.smoke_images[1].get_size()[0] / 2, self.y - self.smoke_images[1].get_size()[1] / 2))
+        #     elif self.frames <= 30:
+        #         self.image.blit(self.smoke_images[2], (self.x - self.smoke_images[2].get_size()[0] / 2, self.y - self.smoke_images[2].get_size()[1] / 2))
+        #     elif self.frames <= 40:
+        #         self.image.blit(self.smoke_images[3], (self.x - self.smoke_images[3].get_size()[0] / 2, self.y - self.smoke_images[3].get_size()[1] / 2))
+        #     elif self.frames <= 50:
+        #         self.image.blit(self.smoke_images[4], (self.x - self.smoke_images[4].get_size()[0] / 2, self.y - self.smoke_images[4].get_size()[1] / 2))
 
         if type(self.powerups) == type(None):
             self.powerups = []
@@ -1766,24 +1764,31 @@ class Clouds(pygame.sprite.Sprite):
         self.y = y
         self.frames = 0
         self.images = images
+        self.image = self.images[0]
         self.screen = screen
+
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
 
     def update(self):
         # puff of smoke animation
         self.frames += 2
         if self.frames <= 50:
             if self.frames <= 10:
-                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.image = self.images[0]
             elif self.frames <= 20:
-                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.image = self.images[1]
             elif self.frames <= 30:
-                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.image = self.images[2]
             elif self.frames <= 40:
-                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.image = self.images[3]
             elif self.frames <= 50:
-                self.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
+                self.image = self.images[4]
         else:
             self.kill()
+        
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
 
 class Explosion(pygame.sprite.Sprite):
     def __init__(self, x, y, images, screen):
@@ -1793,27 +1798,34 @@ class Explosion(pygame.sprite.Sprite):
         self.frames = 0
         self.images = images
         self.screen = screen
+        self.image = self.images[0]
+
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
 
     def update(self):
         # explosion animation
         self.frames += 2
         if self.frames <= 70:
             if self.frames <= 10:
-                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.image = self.images[0]
             elif self.frames <= 20:
-                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.image = self.images[1]
             elif self.frames <= 30:
-                self.screen.blit(self.images[0], (self.x - self.images[0].get_size()[0] / 2, self.y - self.images[0].get_size()[1] / 2))
+                self.image = self.images[2]
             elif self.frames <= 40:
-                self.screen.blit(self.images[1], (self.x - self.images[1].get_size()[0] / 2, self.y - self.images[1].get_size()[1] / 2))
+                self.image = self.images[3]
             elif self.frames <= 50:
-                self.screen.blit(self.images[4], (self.x - self.images[4].get_size()[0] / 2, self.y - self.images[4].get_size()[1] / 2))
+                self.image = self.images[4]
             elif self.frames <= 60:
-                self.screen.blit(self.images[5], (self.x - self.images[5].get_size()[0] / 2, self.y - self.images[5].get_size()[1] / 2))
+                self.image = self.images[5]
             elif self.frames <= 70:
-                self.screen.blit(self.images[6], (self.x - self.images[6].get_size()[0] / 2, self.y - self.images[6].get_size()[1] / 2))
+                self.image = self.images[6]
         else:
             self.kill()
+
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
 
 class Laser(pygame.sprite.Sprite):
     def __init__(self, circle, g_id, x, y, vx, vy, image):
@@ -1828,6 +1840,9 @@ class Laser(pygame.sprite.Sprite):
         self.r = image.get_size()[0]/2
         self.frames = 0
         self.ids_collided_with = []
+
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
 
     def update(self, game):
         self.x += self.vx
@@ -1851,9 +1866,11 @@ class Laser(pygame.sprite.Sprite):
             self.vy = -1 * self.vy
 
         self.image.set_alpha(255)
-        game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
+        # game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
         
         # game.screen.blit(self.image, self.x, self.y)
+
+        self.rect.center = [self.x, self.y]
 
         self.frames += 1
         if self.frames >= game.fps * 5:
@@ -1872,9 +1889,14 @@ class BlueLaser(pygame.sprite.Sprite):
         self.r = image.get_size()[0]/2
         self.ids_collided_with = []
 
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, self.y]
+
     def update(self, game):
         self.x += self.vx
         self.y += self.vy
+
+        self.rect.center = [self.x, self.y]
 
         flag = False
         # ensure laser stays within bounds
@@ -1893,7 +1915,7 @@ class BlueLaser(pygame.sprite.Sprite):
         if flag == True: self.kill()
 
         self.image.set_alpha(255)
-        game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2))) 
+        # game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2))) 
 
 class Killfeed(pygame.sprite.Sprite):
     def __init__(self, left_circle, right_circle, action_img, x, count, screen):
@@ -1919,6 +1941,10 @@ class Killfeed(pygame.sprite.Sprite):
         self.surface.blit(self.right_img, (140, 5))
         self.draw_text(str(self.right_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.surface, 190, 42)
 
+        self.image = self.surface
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [self.x, self.y]
+
     def update(self, cycle = False):
         # check if they are now cycled out 
         if cycle:
@@ -1936,19 +1962,21 @@ class Killfeed(pygame.sprite.Sprite):
             self.kill()
             return 1
         elif self.frames < 60 * 5:
-            self.surface.set_alpha(255)
+            self.image.set_alpha(255)
             # self.left_img.set_alpha(255)
             # self.right_img.set_alpha(255)
             # self.action_img.set_alpha(255)
         else:
             alpha = 255 + 30 * 5 - self.frames / 2
-            self.surface.set_alpha(alpha)
+            self.image.set_alpha(alpha)
             # self.left_img.set_alpha(alpha)
             # self.right_img.set_alpha(alpha)
             # self.action_img.set_alpha(alpha)
 
+        self.rect.topleft = [self.x, self.y]
+
         # draw elements
-        self.screen.blit(self.surface, (self.x, self.y))
+        # self.screen.blit(self.surface, (self.x, self.y))
         # self.screen.blit(self.left_img, (self.x + 10, self.y))
         # self.draw_text(str(self.left_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.screen, self.x + 60, self.y + 40)
         # self.screen.blit(self.action_img, (self.x + 80, self.y + 10))
@@ -2556,7 +2584,7 @@ class preGame():
                 # seed = int.from_bytes(random.randbytes(4), "little")
                 seed = False
                 real = False
-                print("Playing game with seed: {}".format(seed))
+                print("Simulating game with seed: {}".format(seed))
                 game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real)
                 self.stats_surface = game.play_game()
                 self.game_played = True
