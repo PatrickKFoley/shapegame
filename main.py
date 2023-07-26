@@ -1,4 +1,4 @@
-import pygame, random, math, numpy as np, os, time
+import pygame, random, math, numpy as np, os, time, pygame_textinput
 from pygame.locals import *
 
 colors = [
@@ -60,7 +60,7 @@ circles = [
         "luck": 8,
     },
     {
-        "density": 2,
+        "density": 1,
         "velocity": 4,
         "radius_min": 40,
         "radius_max": 55,
@@ -69,7 +69,7 @@ circles = [
         "luck": 10,
     },
     {
-        "density": 2,
+        "density": 1,
         "velocity": 4,
         "radius_min": 50,
         "radius_max": 60,
@@ -249,7 +249,7 @@ class Game:
         self.screen_w = 1720
         self.screen_h = 1080
         self.fps = 60
-        self.font = pygame.font.Font("freesansbold.ttf", 160)
+        self.font = pygame.font.SysFont("bahnschrift", 160)
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.background = pygame.image.load("backgrounds/BG1.png")
@@ -942,9 +942,9 @@ class Game:
                 if self.frames_done == 10 * self.fps:
                     self.stats_screen = True
 
-            if self.done and not self.real:
-                self.createStatsScreen(True)
-                return self.stats_surface
+                    if self.done and not self.real:
+                        self.createStatsScreen(True)
+                        return self.stats_surface
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
             if self.cur_rows != num_rows and self.real:
@@ -1003,8 +1003,8 @@ class Game:
         image = pygame.transform.scale(image, (85, 85))
 
         self.screen.blit(image, (self.screen_w + 105, 10))
-        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 147, 105)
-        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 155, 130)
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 147, 105)
+        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 155, 130)
 
         # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
         # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
@@ -1022,11 +1022,11 @@ class Game:
 
         offset = self.screen_w / 2 - 100
         self.screen.blit(image, (self.screen_w + 10, 10))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 52, 105)
-        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("freesansbold.ttf", 25), "black", self.screen_w + 60, 130)
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 52, 105)
+        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 60, 130)
 
     def printStat(self, stats, x, y, dead = False):
-        font = pygame.font.Font("freesansbold.ttf", 25)
+        font = pygame.font.SysFont("bahnschrift", 25)
         if dead:
             color = "red"
         else:
@@ -1037,13 +1037,13 @@ class Game:
                 stats[i] = "-"
 
             if i<3:
-                self.draw_text(stats[i], font, color, x + i * 100, y, True, self.stats_surface)
+                self.draw_text(stats[i], font, color, x + i * 100, y - 4, True, self.stats_surface)
 
             elif 3<=i<4:
-                self.draw_text(stats[i], font, color, x + 275 + (i-3) * 50, y, True, self.stats_surface)
+                self.draw_text(stats[i], font, color, x + 275 + (i-3) * 50, y - 4, True, self.stats_surface)
 
             else:
-                self.draw_text(stats[i], font, color, x + 300 + (i-3) * 50, y, True, self.stats_surface)
+                self.draw_text(stats[i], font, color, x + 300 + (i-3) * 50, y - 4, True, self.stats_surface)
         
     def centerImageAt(self, image, x, y):
         self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
@@ -1052,7 +1052,7 @@ class Game:
         # create stats screen image
         num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
         self.cur_rows = num_rows
-        font = pygame.font.Font("freesansbold.ttf", 80)
+        font = pygame.font.SysFont("bahnschrift", 80)
 
         if first:
             self.stats_surface = pygame.Surface((1710, num_rows * 30 + 215))
@@ -1333,7 +1333,7 @@ class Circle(pygame.sprite.Sprite):
 
             text = str(round(self.hp))
 
-        font = pygame.font.Font("freesansbold.ttf", size)
+        font = pygame.font.SysFont("bahnschrift", size)
         text_obj = font.render(text, 1, "black")
         text_rect = text_obj.get_rect()
         text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(text)[1] / 2)
@@ -1343,7 +1343,7 @@ class Circle(pygame.sprite.Sprite):
         offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
         pygame.draw.circle(self.image, (64, 64, 64, 100), (self.image.get_size()[0] / 2 - offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
         
-        font = pygame.font.Font("freesansbold.ttf", int(hp_circle_r * 1.4))
+        font = pygame.font.SysFont("bahnschrift", int(hp_circle_r * 1.4))
         text_obj = font.render(str(self.id), 1, "black")
         text_rect = text_obj.get_rect()
         text_rect.topleft = (self.image.get_size()[0] / 2 - offset - font.size(str(self.id))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(self.id))[1] / 2)
@@ -1512,7 +1512,7 @@ class Circle(pygame.sprite.Sprite):
 
                 text = str(round(self.hp))
 
-            font = pygame.font.Font("freesansbold.ttf", size)
+            font = pygame.font.SysFont("bahnschrift", size)
             text_obj = font.render(text, 1, "black")
             text_rect = text_obj.get_rect()
             text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(text)[1] / 2)
@@ -1938,10 +1938,10 @@ class Killfeed(pygame.sprite.Sprite):
         # self.surface.set_colorkey((0, 0, 0))
         self.surface.convert_alpha()
         self.surface.blit(self.left_img, (10, 5))
-        self.draw_text(str(self.left_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.surface, 60, 42)
+        self.draw_text(str(self.left_circle.getId()), pygame.font.SysFont("bahnschrift", 20), "black", self.surface, 60, 38)
         self.surface.blit(self.action_img, (80, 15))
         self.surface.blit(self.right_img, (140, 5))
-        self.draw_text(str(self.right_circle.getId()), pygame.font.Font("freesansbold.ttf", 20), "black", self.surface, 190, 42)
+        self.draw_text(str(self.right_circle.getId()), pygame.font.SysFont("bahnschrift", 20), "black", self.surface, 190, 38)
 
         self.image = self.surface
         self.rect = self.image.get_rect()
@@ -2046,15 +2046,15 @@ class preGame():
         self.title = pygame.image.load("backgrounds/title.png")
         self.play = pygame.image.load("backgrounds/play.png")
         self.play_rect = self.play.get_rect()
-        self.play_rect.center = [1920 / 2, 1000]
+        self.play_rect.center = [1920 / 2, 875]
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font("freesansbold.ttf", 80)
+        self.font = pygame.font.SysFont("bahnschrift", 80)
         self.game_played = False
         self.stats_surface = 0
 
         self.simulate = pygame.image.load("backgrounds/simulate.png")
         self.simulate_rect = self.simulate.get_rect()
-        self.simulate_rect.center = [1920 / 2, 850]
+        self.simulate_rect.center = [1920 / 2, 725]
 
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
@@ -2155,12 +2155,27 @@ class preGame():
         self.r_right_rect = self.r_right.get_rect()
         self.r_right_rect.center = (150, 880)
 
+        self.seed_input_clicked = False
+
+        self.input_manager = pygame_textinput.TextInputManager()
+        self.input_manager.value = "Seed (optional)"
+        self.input_manager.cursor_pos = len(self.input_manager.value)
+
+        self.seed_input = pygame_textinput.TextInputVisualizer(self.input_manager, pygame.font.SysFont("bahnschrift", 35))
+        self.seed_input.font_color = "white"
+        self.seed_input.cursor_color = "white"
+        self.seed_input.cursor_visible = False
+        self.seed_input_rect = self.seed_input.surface.get_rect()
+        self.seed_input_rect.center = [1920 / 2, 1000]
+        # self.seed_input.value = "Seed (optional)"
+        # self.seed_input.cursor_pos = 2
+
         self.stat_rects = [{}, {}]
 
     def createCircleStatsSurfaces(self):
         surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
         surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
-        font = pygame.font.Font("freesansbold.ttf", 30)
+        font = pygame.font.SysFont("bahnschrift", 30)
 
         keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:"]
         values_0 = [str(circles[self.face_0]["density"]), str(circles[self.face_0]["velocity"]), 
@@ -2431,7 +2446,13 @@ class preGame():
             self.screen.blit(self.r_left, self.r_left_rect)
             self.screen.blit(self.r_right, self.r_right_rect)
 
-            for event in pygame.event.get():
+            events = pygame.event.get()
+
+            if self.seed_input_clicked: self.seed_input.update(events); self.seed_input_rect = self.seed_input.surface.get_rect(); self.seed_input_rect.center = [1920 / 2, 1000]
+
+            self.screen.blit(self.seed_input.surface, self.seed_input_rect)
+
+            for event in events:
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
                         # loop through stats rects and check if any of them got clicked?
@@ -2504,8 +2525,14 @@ class preGame():
                                 
                                 [self.surface_0, self.surface_1] = self.createCircleStatsSurfaces()
 
+                        unclick_seed_input = True
 
-                        if self.color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        if self.seed_input_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.seed_input_clicked = True
+                            self.seed_input.cursor_visible = True
+                            unclick_seed_input = False
+
+                        elif self.color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 += 1
                             if self.color_1 == len(colors): self.color_1 = 0
 
@@ -2562,6 +2589,10 @@ class preGame():
 
                         self.changeCircles()
 
+                        if unclick_seed_input:
+                            self.seed_input_clicked = False
+                            self.seed_input.cursor_visible = False
+
                 if event.type == KEYDOWN:
                     if event.key == 9:
                         self.game_played = not self.game_played
@@ -2582,9 +2613,10 @@ class preGame():
                 circle_1["group_id"] = 1
                 circle_1["face_id"] = self.face_1
 
-                # imagine not being able to generate 4 byes
-                # seed = int.from_bytes(random.randbytes(4), "little")
-                seed = False
+                seed = self.seed_input.value
+                if seed == "Seed (optional)":
+                    seed = False
+
                 real = False
                 print("Simulating game with seed: {}".format(seed))
                 game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real)
@@ -2607,9 +2639,10 @@ class preGame():
                 circle_1["group_id"] = 1
                 circle_1["face_id"] = self.face_1
 
-                # imagine not being able to generate 4 byes
-                # seed = int.from_bytes(random.randbytes(4), "little")
-                seed = False
+                seed = self.seed_input.value
+                if seed == "Seed (optional)":
+                    seed = False
+                
                 real = True
                 print("Playing game with seed: {}".format(seed))
                 game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real)

@@ -23,6 +23,7 @@
         "soundpygame",
         "SRCALPHA",
         "topleft",
-        "topright"
+        "topright",
+        "unclick"
     ]
 }
