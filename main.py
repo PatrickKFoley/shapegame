@@ -198,7 +198,8 @@ class Game:
             ["powerups/health.png",  5],
             ["powerups/bomb.png",    6],
             ["powerups/laser.png",   7],
-            ["powerups/blue_laser.png", 8]
+            ["powerups/blue_laser.png", 8],
+            ["powerups/mushroom.png", 9],
         ]
 
         self.coffin_img = pygame.transform.scale(pygame.image.load("powerups/coffin.png"), (40, 40))
@@ -247,6 +248,7 @@ class Game:
         self.win_sound = pygame.mixer.Sound("sounds/win.wav")
         self.wind_sound = pygame.mixer.Sound("sounds/wind.wav")
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
+        self.close_sound = pygame.mixer.Sound("sounds/close.wav")
 
         self.choir_sound.set_volume(.25)
         self.explosion_sound.set_volume(.1)
@@ -863,7 +865,7 @@ class Game:
                         self.stats_screen = not self.stats_screen
                         self.createStatsScreen(True)
                     else:
-                        self.spawnPowerup(event.key - 49, pygame.mouse.get_pos())
+                        self.spawnPowerup(9, pygame.mouse.get_pos())
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
             if self.cur_rows != num_rows:
@@ -993,6 +995,7 @@ class Game:
             # font = pygame.font.Font("freesansbold.ttf", 40)
             # self.draw_text(str(round(self.clock.get_fps())), font, "black", 1880, 1030)
 
+        self.close_sound.play()
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
         pygame.display.update()
@@ -1254,41 +1257,32 @@ class Circle(pygame.sprite.Sprite):
         self.took_dmg = False
         self.powerups_changed = False
         
-
+        self.growth_amount = 50
+        self.frames_held_mushroom = 0
+        self.growing = False
+        self.next_r = -1
+        
         if VEL == 0:
-            # # Want a constant speed, but random direction to start
-            # speed = attributes["velocity"]
-            # # Speed in x direction random, 0 - 100% max speed
-            # self.v_x = random.uniform(0, speed)
-            # # Speed in y direction determined according to the equation of a circle, where r = speed
-            # self.v_y = math.sqrt(speed**2 - self.v_x**2)
-
             self.v_x = attributes["velocity"] * (-1 ** (self.g_id + 1))
             self.v_y = random.randint(-1, 1)
         else:
             [self.v_x, self.v_y] = VEL 
 
-        # #flip some coins for changing direction
-        # if random.randint(0, 1) == 0:
-        #     self.v_x = self.v_x * -1
-
-        # if random.randint(0, 1) == 0:
-        #     self.v_y = self.v_y * -1
-
-        # self.angle = 0
-        
+        self.density = attributes["density"]
         
         if R == 0:
             self.r = random.randint(attributes["radius_min"], attributes["radius_max"])
         else:
             self.r = R
+        self.next_r = self.r
 
         self.m = round(attributes["density"] * (3/4) * 3.14 * self.r**3)
 
         self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
-
         self.images = images
         self.circle_image = self.getNextImage(0)
+        self.circle_image_rect = self.circle_image.get_rect()
+        self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
 
         self.hp = self.max_hp = attributes["health"]
         self.dmg_multiplier = attributes["dmg_multiplier"]
@@ -1307,6 +1301,10 @@ class Circle(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
 
+    def growTo(self, radius):
+        self.growing = True
+        self.next_r = radius
+
     def constructSurface(self, powerups = False):
         if powerups:
             # show powerups
@@ -1324,7 +1322,7 @@ class Circle(pygame.sprite.Sprite):
 
             self.image.blit(surface, (self.image.get_size()[0] / 2 - surface.get_size()[0] / 2 + 2,  4 * self.image.get_size()[1] / 4.75 - surface.get_size()[1] / 2))
 
-        self.image.blit(self.circle_image, (self.image.get_size()[0] / 4, self.image.get_size()[1] / 4))
+        self.image.blit(self.circle_image, self.circle_image_rect)
 
         hp_p = round(round(self.hp) / self.max_hp * 100)
         if hp_p <= 33:
@@ -1438,6 +1436,10 @@ class Circle(pygame.sprite.Sprite):
 
             self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
             self.game.playSound(self.game.laser_sound)
+
+        if id == 9:
+            self.growTo(self.r - self.growth_amount)
+            self.dmg_multiplier /= 5
             
 
         # self.constructSurface()
@@ -1460,6 +1462,20 @@ class Circle(pygame.sprite.Sprite):
         # check if picked up bomb (explode in some time)
         if id == 6:
             self.bomb_timer = 3 * self.game.fps
+        if id == 9:
+            # start growing
+            self.growing = True
+            self.next_r = self.r + self.growth_amount
+
+            # heal some amount + killfeed and shit
+            self.game.playSound(self.game.heal_sound)
+            self.stats.heal(100)
+            self.hp += 100
+            self.checkImageChange()
+            self.game.addKillfeed(self, self, 9)
+
+            # get increased damage multiplier
+            self.dmg_multiplier *= 5
 
         # self.constructSurface()
         self.powerups_changed = True
@@ -1475,17 +1491,48 @@ class Circle(pygame.sprite.Sprite):
 
         # puff of smoke animation
         self.frames += 2
-        # if self.frames <= 50 and self.new:
-        #     if self.frames <= 10:
-        #         self.image.blit(self.smoke_images[0], (self.x - self.smoke_images[0].get_size()[0] / 2, self.y - self.smoke_images[0].get_size()[1] / 2))
-        #     elif self.frames <= 20:
-        #         self.image.blit(self.smoke_images[1], (self.x - self.smoke_images[1].get_size()[0] / 2, self.y - self.smoke_images[1].get_size()[1] / 2))
-        #     elif self.frames <= 30:
-        #         self.image.blit(self.smoke_images[2], (self.x - self.smoke_images[2].get_size()[0] / 2, self.y - self.smoke_images[2].get_size()[1] / 2))
-        #     elif self.frames <= 40:
-        #         self.image.blit(self.smoke_images[3], (self.x - self.smoke_images[3].get_size()[0] / 2, self.y - self.smoke_images[3].get_size()[1] / 2))
-        #     elif self.frames <= 50:
-        #         self.image.blit(self.smoke_images[4], (self.x - self.smoke_images[4].get_size()[0] / 2, self.y - self.smoke_images[4].get_size()[1] / 2))
+        if self.frames <= 50 and self.new and False:
+            if self.frames <= 10:
+                self.image.blit(self.smoke_images[0], (self.x - self.smoke_images[0].get_size()[0] / 2, self.y - self.smoke_images[0].get_size()[1] / 2))
+            elif self.frames <= 20:
+                self.image.blit(self.smoke_images[1], (self.x - self.smoke_images[1].get_size()[0] / 2, self.y - self.smoke_images[1].get_size()[1] / 2))
+            elif self.frames <= 30:
+                self.image.blit(self.smoke_images[2], (self.x - self.smoke_images[2].get_size()[0] / 2, self.y - self.smoke_images[2].get_size()[1] / 2))
+            elif self.frames <= 40:
+                self.image.blit(self.smoke_images[3], (self.x - self.smoke_images[3].get_size()[0] / 2, self.y - self.smoke_images[3].get_size()[1] / 2))
+            elif self.frames <= 50:
+                self.image.blit(self.smoke_images[4], (self.x - self.smoke_images[4].get_size()[0] / 2, self.y - self.smoke_images[4].get_size()[1] / 2))
+
+        if self.growing:
+            if self.r < self.next_r:
+                self.r += 1
+                self.m = round(self.density * (3/4) * 3.14 * self.r**3)
+                self.checkImageChange()
+                self.constructSurface(True)
+                self.circle_image_rect = self.circle_image.get_rect()
+                self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
+                self.rect = self.image.get_rect()
+                self.rect.center = [self.x, self.y]
+            elif self.r > self.next_r:
+                self.r -= 1
+                self.m = round(self.density * (3/4) * 3.14 * self.r**3)
+                self.checkImageChange()
+                self.constructSurface(True)
+                self.circle_image_rect = self.circle_image.get_rect()
+                self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
+                self.rect = self.image.get_rect()
+                self.rect.center = [self.x, self.y]
+            else:
+                self.growing = False
+
+        if 9 in self.powerups:
+            self.frames_held_mushroom += 1
+            
+            if self.frames_held_mushroom == self.game.fps * 10:
+                self.frames_held_mushroom = 0
+                self.removePowerup(9)
+
+
 
         if type(self.powerups) == type(None):
             self.powerups = []
@@ -1617,18 +1664,26 @@ class Circle(pygame.sprite.Sprite):
     def checkImageChange(self):
         if self.hp <= self.max_hp / 4:
             self.circle_image = self.getNextImage(3)
+            # self.circle_image_rect = self.circle_image.get_rect()
+            # self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
             self.constructSurface()
 
         elif self.hp <= self.max_hp * 2 / 4:
             self.circle_image = self.getNextImage(2)
+            # self.circle_image_rect = self.circle_image.get_rect()
+            # self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
             self.constructSurface()
 
         elif self.hp <= self.max_hp * 3 / 4:
             self.circle_image = self.getNextImage(1)
+            # self.circle_image_rect = self.circle_image.get_rect()
+            # self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
             self.constructSurface()
 
         else:
             self.circle_image = self.getNextImage(0)
+            # self.circle_image_rect = self.circle_image.get_rect()
+            # self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
             self.constructSurface()
         
     def dealDamage(self, amount):
@@ -2077,7 +2132,16 @@ class preGame():
         self.game_played = False
         self.stats_surface = 0
 
+        self.exit_clicked = False
+        self.frames_since_exit_clicked = 0
+
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
+        self.start_sound = pygame.mixer.Sound("sounds/start.wav")
+        self.open_sound = pygame.mixer.Sound("sounds/open.wav")
+        self.menu_music = pygame.mixer.Sound("sounds/menu.wav")
+        self.close_sound = pygame.mixer.Sound("sounds/close.wav")
+        
+        self.open_sound.play()
 
         self.simulate = pygame.image.load("backgrounds/simulate.png")
         self.simulate_rect = self.simulate.get_rect()
@@ -2198,6 +2262,7 @@ class preGame():
         # self.seed_input.cursor_pos = 2
 
         self.stat_rects = [{}, {}]
+        self.menu_music.play(-1)
 
     def createCircleStatsSurfaces(self):
         surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
@@ -2622,7 +2687,9 @@ class preGame():
                             if self.c1_count != 20: self.c1_count += 1
 
                         elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
-                            running = False
+                            self.close_sound.play()
+                            self.exit_clicked = True
+                            pygame.mixer.Sound.fadeout(self.menu_music, 1000)
 
                         if unclick_seed_input:
                             self.seed_input_clicked = False
@@ -2654,6 +2721,8 @@ class preGame():
 
                 real = False
                 print("Simulating game with seed: {}".format(seed))
+                self.start_sound.play()
+                pygame.mixer.Sound.fadeout(self.menu_music, 1000)
                 game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real)
                 self.stats_surface = game.play_game()
                 self.game_played = True
@@ -2680,12 +2749,22 @@ class preGame():
                 
                 real = True
                 print("Playing game with seed: {}".format(seed))
+                self.start_sound.play()
+                pygame.mixer.Sound.fadeout(self.menu_music, 1000)
                 game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real)
                 self.stats_surface = game.play_game()
                 self.game_played = True
 
+            if self.menu_music.get_num_channels() == 0:
+                self.menu_music.play(-1)
+
             self.cursor_rect.center = pygame.mouse.get_pos()
             self.screen.blit(self.cursor, self.cursor_rect)
+
+            if self.exit_clicked:
+                self.frames_since_exit_clicked += 1
+                if self.frames_since_exit_clicked == 60:
+                    running = False
 
             # limits FPS to 60
             self.clock.tick(60)
