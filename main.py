@@ -58,6 +58,7 @@ circles = [
         "health": 260,
         "dmg_multiplier": 1.7,
         "luck": 8,
+        "team_size": 15
     },
     {
         "density": 1,
@@ -67,6 +68,7 @@ circles = [
         "health": 340,
         "dmg_multiplier": 1,
         "luck": 10,
+        "team_size": 15
     },
     {
         "density": 1,
@@ -76,6 +78,7 @@ circles = [
         "health": 120,
         "dmg_multiplier": 3,
         "luck": 15,
+        "team_size": 15
     },
     {
         "density": 1,
@@ -85,6 +88,17 @@ circles = [
         "health": 160,
         "dmg_multiplier": 2.5,
         "luck": 12,
+        "team_size": 15
+    },
+    {
+        "density": 1,
+        "velocity": 4,
+        "radius_min": 90,
+        "radius_max": 100,
+        "health": 850,
+        "dmg_multiplier": 4,
+        "luck": 12,
+        "team_size": 5
     },
 ]
 
@@ -2074,24 +2088,24 @@ class preGame():
         pygame.display.set_caption("shapegame")
         pygame.display.update()
 
-        self.num_faces = 4
+        self.num_faces = 5
 
-        self.face_0 = random.randint(0, 3)
+        self.face_0 = random.randint(0, self.num_faces - 1)
         self.color_0 = random.randint(0, len(colors)-1)
-        self.face_1 = random.randint(0, 3)
+        self.face_1 = random.randint(0, self.num_faces - 1)
         self.color_1 = random.randint(0, len(colors)-1)
 
         self.face_ids = [self.face_0, self.face_1]
 
-        self.c0_count = 15
-        self.c1_count = 15
+        self.c0_count = circles[self.face_0]["team_size"]
+        self.c1_count = circles[self.face_1]["team_size"]
 
         self.shown_circles = [[self.face_0, colors[self.color_0][0]], [self.face_1, colors[self.color_1][0]]]
 
         self.circles = pygame.sprite.Group()
 
         self.circle_images = []
-        for i in range(0, 4):
+        for i in range(0, 5):
             self.circle_images.append([])
             for color in colors:
                 self.circle_images[i].append(pygame.transform.scale(pygame.image.load("circles/{}/{}/0.png".format(i, color[0])), (200, 200)))
@@ -2247,67 +2261,68 @@ class preGame():
 
     def addNewCircles(self):
         # CHANGE WHEN ADDING FACE_IDS
-        self.new_circle_images = [0, 0, 0, 0]
+        self.new_circle_images = [0, 0, 0, 0, 0]
         self.new_circle_images[0] = self.circle_images[0].copy()
         self.new_circle_images[1] = self.circle_images[1].copy()
         self.new_circle_images[2] = self.circle_images[2].copy()
         self.new_circle_images[3] = self.circle_images[3].copy()
+        self.new_circle_images[4] = self.circle_images[4].copy()
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((1 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((2 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((3 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((4 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((5 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((1 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((2 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((3 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((4 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
-        self.face_id = random.randint(0, 3)
+        self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
         self.circles.add(SimpleCircle((5 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
@@ -2549,36 +2564,44 @@ class preGame():
                         elif self.color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 += 1
                             if self.color_1 == len(colors): self.color_1 = 0
+                            self.changeCircles()
 
                         elif self.color_left_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 -= 1
                             if self.color_1 == -1: self.color_1 = len(colors) - 1
                             # play_clicked = True
+                            self.changeCircles()
 
                         elif self.face_right_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 += 1
                             if self.face_1 == self.num_faces: self.face_1 = 0
+                            self.changeCircles()
 
                         elif self.face_left_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 -= 1
                             if self.face_1 == -1: self.face_1 = self.num_faces - 1
+                            self.changeCircles()
 
                         elif self.color_right_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 += 1
                             if self.color_0 == len(colors): self.color_0 = 0
+                            self.changeCircles()
 
                         elif self.color_left_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 -= 1
                             if self.color_0 == -1: self.color_0 = len(colors) - 1
                             # play_clicked = True
+                            self.changeCircles()
 
                         elif self.face_right_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_0 += 1
                             if self.face_0 == self.num_faces: self.face_0 = 0
+                            self.changeCircles()
 
                         elif self.face_left_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_0 -= 1
                             if self.face_0 == -1: self.face_0 = self.num_faces - 1
+                            self.changeCircles()
 
                         elif self.play_rect.collidepoint(pygame.mouse.get_pos()):
                             play_clicked = True
@@ -2600,8 +2623,6 @@ class preGame():
 
                         elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
                             running = False
-
-                        self.changeCircles()
 
                         if unclick_seed_input:
                             self.seed_input_clicked = False
@@ -2675,10 +2696,13 @@ class preGame():
         self.circle_2 = self.circle_images[self.face_1][self.color_1]
         self.face_ids = [self.face_0, self.face_1]
 
+        self.c0_count = circles[self.face_0]["team_size"]
+        self.c1_count = circles[self.face_1]["team_size"]
+
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
     for color in colors:
-        for id in range(0, 4):
+        for id in range(0, 5):
             if os.path.isdir("circles/{}/{}".format(id, color[0])):
                 pass
             else:
@@ -2752,6 +2776,6 @@ def main():
     preGame().show()
     pygame.quit()
 
-generateAllCircles()
+# generateAllCircles()
 main()
 # test()
