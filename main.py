@@ -55,7 +55,7 @@ circles = [
         "velocity": 3,
         "radius_min": 30,
         "radius_max": 45,
-        "health": 130,
+        "health": 260,
         "dmg_multiplier": 1.7,
         "luck": 8,
     },
@@ -64,7 +64,7 @@ circles = [
         "velocity": 4,
         "radius_min": 40,
         "radius_max": 55,
-        "health": 170,
+        "health": 340,
         "dmg_multiplier": 1,
         "luck": 10,
     },
@@ -73,7 +73,7 @@ circles = [
         "velocity": 4,
         "radius_min": 50,
         "radius_max": 60,
-        "health": 60,
+        "health": 120,
         "dmg_multiplier": 3,
         "luck": 15,
     },
@@ -82,7 +82,7 @@ circles = [
         "velocity": 4,
         "radius_min": 30,
         "radius_max": 40,
-        "health": 80,
+        "health": 160,
         "dmg_multiplier": 2.5,
         "luck": 12,
     },
@@ -91,6 +91,10 @@ circles = [
 class Game: 
     def __init__(self, c0, c0_count, c1, c1_count, screen, seed = False, real = True):
         self.real = real
+
+        self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect = self.cursor.get_rect()
+        self.cursor_rect.center = pygame.mouse.get_pos()
 
         if seed != False:
             random.seed(seed)
@@ -228,6 +232,7 @@ class Game:
         self.twinkle_sound = pygame.mixer.Sound("sounds/twinkle.wav")
         self.win_sound = pygame.mixer.Sound("sounds/win.wav")
         self.wind_sound = pygame.mixer.Sound("sounds/wind.wav")
+        self.click_sound = pygame.mixer.Sound("sounds/click.wav")
 
         self.choir_sound.set_volume(.25)
         self.explosion_sound.set_volume(.1)
@@ -404,8 +409,6 @@ class Game:
         return [100 + (w_int * x), 100 + (h_int * y)]
 
     def collide_v2(self, mem_1, mem_2):
-        self.playSound(self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)])
-
         if 0 in mem_1.powerups or 0 in mem_2.powerups:
             if 0 in mem_1.powerups: self.memberHitMember(mem_1, mem_2)
             if 0 in mem_2.powerups: self.memberHitMember(mem_2, mem_1)
@@ -559,6 +562,8 @@ class Game:
         return new_circle.id
             
     def handle_collision(self, mem_1, mem_2, flag = 0):
+        self.playSound(self.collision_sounds[random.randint(0, len(self.collision_sounds)-1)])
+
         # Magic done by: https://www.vobarian.com/collisions/2dcollisions2.pdf
 
         mem_1.move(self, -1)
@@ -801,7 +806,6 @@ class Game:
                 # if you are one of the remainders, change your y coordinate
                 if self.id_count[g_id] - 1 >= self.circle_counts[g_id] - remainder:
                     xy = (xy[0], (self.id_count[g_id] % 5) * self.screen_h / (remainder + 1))
-                    print("remainder sent to : {}".format(xy))
 
         
         new_circle = Circle(self.circles[g_id], self.id_count[g_id], self, self.images[g_id], self.powerup_images_hud, xy, r, v, new, self.smoke_images)
@@ -817,6 +821,7 @@ class Game:
             for event in pygame.event.get():
                 # button click event
                 if event.type == MOUSEBUTTONDOWN:
+                    self.playSound(self.click_sound)
                     if event.button == 1:
                         if self.exit_rect.collidepoint(pygame.mouse.get_pos()):
                             self.running = False
@@ -962,7 +967,10 @@ class Game:
                         for member in group:
                             member.old_stats.copy(member.stats)
 
-                if self.real: self.screen.blit(self.stats_surface, (10, 50))        
+                if self.real: self.screen.blit(self.stats_surface, (10, 50))
+
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
 
             # limits FPS to 60
             if self.real: self.clock.tick(self.fps)
@@ -2041,6 +2049,9 @@ class SimpleCircle(pygame.sprite.Sprite):
 
 class preGame():
     def __init__(self):
+        self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect = self.cursor.get_rect()
+        self.cursor_rect.center = pygame.mouse.get_pos()
         self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.title = pygame.image.load("backgrounds/title.png")
@@ -2051,6 +2062,8 @@ class preGame():
         self.font = pygame.font.SysFont("bahnschrift", 80)
         self.game_played = False
         self.stats_surface = 0
+
+        self.click_sound = pygame.mixer.Sound("sounds/click.wav")
 
         self.simulate = pygame.image.load("backgrounds/simulate.png")
         self.simulate_rect = self.simulate.get_rect()
@@ -2454,6 +2467,7 @@ class preGame():
 
             for event in events:
                 if event.type == MOUSEBUTTONDOWN:
+                    self.click_sound.play()
                     if event.button == 1:
                         # loop through stats rects and check if any of them got clicked?
                         for key, item in self.stat_rects[0].items():
@@ -2649,6 +2663,9 @@ class preGame():
                 self.stats_surface = game.play_game()
                 self.game_played = True
 
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
+
             # limits FPS to 60
             self.clock.tick(60)
             # print(self.clock.get_fps())
@@ -2731,6 +2748,7 @@ def test():
 def main():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
+    pygame.mouse.set_visible(False)
     preGame().show()
     pygame.quit()
 
