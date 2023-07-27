@@ -66,7 +66,7 @@ circles = [
         "radius_min": 40,
         "radius_max": 55,
         "health": 340,
-        "dmg_multiplier": 1,
+        "dmg_multiplier": 1.5,
         "luck": 10,
         "team_size": 15
     },
@@ -76,7 +76,7 @@ circles = [
         "radius_min": 50,
         "radius_max": 60,
         "health": 120,
-        "dmg_multiplier": 3,
+        "dmg_multiplier": 1,
         "luck": 15,
         "team_size": 15
     },
@@ -93,11 +93,11 @@ circles = [
     {
         "density": 1,
         "velocity": 4,
-        "radius_min": 90,
-        "radius_max": 100,
-        "health": 850,
-        "dmg_multiplier": 4,
-        "luck": 12,
+        "radius_min": 85,
+        "radius_max": 90,
+        "health": 750,
+        "dmg_multiplier": 1.5,
+        "luck": 8,
         "team_size": 5
     },
 ]
@@ -234,6 +234,9 @@ class Game:
         # self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud1.wav"))
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
 
+        self.game_sounds = []
+        self.game_sounds.append(pygame.mixer.Sound("sounds/game/1.wav"))
+
         self.choir_sound = pygame.mixer.Sound("sounds/choir.wav")
         self.explosion_sound = pygame.mixer.Sound("sounds/explosion.flac")
         self.fuse_sound = pygame.mixer.Sound("sounds/fuse.wav")
@@ -352,6 +355,8 @@ class Game:
             self.addCircle(1)
 
         self.createStatsScreen(True)
+
+        # self.game_sounds[random.randint(0, len(self.game_sounds) - 1)].play(-1)
 
     def playSound(self, sound):
         if not self.real:
@@ -865,7 +870,7 @@ class Game:
                         self.stats_screen = not self.stats_screen
                         self.createStatsScreen(True)
                     else:
-                        self.spawnPowerup(9, pygame.mouse.get_pos())
+                        self.spawnPowerup(event.key - 48, pygame.mouse.get_pos())
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
             if self.cur_rows != num_rows:
@@ -977,7 +982,7 @@ class Game:
                         for member in group:
                             member.checkStatsChange()
 
-                    self.createStatsScreen()
+                    self.createStatsScreen(True)
 
                     for group in self.groups:
                         for member in group:
@@ -1659,7 +1664,7 @@ class Circle(pygame.sprite.Sprite):
             velocity = 0
 
         # print("attacking for: {} after changes: {}".format(self.attack, self.dmg_multiplier * velocity))
-        return round(self.dmg_multiplier * velocity)
+        return round(self.dmg_multiplier * velocity * self.m / 100000)
 
     def checkImageChange(self):
         if self.hp <= self.max_hp / 4:
@@ -1712,7 +1717,7 @@ class Circle(pygame.sprite.Sprite):
     def getId(self):
         return self.id
 
-class CircleStats():
+class CircleStats:
     def __init__(self, flag = False):
         self.dmg_dealt = 0
         self.dmg_received = 0
@@ -2116,7 +2121,7 @@ class SimpleCircle(pygame.sprite.Sprite):
         self.vx = vel[0]
         self.vy = vel[1]
 
-class preGame():
+class preGame:
     def __init__(self):
         self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
@@ -2140,6 +2145,10 @@ class preGame():
         self.open_sound = pygame.mixer.Sound("sounds/open.wav")
         self.menu_music = pygame.mixer.Sound("sounds/menu.wav")
         self.close_sound = pygame.mixer.Sound("sounds/close.wav")
+
+        self.open_sound.set_volume(.5)
+        self.menu_music.set_volume(.5)
+        self.close_sound.set_volume(.5)
         
         self.open_sound.play()
 
@@ -2575,7 +2584,10 @@ class preGame():
                                         circles[self.face_ids[0]]["radius_max"] = mins["radius"]
                                         circles[self.face_ids[0]]["radius_min"] = mins["radius"] - 10
                                 else:
-                                    circles[self.face_ids[0]][key] += amount
+                                    if key == "dmg_multiplier" or key == "luck":
+                                        amount *= 0.1
+
+                                    circles[self.face_ids[0]][key] = round(amount + circles[self.face_ids[0]][key], 1)
 
                                     if circles[self.face_ids[0]][key] > maxes[key]:
                                         circles[self.face_ids[0]][key] = maxes[key]
@@ -2609,7 +2621,10 @@ class preGame():
                                         circles[self.face_ids[1]]["radius_max"] = mins["radius"]
                                         circles[self.face_ids[1]]["radius_min"] = mins["radius"] - 1
                                 else:
-                                    circles[self.face_ids[1]][key] += amount
+                                    if key == "dmg_multiplier" or key == "luck":
+                                        amount *= 0.1
+
+                                    circles[self.face_ids[1]][key] = round(amount + circles[self.face_ids[1]][key], 1)
 
                                     if circles[self.face_ids[1]][key] > maxes[key]:
                                         circles[self.face_ids[1]][key] = maxes[key]
