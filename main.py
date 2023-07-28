@@ -889,7 +889,7 @@ class Game:
                 self.spawnPowerup()
 
             # Every x seconds there there is less than 10 circles spawn a speed powerup
-            if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < 10:
+            if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < ((self.c0_count + self.c1_count) / 3):
                 self.spawnPowerup(4)
 
             self.dead_circle = False
@@ -925,7 +925,7 @@ class Game:
                 self.drawStats()
 
             # Do fortnite circle things
-            if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= 10:
+            if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= ((self.c0_count + self.c1_count) / 3):
                 self.fortnite_x_growing = self.fortnite_y_growing = True
 
             if self.fortnite_x_growing:
