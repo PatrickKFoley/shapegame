@@ -2917,9 +2917,6 @@ class preGame:
         running = True
         ready = False
         while running:
-            # DO THE SERVER COMMUNICATIONS
-            opponent_request = self.network.send(player_request)
-
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
@@ -2946,6 +2943,10 @@ class preGame:
 
                     elif self.ready_red_rect.collidepoint(mouse_pos):
                         ready = not ready
+                        player_request.ready = ready
+
+            # DO THE SERVER COMMUNICATIONS
+            opponent_request = self.network.send(player_request)
 
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
