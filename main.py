@@ -1,5 +1,6 @@
 import pygame, random, math, numpy as np, os, time, pygame_textinput
 from pygame.locals import *
+from network import Network
 
 colors = [
     # SPECIAL COLORS - TAKE CARE
@@ -2123,15 +2124,16 @@ class SimpleCircle(pygame.sprite.Sprite):
 
 class preGame:
     def __init__(self):
+        self.network = Network()
+
         self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
         self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.title = pygame.image.load("backgrounds/title.png")
-        self.play = pygame.image.load("backgrounds/play.png")
-        self.play_rect = self.play.get_rect()
-        self.play_rect.center = [1920 / 2, 875]
+        self.title_rect = self.title.get_rect()
+        self.title_rect.center = (1920 / 2, 1080 / 2)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("bahnschrift", 80)
         self.game_played = False
@@ -2152,12 +2154,20 @@ class preGame:
         
         self.open_sound.play()
 
+        self.play = pygame.image.load("backgrounds/play.png")
+        self.play_rect = self.play.get_rect()
+        self.play_rect.center = [1920 / 2, 875]
+
         self.simulate = pygame.image.load("backgrounds/simulate.png")
         self.simulate_rect = self.simulate.get_rect()
         self.simulate_rect.center = [1920 / 2, 725]
 
+        self.network_match = pygame.image.load("backgrounds/networkmatch.png")
+        self.network_match_rect = self.network_match.get_rect()
+        self.network_match_rect.center = [1920 / 2, 980]
+
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
+        self.screen.blit(self.title, self.title_rect)
         pygame.display.set_caption("shapegame")
         pygame.display.update()
 
@@ -2266,7 +2276,7 @@ class preGame:
         self.seed_input.cursor_color = "white"
         self.seed_input.cursor_visible = False
         self.seed_input_rect = self.seed_input.surface.get_rect()
-        self.seed_input_rect.center = [1920 / 2, 1000]
+        self.seed_input_rect.center = [1920 / 2, 1050]
         # self.seed_input.value = "Seed (optional)"
         # self.seed_input.cursor_pos = 2
 
@@ -2508,6 +2518,7 @@ class preGame:
             self.screen.blit(self.play, self.play_rect)
             self.screen.blit(self.exit, self.exit_rect)
             self.screen.blit(self.simulate, self.simulate_rect)
+            self.screen.blit(self.network_match, self.network_match_rect)
 
             # Show two circles 
             self.screen.blit(self.circle_1, (2 * 1920 / 3 - self.circle_1.get_size()[0] / 2, 2 * 1080 / 3))
@@ -2636,7 +2647,11 @@ class preGame:
 
                         unclick_seed_input = True
 
-                        if self.seed_input_rect.collidepoint(pygame.mouse.get_pos()):
+                        if self.network_match_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.networkPreGame()
+                            self.exit_clicked = False
+
+                        elif self.seed_input_rect.collidepoint(pygame.mouse.get_pos()):
                             self.seed_input_clicked = True
                             self.seed_input.cursor_visible = True
                             unclick_seed_input = False
@@ -2792,6 +2807,94 @@ class preGame:
 
         self.c0_count = circles[self.face_0]["team_size"]
         self.c1_count = circles[self.face_1]["team_size"]
+
+    def decodePlayer(self, string):
+        tuple = string.split(",")
+        return int(tuple[0]), int(tuple[1])
+
+    def encodePlayer(self, tuple):
+        return str(tuple[0]) + "," + str(tuple[1])
+
+    def networkPreGame(self):
+        self.title_rect.center = (1920 / 2, 150)
+
+        player = [0, 0]
+
+        # create arrows
+        color_right = self.arrow_right
+        color_right_rect = color_right.get_rect()
+        color_right_rect.center = [500, 500]
+
+        color_left = self.arrow_left
+        color_left_rect = color_left.get_rect()
+        color_left_rect.center = [400, 500]
+
+        face_right = self.arrow_right
+        face_right_rect = face_right.get_rect()
+        face_right_rect.center = [500, 600]
+
+        face_left = self.arrow_left
+        face_left_rect = face_left.get_rect()
+        face_left_rect.center = [400, 600]
+
+        running = True
+        while running:
+            # DO THE SERVER COMMUNICATIONS
+            opponent = self.decodePlayer(self.network.send(self.encodePlayer(player)))
+
+            for event in pygame.event.get():
+                if event.type == MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    self.click_sound.play()
+
+                    if self.exit_rect.collidepoint(mouse_pos):
+                        self.exit_clicked = True
+
+                    elif color_right_rect.collidepoint(mouse_pos):
+                        player[1] += 1
+                        if player[1] == len(colors): player[1] = 0
+
+                    elif color_left_rect.collidepoint(mouse_pos):
+                        player[1] -= 1
+                        if player[1] == -1: player[1] = len(colors) - 1
+
+                    elif face_right_rect.collidepoint(mouse_pos):
+                        player[0] += 1
+                        if player[0] == self.num_faces: player[0] = 0
+
+                    elif face_left_rect.collidepoint(mouse_pos):
+                        player[0] -= 1
+                        if player[0] == -1: player[0] = self.num_faces - 1
+
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.title, self.title_rect)  
+            self.screen.blit(self.exit, self.exit_rect)
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
+
+            self.screen.blit(color_right, color_right_rect)
+            self.screen.blit(color_left, color_left_rect)
+
+            self.screen.blit(face_right, face_right_rect)
+            self.screen.blit(face_left, face_left_rect)
+
+            player_circle = self.circle_images[player[0]][player[1]]
+            player_circle_rect = player_circle.get_rect()
+            player_circle_rect.center = (450, 300)
+
+            opponent_circle = self.circle_images[opponent[0]][opponent[1]]
+            opponent_circle_rect = opponent_circle.get_rect()
+            opponent_circle_rect.center = (950, 300)
+
+            self.screen.blit(player_circle, player_circle_rect)
+            self.screen.blit(opponent_circle, opponent_circle_rect)
+
+            if self.exit_clicked:
+                self.title_rect.center = (1920 / 2, 1080 / 2)
+                running = False
+            
+            self.clock.tick(60)
 
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
