@@ -2343,6 +2343,66 @@ class preGame:
 
         return [surface_0, surface_1]
 
+    def createCircleStatsSurfacesNetwork(self, player_face, opponent_face):
+        surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
+        surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
+        font = pygame.font.SysFont("bahnschrift", 30)
+
+        keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:"]
+        values_0 = [str(circles[player_face]["density"]), str(circles[player_face]["velocity"]), 
+                    str(circles[player_face]["radius_min"]) + " - " + str(circles[player_face]["radius_max"]), 
+                    str(circles[player_face]["health"]), str(circles[player_face]["dmg_multiplier"]), 
+                    str(circles[player_face]["luck"])]
+        
+        values_1 = [str(circles[opponent_face]["density"]), str(circles[opponent_face]["velocity"]), 
+                    str(circles[opponent_face]["radius_min"]) + " - " + str(circles[opponent_face]["radius_max"]), 
+                    str(circles[opponent_face]["health"]), str(circles[opponent_face]["dmg_multiplier"]), 
+                    str(circles[opponent_face]["luck"])]
+
+        element_count = 0
+        for element in keys:
+            key_obj = font.render(element, 1, "white")
+            key_rect = key_obj.get_rect()
+            key_rect.topright = (250, element_count * 30)
+
+            surface_0.blit(key_obj, key_rect)
+            element_count += 1
+
+        keys_for_rects = ["density", "velocity", "radius", "health", "dmg_multiplier", "luck"]
+
+        element_count = 0
+        for element in values_0:
+            key_obj = font.render(element, 1, "white")
+            key_rect = key_obj.get_rect()
+            key_rect.topleft = (270, element_count * 30)
+
+            surface_0.blit(key_obj, key_rect)
+
+            self.stat_rects[0][str(keys_for_rects[element_count])] = key_rect
+            element_count += 1
+
+        element_count = 0
+        for element in keys:
+            key_obj = font.render(element, 1, "white")
+            key_rect = key_obj.get_rect()
+            key_rect.topright = (250, element_count * 30)
+
+            surface_1.blit(key_obj, key_rect)
+            element_count += 1
+
+        element_count = 0
+        for element in values_1:
+            key_obj = font.render(element, 1, "white")
+            key_rect = key_obj.get_rect()
+            key_rect.topleft = (270, element_count * 30)
+
+            surface_1.blit(key_obj, key_rect)
+
+            self.stat_rects[1][str(keys_for_rects[element_count])] = key_rect
+            element_count += 1
+
+        return [surface_0, surface_1]
+
     def addNewCircles(self):
         # CHANGE WHEN ADDING FACE_IDS
         self.new_circle_images = [0, 0, 0, 0, 0]
@@ -2823,19 +2883,19 @@ class preGame:
         # create arrows
         color_right = self.arrow_right
         color_right_rect = color_right.get_rect()
-        color_right_rect.center = [500, 500]
+        color_right_rect.center = [500, 650]
 
         color_left = self.arrow_left
         color_left_rect = color_left.get_rect()
-        color_left_rect.center = [400, 500]
+        color_left_rect.center = [400, 650]
 
         face_right = self.arrow_right
         face_right_rect = face_right.get_rect()
-        face_right_rect.center = [500, 600]
+        face_right_rect.center = [500, 700]
 
         face_left = self.arrow_left
         face_left_rect = face_left.get_rect()
-        face_left_rect.center = [400, 600]
+        face_left_rect.center = [400, 700]
 
         running = True
         while running:
@@ -2870,8 +2930,6 @@ class preGame:
             self.screen.blit(self.background, (0, 0))
             self.screen.blit(self.title, self.title_rect)  
             self.screen.blit(self.exit, self.exit_rect)
-            self.cursor_rect.center = pygame.mouse.get_pos()
-            self.screen.blit(self.cursor, self.cursor_rect)
 
             self.screen.blit(color_right, color_right_rect)
             self.screen.blit(color_left, color_left_rect)
@@ -2881,19 +2939,29 @@ class preGame:
 
             player_circle = self.circle_images[player[0]][player[1]]
             player_circle_rect = player_circle.get_rect()
-            player_circle_rect.center = (450, 300)
+            player_circle_rect.center = (450, 500)
 
             opponent_circle = self.circle_images[opponent[0]][opponent[1]]
             opponent_circle_rect = opponent_circle.get_rect()
-            opponent_circle_rect.center = (950, 300)
+            opponent_circle_rect.center = (1470, 500)
+
+            player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player[0], opponent[0])
+            player_stats_rect = player_stats.get_rect()
+            player_stats_rect.center = (650, 600)
+            opponent_stats_rect = opponent_stats.get_rect()
+            opponent_stats_rect.center = (1190, 600)
 
             self.screen.blit(player_circle, player_circle_rect)
             self.screen.blit(opponent_circle, opponent_circle_rect)
+            self.screen.blit(player_stats, player_stats_rect)
+            self.screen.blit(opponent_stats, opponent_stats_rect)
 
             if self.exit_clicked:
                 self.title_rect.center = (1920 / 2, 1080 / 2)
                 running = False
             
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
             self.clock.tick(60)
 
 def generateAllCircles():
