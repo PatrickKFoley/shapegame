@@ -2990,7 +2990,7 @@ class preGame:
                 self.title_rect.center = (1920 / 2, 1080 / 2)
                 running = False
 
-            if type(opponent_request.getReady()) != type(True):
+            if type(player_request.getReady()) != type(True):
                 self.screen.blit(self.background, (0, 0))
                 self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
                 pygame.display.update()
