@@ -1,8 +1,11 @@
-import socket, sys
+import socket, sys, pickle, random
 from _thread import *
+from request import Request
 
 server = "192.168.2.28"
 port = 5555
+seeds = []
+games_played = 0
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -14,43 +17,44 @@ except socket.error as error:
 socket.listen(2)
 print("Waiting for connection...")
 
-players = [[0, 0], [0, 0]]
+requests = [Request(), Request()]
 currentPlayer = 0
 
-def decodePlayer(string):
-    tuple = string.split(",")
-    return int(tuple[0]), int(tuple[1])
-
-def encodePlayer(tuple):
-    return str(tuple[0]) + "," + str(tuple[1])
-
 def threaded_client(conn, player):
-    conn.send(str.encode(encodePlayer(players[player])))
+    conn.send(pickle.dumps(requests[player]))
     reply = ""
     
     while True:
         try:
-            data = decodePlayer(conn.recv(2048).decode()) #2048 bits, increase if any issues
-            players[player] = data
+            data = pickle.loads(conn.recv(2048)) #2048 bits, increase if any issues
+            requests[player] = data
 
             if not data:
                 print("Disconnected!")
                 break
             else:
-                if player == 1:
-                    reply = players[0]
-                else:
-                    reply = players[1]
-                print("Received: ", data)
-                print("Sending: ", reply)
 
-            conn.sendall(str.encode(encodePlayer(reply)))
+                if requests[0].getReady() == requests[1].getReady() == True:
+                    requests[0].ready = requests[1].ready = seeds[games_played]
+                    games_played += 1
+
+                if player == 1:
+                    reply = requests[0]
+                else:
+                    reply = requests[1]
+                # print("Received: ", data)
+                # print("Sending: ", reply)
+
+            conn.sendall(pickle.dumps(reply))
 
         except:
             break
 
     print("Lost connection!")
     conn.close()
+
+for i in range(100):
+    seeds.append(random.randbytes(4))
 
 while True:
     conn, addr = socket.accept()
