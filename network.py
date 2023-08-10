@@ -23,9 +23,8 @@ class Network:
         try:
             self.client.send(pickle.dumps(data))
             response = self.client.recv(2048)
-            print(sys.getsizeof(response))
-            
-            return pickle.loads(response)
+            if sys.getsizeof(response) > 100:
+                return pickle.loads(response)
         except socket.error as error:
             print(str(error))
 
