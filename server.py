@@ -45,6 +45,8 @@ def threaded_client(conn, player):
                 # print("Received: ", data)
                 # print("Sending: ", reply)
 
+            print(sys.getsizeof(reply))
+
             conn.sendall(pickle.dumps(reply))
 
         except:
@@ -54,7 +56,7 @@ def threaded_client(conn, player):
     conn.close()
 
 for i in range(100):
-    seeds.append(random.randint(0, 999999))
+    seeds.append(random.randint(0, 1))
 
 while True:
     conn, addr = socket.accept()
