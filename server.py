@@ -54,7 +54,7 @@ def threaded_client(conn, player):
     conn.close()
 
 for i in range(100):
-    seeds.append(random.randbytes(4))
+    seeds.append(random.randint(0, 999999))
 
 while True:
     conn, addr = socket.accept()
