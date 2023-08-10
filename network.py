@@ -1,5 +1,5 @@
 import socket
-import pickle, os
+import pickle, sys
 
 class Network:
     def __init__(self):
@@ -23,7 +23,7 @@ class Network:
         try:
             self.client.send(pickle.dumps(data))
             response = self.client.recv(2048)
-            if os.getsizeof(response) > 0:
+            if sys.getsizeof(response) > 0:
                 return pickle.loads(response)
         except socket.error as error:
             print(str(error))
