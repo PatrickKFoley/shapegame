@@ -23,8 +23,7 @@ class Network:
         try:
             self.client.send(pickle.dumps(data))
             response = self.client.recv(2048)
-            if sys.getsizeof(response) > 0:
-                print(type(response))
+            if type(response.face_id) != int:
                 return pickle.loads(response)
         except socket.error as error:
             print(str(error))
