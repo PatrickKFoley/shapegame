@@ -35,7 +35,8 @@ def threaded_client(conn, player):
             else:
 
                 if requests[0].getReady() == requests[1].getReady() == True:
-                    requests[0].ready = requests[1].ready = seeds[games_played]
+                    requests[0].setReady(seeds[games_played])
+                    requests[1].setReady(seeds[games_played])
                     games_played += 1
 
                 if player == 1:

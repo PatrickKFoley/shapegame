@@ -9,3 +9,5 @@ class Request:
     def getColorId(self): return self.color_id
 
     def getReady(self): return self.ready
+
+    def setReady(self, value): self.ready = value
