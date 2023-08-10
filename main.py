@@ -2158,6 +2158,22 @@ class preGame:
         self.play_rect = self.play.get_rect()
         self.play_rect.center = [1920 / 2, 875]
 
+        self.you = pygame.image.load("backgrounds/you.png")
+        self.you_rect = self.you.get_rect()
+        self.you_rect.center = (550, 400)
+
+        self.opponent = pygame.image.load("backgrounds/opponent.png")
+        self.opponent_rect = self.opponent.get_rect()
+        self.opponent_rect.center = (1340, 400)
+
+        self.ready_red = pygame.image.load("backgrounds/readyred.png")
+        self.ready_red_rect = self.ready_red.get_rect()
+        self.ready_red_rect.center = (1920 / 2, 1000)
+
+        self.ready_green = pygame.image.load("backgrounds/readygreen.png")
+        self.ready_green_rect = self.ready_green.get_rect()
+        self.ready_green_rect.center = (1920 / 2, 1000)
+
         self.simulate = pygame.image.load("backgrounds/simulate.png")
         self.simulate_rect = self.simulate.get_rect()
         self.simulate_rect.center = [1920 / 2, 725]
@@ -2883,21 +2899,22 @@ class preGame:
         # create arrows
         color_right = self.arrow_right
         color_right_rect = color_right.get_rect()
-        color_right_rect.center = [500, 650]
+        color_right_rect.center = [500, 750]
 
         color_left = self.arrow_left
         color_left_rect = color_left.get_rect()
-        color_left_rect.center = [400, 650]
+        color_left_rect.center = [400, 750]
 
         face_right = self.arrow_right
         face_right_rect = face_right.get_rect()
-        face_right_rect.center = [500, 700]
+        face_right_rect.center = [500, 800]
 
         face_left = self.arrow_left
         face_left_rect = face_left.get_rect()
-        face_left_rect.center = [400, 700]
+        face_left_rect.center = [400, 800]
 
         running = True
+        ready = False
         while running:
             # DO THE SERVER COMMUNICATIONS
             opponent = self.decodePlayer(self.network.send(self.encodePlayer(player)))
@@ -2926,6 +2943,9 @@ class preGame:
                         player[0] -= 1
                         if player[0] == -1: player[0] = self.num_faces - 1
 
+                    elif self.ready_red_rect.collidepoint(mouse_pos):
+                        ready = not ready
+
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
             self.screen.blit(self.title, self.title_rect)  
@@ -2939,22 +2959,30 @@ class preGame:
 
             player_circle = self.circle_images[player[0]][player[1]]
             player_circle_rect = player_circle.get_rect()
-            player_circle_rect.center = (450, 500)
+            player_circle_rect.center = (450, 600)
 
             opponent_circle = self.circle_images[opponent[0]][opponent[1]]
             opponent_circle_rect = opponent_circle.get_rect()
-            opponent_circle_rect.center = (1470, 500)
+            opponent_circle_rect.center = (1470, 600)
 
             player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player[0], opponent[0])
             player_stats_rect = player_stats.get_rect()
-            player_stats_rect.center = (650, 600)
+            player_stats_rect.center = (650, 700)
             opponent_stats_rect = opponent_stats.get_rect()
-            opponent_stats_rect.center = (1190, 600)
+            opponent_stats_rect.center = (1190, 700)
 
             self.screen.blit(player_circle, player_circle_rect)
             self.screen.blit(opponent_circle, opponent_circle_rect)
             self.screen.blit(player_stats, player_stats_rect)
             self.screen.blit(opponent_stats, opponent_stats_rect)
+
+            self.screen.blit(self.you, self.you_rect)
+            self.screen.blit(self.opponent, self.opponent_rect)
+
+            if ready:
+                self.screen.blit(self.ready_green, self.ready_green_rect)
+            else:
+                self.screen.blit(self.ready_red, self.ready_red_rect)
 
             if self.exit_clicked:
                 self.title_rect.center = (1920 / 2, 1080 / 2)
