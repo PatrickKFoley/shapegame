@@ -2180,11 +2180,11 @@ class preGame:
 
         self.you = pygame.image.load("backgrounds/you.png")
         self.you_rect = self.you.get_rect()
-        self.you_rect.center = (550, 400)
+        self.you_rect.center = (450, 680)
 
         self.opponent = pygame.image.load("backgrounds/opponent.png")
         self.opponent_rect = self.opponent.get_rect()
-        self.opponent_rect.center = (1340, 400)
+        self.opponent_rect.center = (1470, 680)
 
         self.ready_red = pygame.image.load("backgrounds/readyred.png")
         self.ready_red_rect = self.ready_red.get_rect()
@@ -2384,16 +2384,16 @@ class preGame:
         surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
         font = pygame.font.SysFont("bahnschrift", 30)
 
-        keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:"]
+        keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:", "Team Size:"]
         values_0 = [str(circles_unchanged[player_face]["density"]), str(circles_unchanged[player_face]["velocity"]), 
                     str(circles_unchanged[player_face]["radius_min"]) + " - " + str(circles_unchanged[player_face]["radius_max"]), 
                     str(circles_unchanged[player_face]["health"]), str(circles_unchanged[player_face]["dmg_multiplier"]), 
-                    str(circles_unchanged[player_face]["luck"])]
+                    str(circles_unchanged[player_face]["luck"]), str(circles_unchanged[player_face]["team_size"])]
         
         values_1 = [str(circles_unchanged[opponent_face]["density"]), str(circles_unchanged[opponent_face]["velocity"]), 
                     str(circles_unchanged[opponent_face]["radius_min"]) + " - " + str(circles_unchanged[opponent_face]["radius_max"]), 
                     str(circles_unchanged[opponent_face]["health"]), str(circles_unchanged[opponent_face]["dmg_multiplier"]), 
-                    str(circles_unchanged[opponent_face]["luck"])]
+                    str(circles_unchanged[opponent_face]["luck"]), str(circles_unchanged[opponent_face]["team_size"])]
 
         element_count = 0
         for element in keys:
@@ -2404,7 +2404,7 @@ class preGame:
             surface_0.blit(key_obj, key_rect)
             element_count += 1
 
-        keys_for_rects = ["density", "velocity", "radius", "health", "dmg_multiplier", "luck"]
+        keys_for_rects = ["density", "velocity", "radius", "health", "dmg_multiplier", "luck", "team_size"]
 
         element_count = 0
         for element in values_0:
@@ -2914,6 +2914,8 @@ class preGame:
     def networkPreGame(self):
         self.network = Network()
         player = int(self.network.getPlayer())
+        pregame_copy = None
+        frames = 0
 
         self.connecting_flag = True
 
@@ -2923,32 +2925,57 @@ class preGame:
         face_id = random.randint(0, self.num_faces - 1)
         color_id = random.randint(0, len(colors) - 1)
         
-        self.title_rect.center = (1920 / 2, 150)
+        y_offset = 240
 
         # create arrows
         color_right = self.arrow_right
         color_right_rect = color_right.get_rect()
-        color_right_rect.center = [500, 750]
+        color_right_rect.center = [500, 750 + y_offset]
 
         color_left = self.arrow_left
         color_left_rect = color_left.get_rect()
-        color_left_rect.center = [400, 750]
+        color_left_rect.center = [400, 750 + y_offset]
 
         face_right = self.arrow_right
         face_right_rect = face_right.get_rect()
-        face_right_rect.center = [500, 800]
+        face_right_rect.center = [500, 800 + y_offset]
 
         face_left = self.arrow_left
         face_left_rect = face_left.get_rect()
-        face_left_rect.center = [400, 800]
+        face_left_rect.center = [400, 800 + y_offset]
+
+        player_circle = self.circle_images[0][0]
+        player_circle_rect = player_circle.get_rect()
+        player_circle_rect.center = (450, 600 + y_offset)
+
+        opponent_circle = self.circle_images[0][0]
+        opponent_circle_rect = opponent_circle.get_rect()
+        opponent_circle_rect.center = (1470, 600 + y_offset)
 
         running = True
         ready = False
+
+        pregame = None
+
+        player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(0, 0)
+        player_stats_rect = player_stats.get_rect()
+        player_stats_rect.center = (650, 690 + y_offset)
+        opponent_stats_rect = opponent_stats.get_rect()
+        opponent_stats_rect.center = (1190, 690 + y_offset)
+
         while running:
             self.clock.tick(60)
 
+            self.circles.draw(self.screen)
+            self.circles.update()
+            self.checkCollisions()
+
             try:
-                pregame = self.network.send("GET")
+                if frames == 0:
+                    pregame = self.network.send("GET")
+
+                if frames % 20 == 0:
+                    pregame = self.network.send("GET")
 
                 while not pregame.ready:
                     pygame.display.flip()
@@ -3033,30 +3060,19 @@ class preGame:
             self.screen.blit(self.title, self.title_rect)  
             self.screen.blit(self.exit, self.exit_rect)
 
-            self.screen.blit(color_right, color_right_rect)
-            self.screen.blit(color_left, color_left_rect)
-
-            self.screen.blit(face_right, face_right_rect)
-            self.screen.blit(face_left, face_left_rect)
-
             player_face_id = pregame.faces[player]
             player_color_id = pregame.colors[player]
             opponent_face_id = pregame.faces[opponent]
             opponent_color_id = pregame.colors[opponent]
 
             player_circle = self.circle_images[player_face_id][player_color_id]
-            player_circle_rect = player_circle.get_rect()
-            player_circle_rect.center = (450, 600)
-
             opponent_circle = self.circle_images[opponent_face_id][opponent_color_id]
-            opponent_circle_rect = opponent_circle.get_rect()
-            opponent_circle_rect.center = (1470, 600)
 
-            player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player_face_id, opponent_face_id)
-            player_stats_rect = player_stats.get_rect()
-            player_stats_rect.center = (650, 700)
-            opponent_stats_rect = opponent_stats.get_rect()
-            opponent_stats_rect.center = (1190, 700)
+            if pregame_copy != None:
+                if pregame_copy.faces[opponent] != pregame.faces[opponent] or pregame_copy.colors[opponent] != pregame.colors[opponent] or pregame_copy.faces[player] != pregame.faces[player] or pregame_copy.colors[player] != pregame.colors[player]:
+                    player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player_face_id, opponent_face_id)
+                else:
+
 
             self.screen.blit(player_circle, player_circle_rect)
             self.screen.blit(opponent_circle, opponent_circle_rect)
@@ -3071,8 +3087,12 @@ class preGame:
             else:
                 self.screen.blit(self.ready_red, self.ready_red_rect)
 
+                self.screen.blit(color_right, color_right_rect)
+                self.screen.blit(color_left, color_left_rect)
+                self.screen.blit(face_right, face_right_rect)
+                self.screen.blit(face_left, face_left_rect)
+
             if self.exit_clicked:
-                self.title_rect.center = (1920 / 2, 1080 / 2)
                 self.network.send("KILL")
                 break
 
@@ -3108,7 +3128,10 @@ class preGame:
                 break
             
             self.cursor_rect.center = pygame.mouse.get_pos()
-            self.screen.blit(self.cursor, self.cursor_rect)           
+            self.screen.blit(self.cursor, self.cursor_rect)
+
+            pregame_copy = pregame   
+            frames += 1    
 
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
