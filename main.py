@@ -1,4 +1,4 @@
-import pygame, random, math, numpy as np, os, time, pygame_textinput
+import pygame, random, math, numpy as np, os, time, pygame_textinput, copy
 from pygame.locals import *
 from network import Network
 from request import Request
@@ -103,10 +103,13 @@ circles = [
         "team_size": 5
     },
 ]
+circles_unchanged = copy.deepcopy(circles)
+
 
 class Game: 
-    def __init__(self, c0, c0_count, c1, c1_count, screen, seed = False, real = True):
+    def __init__(self, c0, c0_count, c1, c1_count, screen, seed = False, real = True, god_mode = False):
         self.real = real
+        self.god_mode = god_mode
 
         self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
@@ -848,9 +851,12 @@ class Game:
                     if event.button == 1:
                         if self.exit_rect.collidepoint(pygame.mouse.get_pos()):
                             self.running = False
-                        else:
+                        elif self.god_mode:
                             self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
                             self.createStatsScreen(True)
+
+                    if not self.god_mode:
+                        pass
             
                     elif event.button == 2:
                         self.fortnite_x = 0
@@ -871,7 +877,7 @@ class Game:
                     if event.key == 9:
                         self.stats_screen = not self.stats_screen
                         self.createStatsScreen(True)
-                    else:
+                    elif self.god_mode:
                         self.spawnPowerup(event.key - 48, pygame.mouse.get_pos())
 
             num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
@@ -2370,15 +2376,15 @@ class preGame:
         font = pygame.font.SysFont("bahnschrift", 30)
 
         keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:"]
-        values_0 = [str(circles[player_face]["density"]), str(circles[player_face]["velocity"]), 
-                    str(circles[player_face]["radius_min"]) + " - " + str(circles[player_face]["radius_max"]), 
-                    str(circles[player_face]["health"]), str(circles[player_face]["dmg_multiplier"]), 
-                    str(circles[player_face]["luck"])]
+        values_0 = [str(circles_unchanged[player_face]["density"]), str(circles_unchanged[player_face]["velocity"]), 
+                    str(circles_unchanged[player_face]["radius_min"]) + " - " + str(circles_unchanged[player_face]["radius_max"]), 
+                    str(circles_unchanged[player_face]["health"]), str(circles_unchanged[player_face]["dmg_multiplier"]), 
+                    str(circles_unchanged[player_face]["luck"])]
         
-        values_1 = [str(circles[opponent_face]["density"]), str(circles[opponent_face]["velocity"]), 
-                    str(circles[opponent_face]["radius_min"]) + " - " + str(circles[opponent_face]["radius_max"]), 
-                    str(circles[opponent_face]["health"]), str(circles[opponent_face]["dmg_multiplier"]), 
-                    str(circles[opponent_face]["luck"])]
+        values_1 = [str(circles_unchanged[opponent_face]["density"]), str(circles_unchanged[opponent_face]["velocity"]), 
+                    str(circles_unchanged[opponent_face]["radius_min"]) + " - " + str(circles_unchanged[opponent_face]["radius_max"]), 
+                    str(circles_unchanged[opponent_face]["health"]), str(circles_unchanged[opponent_face]["dmg_multiplier"]), 
+                    str(circles_unchanged[opponent_face]["luck"])]
 
         element_count = 0
         for element in keys:
@@ -2862,7 +2868,7 @@ class preGame:
                 print("Playing game with seed: {}".format(seed))
                 self.start_sound.play()
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
-                game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real)
+                game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real, True)
                 self.stats_surface = game.play_game()
                 self.game_played = True
 
@@ -3035,8 +3041,8 @@ class preGame:
                 self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
                 pygame.display.update()
 
-                circle_0 = circles[player_face_id].copy()
-                circle_1 = circles[opponent_face_id].copy()
+                circle_0 = circles_unchanged[player_face_id].copy()
+                circle_1 = circles_unchanged[opponent_face_id].copy()
 
                 circle_0["color"] = colors[player_color_id]
                 circle_0["group_id"] = 0
@@ -3054,6 +3060,8 @@ class preGame:
                 if player == 0:
                     game = Game(circle_0, circle_0["team_size"], circle_1, circle_1["team_size"], self.screen, pregame.seed, real)
                 else:
+                    circle_0["group_id"] = 1
+                    circle_1["group_id"] = 0
                     game = Game(circle_1, circle_1["team_size"], circle_0, circle_0["team_size"], self.screen, pregame.seed, real)
                 self.stats_surface = game.play_game()
                 self.network.send("KILL")
