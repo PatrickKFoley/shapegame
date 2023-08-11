@@ -1,4 +1,3 @@
-import pygame, random, math, numpy as np, os, time, pygame_textinput
 from pygame.locals import *
 from network import Network
 from request import Request
