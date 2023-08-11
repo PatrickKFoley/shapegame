@@ -1,13 +1,11 @@
-import socket, sys, pickle, random
+import socket, pickle, random
 from _thread import *
-from request import Request
 from pregame import Pregame
 
-server = socket.gethostbyname("shapegame-server.onrender.com")
-print(server)
+server = ""
 port = 5555
 seeds = []
-for i in range(100): seeds.append(random.randint(1, 99999999999))
+for i in range(1000): seeds.append(random.randint(1, 99999999999))
 games_played = 0
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
