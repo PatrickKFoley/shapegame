@@ -2145,6 +2145,7 @@ class preGame:
         self.font = pygame.font.SysFont("bahnschrift", 80)
         self.game_played = False
         self.stats_surface = 0
+        self.connecting_flag = False
 
         self.exit_clicked = False
         self.frames_since_exit_clicked = 0
@@ -2168,6 +2169,14 @@ class preGame:
         self.searching = pygame.image.load("backgrounds/searching.png")
         self.searching_rect = self.searching.get_rect()
         self.searching_rect.center = [1920 / 2, 1080 / 2]
+        
+        self.match_found = pygame.image.load("backgrounds/matchfound.png")
+        self.match_found_rect = self.match_found.get_rect()
+        self.match_found_rect.center = [1920 / 2, 1080 / 2]
+
+        self.opponent_disconnected = pygame.image.load("backgrounds/opponentdisconnected.png")
+        self.opponent_disconnected_rect = self.opponent_disconnected.get_rect()
+        self.opponent_disconnected_rect.center = [1920 / 2, 1080 / 2]
 
         self.you = pygame.image.load("backgrounds/you.png")
         self.you_rect = self.you.get_rect()
@@ -2906,6 +2915,8 @@ class preGame:
         self.network = Network()
         player = int(self.network.getPlayer())
 
+        self.connecting_flag = True
+
         if player == 0: opponent = 1
         else: opponent = 0
 
@@ -2936,7 +2947,7 @@ class preGame:
         while running:
             self.clock.tick(60)
 
-            try: 
+            try:
                 pregame = self.network.send("GET")
 
                 while not pregame.ready:
@@ -2958,8 +2969,20 @@ class preGame:
 
             except:
                 running = False
-                print("Couldn't find a game!")
+
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.opponent_disconnected, self.opponent_disconnected_rect)
+                pygame.display.update()
+                time.sleep(0.5)
                 break
+
+            if self.connecting_flag:
+                self.connecting_flag = False
+
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.match_found, self.match_found_rect)
+                pygame.display.update()
+                time.sleep(0.5)
 
             self.network.send("FACE_" + str(face_id))
             self.network.send("COLOR_" + str(color_id))

@@ -49,7 +49,10 @@ def threaded_client(conn, player, game_id):
                     if pregame.players_ready[0] and pregame.players_ready[1]:
                         pregame.ready = True
                         pregame.seed = seeds[game_id]
-                        seeds.pop()
+                        seeds.pop(0)
+
+                        if len(seeds) == 0: 
+                            for i in range(1000): seeds.append(random.randint(1, 99999999999))
 
                     reply = pregame
                     conn.sendall(pickle.dumps(reply))
