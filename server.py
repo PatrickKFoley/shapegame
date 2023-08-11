@@ -4,6 +4,7 @@ from request import Request
 from pregame import Pregame
 
 server = socket.gethostbyname("shapegame-server.onrender.com")
+print(server)
 port = 5555
 seeds = []
 for i in range(100): seeds.append(random.randint(1, 99999999999))
