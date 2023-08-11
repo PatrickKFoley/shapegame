@@ -3071,8 +3071,6 @@ class preGame:
             if pregame_copy != None:
                 if pregame_copy.faces[opponent] != pregame.faces[opponent] or pregame_copy.colors[opponent] != pregame.colors[opponent] or pregame_copy.faces[player] != pregame.faces[player] or pregame_copy.colors[player] != pregame.colors[player]:
                     player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player_face_id, opponent_face_id)
-                else:
-
 
             self.screen.blit(player_circle, player_circle_rect)
             self.screen.blit(opponent_circle, opponent_circle_rect)
