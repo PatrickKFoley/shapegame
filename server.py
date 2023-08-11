@@ -13,8 +13,8 @@ socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     socket.bind((server, port))
-except socket.error as error:
-    print(str(error))
+except:
+    pass
 
 socket.listen()
 print("Waiting for connection...")
