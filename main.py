@@ -2943,6 +2943,15 @@ class preGame:
                     pygame.display.flip()
                     self.screen.blit(self.background, (0, 0))
                     self.screen.blit(self.searching, self.searching_rect)
+                    self.screen.blit(self.exit, self.exit_rect)
+
+                    self.cursor_rect.center = pygame.mouse.get_pos()
+                    self.screen.blit(self.cursor, self.cursor_rect)
+
+                    for event in pygame.event.get():
+                        if event.type == MOUSEBUTTONDOWN and self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.network.send("KILL")
+                            return
 
                     pregame = self.network.send("GET")
                     self.clock.tick(60)
