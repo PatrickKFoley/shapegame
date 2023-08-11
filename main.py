@@ -2966,16 +2966,16 @@ class preGame:
         while running:
             self.clock.tick(60)
 
-            self.circles.draw(self.screen)
-            self.circles.update()
-            self.checkCollisions()
+            # self.circles.draw(self.screen)
+            # self.circles.update()
+            # self.checkCollisions()
 
             try:
-                if frames == 0:
-                    pregame = self.network.send("GET")
+                # if frames == 0:
+                pregame = self.network.send("GET")
 
-                if frames % 20 == 0:
-                    pregame = self.network.send("GET")
+                # if frames % 20 == 0:
+                #     pregame = self.network.send("GET")
 
                 while not pregame.ready:
                     pygame.display.flip()
