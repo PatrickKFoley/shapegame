@@ -95,8 +95,8 @@ circles = [
     {
         "density": 1,
         "velocity": 4,
-        "radius_min": 85,
-        "radius_max": 90,
+        "radius_min": 75,
+        "radius_max": 80,
         "health": 750,
         "dmg_multiplier": 1.5,
         "luck": 8,
@@ -2125,7 +2125,7 @@ class SimpleCircle(pygame.sprite.Sprite):
 
 class preGame:
     def __init__(self):
-        self.network = Network()
+        self.network = None
 
         self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
@@ -2158,6 +2158,10 @@ class preGame:
         self.play = pygame.image.load("backgrounds/play.png")
         self.play_rect = self.play.get_rect()
         self.play_rect.center = [1920 / 2, 875]
+
+        self.searching = pygame.image.load("backgrounds/searching.png")
+        self.searching_rect = self.searching.get_rect()
+        self.searching_rect.center = [1920 / 2, 1080 / 2]
 
         self.you = pygame.image.load("backgrounds/you.png")
         self.you_rect = self.you.get_rect()
@@ -2893,9 +2897,13 @@ class preGame:
         return str(tuple[0]) + "," + str(tuple[1])
 
     def networkPreGame(self):
-        self.title_rect.center = (1920 / 2, 150)
+        self.network = Network()
+        player = int(self.network.getPlayer())
 
-        player_request = self.network.getInitRequest()
+        if player == 0: opponent = 1
+        else: opponent = 0
+        
+        self.title_rect.center = (1920 / 2, 150)
 
         # create arrows
         color_right = self.arrow_right
@@ -2917,6 +2925,24 @@ class preGame:
         running = True
         ready = False
         while running:
+            self.clock.tick(60)
+
+            try: 
+                pregame = self.network.send("GET")
+
+                while not pregame.ready:
+                    pygame.display.flip()
+                    self.screen.blit(self.background, (0, 0))
+                    self.screen.blit(self.searching, self.searching_rect)
+
+                    pregame = self.network.send("GET")
+                    self.clock.tick(60)
+
+            except:
+                running = False
+                print("Couldn't find a game!")
+                break
+
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
@@ -2926,27 +2952,35 @@ class preGame:
                         self.exit_clicked = True
 
                     elif color_right_rect.collidepoint(mouse_pos) and not ready:
-                        player_request.color_id += 1
-                        if player_request.color_id == len(colors): player_request.color_id = 0
+                        if pregame.colors[player] != len(colors) - 1:
+                            self.network.send("INC_COLOR")
+
+                        # player_request.color_id += 1
+                        # if player_request.color_id == len(colors): player_request.color_id = 0
 
                     elif color_left_rect.collidepoint(mouse_pos) and not ready:
-                        player_request.color_id -= 1
-                        if player_request.color_id == -1: player_request.color_id = len(colors) - 1
+                        if pregame.colors[player] != 0:
+                            self.network.send("DEC_COLOR")
+                        
+                        # player_request.color_id -= 1
+                        # if player_request.color_id == -1: player_request.color_id = len(colors) - 1
 
                     elif face_right_rect.collidepoint(mouse_pos) and not ready:
-                        player_request.face_id += 1
-                        if player_request.face_id == self.num_faces: player_request.face_id = 0
+                        if pregame.faces[player] != self.num_faces - 1:
+                            self.network.send("INC_FACE")
+
+                        # player_request.face_id += 1
+                        # if player_request.face_id == self.num_faces: player_request.face_id = 0
 
                     elif face_left_rect.collidepoint(mouse_pos) and not ready:
-                        player_request.face_id -= 1
-                        if player_request.face_id == -1: player_request.face_id = self.num_faces - 1
+                        if pregame.faces[player] != 0:
+                            self.network.send("DEC_FACE")
+                        # player_request.face_id -= 1
+                        # if player_request.face_id == -1: player_request.face_id = self.num_faces - 1
 
                     elif self.ready_red_rect.collidepoint(mouse_pos):
-                        ready = not ready
-                        player_request.ready = ready
-
-            # DO THE SERVER COMMUNICATIONS
-            opponent_request = self.network.send(player_request)
+                        ready = True
+                        self.network.send("READY")
 
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
@@ -2959,15 +2993,20 @@ class preGame:
             self.screen.blit(face_right, face_right_rect)
             self.screen.blit(face_left, face_left_rect)
 
-            player_circle = self.circle_images[player_request.getFaceId()][player_request.getColorId()]
+            player_face_id = pregame.faces[player]
+            player_color_id = pregame.colors[player]
+            opponent_face_id = pregame.faces[opponent]
+            opponent_color_id = pregame.colors[opponent]
+
+            player_circle = self.circle_images[player_face_id][player_color_id]
             player_circle_rect = player_circle.get_rect()
             player_circle_rect.center = (450, 600)
 
-            opponent_circle = self.circle_images[opponent_request.getFaceId()][opponent_request.getColorId()]
+            opponent_circle = self.circle_images[opponent_face_id][opponent_color_id]
             opponent_circle_rect = opponent_circle.get_rect()
             opponent_circle_rect.center = (1470, 600)
 
-            player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player_request.getFaceId(), opponent_request.getFaceId())
+            player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player_face_id, opponent_face_id)
             player_stats_rect = player_stats.get_rect()
             player_stats_rect.center = (650, 700)
             opponent_stats_rect = opponent_stats.get_rect()
@@ -2988,36 +3027,40 @@ class preGame:
 
             if self.exit_clicked:
                 self.title_rect.center = (1920 / 2, 1080 / 2)
-                running = False
+                self.network.send("KILL")
+                break
 
-            if type(player_request.getReady()) != type(True):
+            if pregame.seed != False:
                 self.screen.blit(self.background, (0, 0))
                 self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
                 pygame.display.update()
 
-                circle_0 = circles[player_request.getFaceId()].copy()
-                circle_1 = circles[opponent_request.getFaceId()].copy()
+                circle_0 = circles[player_face_id].copy()
+                circle_1 = circles[opponent_face_id].copy()
 
-                circle_0["color"] = colors[player_request.getColor_id()]
+                circle_0["color"] = colors[player_color_id]
                 circle_0["group_id"] = 0
-                circle_0["face_id"] = player_request.getFaceId()
+                circle_0["face_id"] = player_face_id
 
-                circle_1["color"] = colors[opponent_request.getColorId()]
+                circle_1["color"] = colors[opponent_color_id]
                 circle_1["group_id"] = 1
-                circle_1["face_id"] = opponent_request.getFaceId()
-
-                seed = opponent_request.getReady()
+                circle_1["face_id"] = opponent_face_id
                 
                 real = True
-                print("Playing game with seed: {}".format(seed))
+                print("Playing game with seed: {}".format(pregame.seed))
                 self.start_sound.play()
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
-                game = Game(circle_0, circle_0["team_size"], circle_1, circle_1["team_size"], self.screen, seed, real)
+
+                if player == 0:
+                    game = Game(circle_0, circle_0["team_size"], circle_1, circle_1["team_size"], self.screen, pregame.seed, real)
+                else:
+                    game = Game(circle_1, circle_1["team_size"], circle_0, circle_0["team_size"], self.screen, pregame.seed, real)
                 self.stats_surface = game.play_game()
+                self.network.send("KILL")
+                break
             
             self.cursor_rect.center = pygame.mouse.get_pos()
-            self.screen.blit(self.cursor, self.cursor_rect)
-            self.clock.tick(60)
+            self.screen.blit(self.cursor, self.cursor_rect)           
 
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")

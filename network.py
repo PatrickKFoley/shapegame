@@ -7,24 +7,28 @@ class Network:
         self.server = "192.168.2.28"
         self.port = 5555
         self.addr = (self.server, self.port)
-        self.init_request = self.connect()
+        self.player = self.connect()
 
-    def getInitRequest(self):
-        return self.init_request
+    def getPlayer(self):
+        return self.player
 
     def connect(self):
         try:
             self.client.connect(self.addr)
-            return pickle.loads(self.client.recv(2048))
+            return self.client.recv(2048).decode()
+        
         except:
             pass
 
     def send(self, data):
         try:
-            self.client.send(pickle.dumps(data))
-            response = self.client.recv(2048)
-            if sys.getsizeof(response) > 100:
-                return pickle.loads(response)
+            self.client.send(str.encode(data))
+
+            try: response = pickle.loads(self.client.recv(4096))
+            except: response = None
+
+            return response
+        
         except socket.error as error:
             print(str(error))
 
