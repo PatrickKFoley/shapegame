@@ -2908,6 +2908,9 @@ class preGame:
 
         if player == 0: opponent = 1
         else: opponent = 0
+
+        face_id = random.randint(0, self.num_faces - 1)
+        color_id = random.randint(0, len(colors) - 1)
         
         self.title_rect.center = (1920 / 2, 150)
 
@@ -2949,6 +2952,9 @@ class preGame:
                 print("Couldn't find a game!")
                 break
 
+            self.network.send("FACE_" + str(face_id))
+            self.network.send("COLOR_" + str(color_id))
+
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
@@ -2958,31 +2964,33 @@ class preGame:
                         self.exit_clicked = True
 
                     elif color_right_rect.collidepoint(mouse_pos) and not ready:
-                        if pregame.colors[player] != len(colors) - 1:
-                            self.network.send("INC_COLOR")
+                        # if pregame.colors[player] != len(colors) - 1:
+                        #     self.network.send("INC_COLOR")
 
-                        # player_request.color_id += 1
-                        # if player_request.color_id == len(colors): player_request.color_id = 0
+                        color_id += 1
+                        if color_id == len(colors): color_id = 0; self.network.send("COLOR_" + str(color_id))
+
 
                     elif color_left_rect.collidepoint(mouse_pos) and not ready:
-                        if pregame.colors[player] != 0:
-                            self.network.send("DEC_COLOR")
+                        # if pregame.colors[player] != 0:
+                        #     self.network.send("DEC_COLOR")
                         
-                        # player_request.color_id -= 1
-                        # if player_request.color_id == -1: player_request.color_id = len(colors) - 1
+                        color_id -= 1
+                        if color_id == -1: color_id = len(colors) - 1; self.network.send("COLOR_" + str(color_id))
 
                     elif face_right_rect.collidepoint(mouse_pos) and not ready:
-                        if pregame.faces[player] != self.num_faces - 1:
-                            self.network.send("INC_FACE")
+                        # if pregame.faces[player] != self.num_faces - 1:
+                        #     self.network.send("INC_FACE")
 
-                        # player_request.face_id += 1
-                        # if player_request.face_id == self.num_faces: player_request.face_id = 0
+                        face_id += 1
+                        if face_id == self.num_faces: face_id = 0; self.network.send("FACE_" + str(face_id))
 
                     elif face_left_rect.collidepoint(mouse_pos) and not ready:
-                        if pregame.faces[player] != 0:
-                            self.network.send("DEC_FACE")
-                        # player_request.face_id -= 1
-                        # if player_request.face_id == -1: player_request.face_id = self.num_faces - 1
+                        # if pregame.faces[player] != 0:
+                        #     self.network.send("DEC_FACE")
+
+                        face_id -= 1
+                        if face_id == -1: face_id = self.num_faces - 1; self.network.send("FACE_" + str(face_id))
 
                     elif self.ready_red_rect.collidepoint(mouse_pos):
                         ready = True

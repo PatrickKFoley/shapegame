@@ -38,14 +38,10 @@ def threaded_client(conn, player, game_id):
                 if not data:
                     break
                 else:
-                    if data == "INC_FACE":
-                        pregame.faces[player] += 1
-                    elif data == "DEC_FACE":
-                        pregame.faces[player] -= 1
-                    elif data == "INC_COLOR":
-                        pregame.colors[player] += 1
-                    elif data == "DEC_COLOR":
-                        pregame.colors[player] -= 1
+                    if data[:5] == "FACE_":
+                        pregame.faces[player] = int(data[5:])
+                    elif data[:6] == "COLOR_":
+                        pregame.colors[player] = int(data[6:])
                     elif data == "READY":
                         pregame.players_ready[player] = True
                     elif data == "KILL":
