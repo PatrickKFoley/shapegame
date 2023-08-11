@@ -3,7 +3,7 @@ from _thread import *
 from request import Request
 from pregame import Pregame
 
-server = "192.168.2.28"
+server = "100.20.92.101"
 port = 5555
 seeds = []
 for i in range(100): seeds.append(random.randint(1, 99999999999))
