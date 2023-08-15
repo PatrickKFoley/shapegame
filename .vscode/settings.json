@@ -4,6 +4,7 @@
         "blit",
         "bluecircle",
         "circledata",
+        "clickables",
         "collidepoint",
         "colorkey",
         "darkgray",
