@@ -121,8 +121,7 @@ class Game:
 
         self.images = [self.c0_images, self.c1_images]
 
-        self.exit = pygame.image.load("backgrounds/exit.png")
-        self.exit_rect = self.exit.get_rect()
+        self.exit, self.exit_rect = self.createText("exit", 50)
         self.exit_rect.center = (1870, 1050)
 
         # Sounds
@@ -179,7 +178,7 @@ class Game:
         self.screen_w = 1720
         self.screen_h = 1080
         self.fps = 60
-        self.font = pygame.font.SysFont("bahnschrift", 160)
+        self.font = pygame.font.Font("backgrounds/font.ttf", 160)
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.background = pygame.image.load("backgrounds/BG1.png")
@@ -263,6 +262,14 @@ class Game:
         self.createStatsScreen(True)
 
         # self.game_sounds[random.randint(0, len(self.game_sounds) - 1)].play(-1)
+
+    def createText(self, text, size, color = "white", font_name = "sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheadingbolditalicsitkadisplaybolditalicsitkabannerbolditalic"):
+        font = pygame.font.Font("backgrounds/font.ttf", size)
+
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+
+        return text_surface, text_rect
 
     def playSound(self, sound):
         if not self.real:
@@ -942,8 +949,8 @@ class Game:
         image = pygame.transform.scale(image, (85, 85))
 
         self.screen.blit(image, (self.screen_w + 105, 10))
-        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 147, 105)
-        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 155, 130)
+        self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 147, 105)
+        self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 155, 130)
 
         # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
         # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
@@ -961,11 +968,11 @@ class Game:
 
         offset = self.screen_w / 2 - 100
         self.screen.blit(image, (self.screen_w + 10, 10))
-        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 52, 105)
-        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.SysFont("bahnschrift", 25), "black", self.screen_w + 60, 130)
+        self.draw_text("x{}".format(len(self.groups[1])), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 52, 105)
+        self.draw_text("{}%".format(round((self.hps[1] / self.max_hps[1]) * 100, 1)), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 60, 130)
 
     def printStat(self, stats, x, y, dead = False):
-        font = pygame.font.SysFont("bahnschrift", 25)
+        font = pygame.font.Font("backgrounds/font.ttf", 30)
         if dead:
             color = "red"
         else:
@@ -991,7 +998,7 @@ class Game:
         # create stats screen image
         num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
         self.cur_rows = num_rows
-        font = pygame.font.SysFont("bahnschrift", 80)
+        font = pygame.font.Font("backgrounds/font.ttf", 80)
 
         if first:
             self.stats_surface = pygame.Surface((1710, num_rows * 30 + 215))

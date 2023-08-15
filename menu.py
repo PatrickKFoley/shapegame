@@ -4,21 +4,41 @@ from simplecircle import SimpleCircle
 from game import Game
 from network import Network
 from circledata import *
+from user2 import User
+from shape import Shape
+
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR 
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 class Menu():
     def __init__(self):
         self.network = None
+        self.user = None
+        self.shapes = None
+
+        self.BaseClass = declarative_base()
+        self.engine = create_engine("sqlite:///shapegame.db", echo=True)
+        self.BaseClass.metadata.create_all(bind=self.engine)
+
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+        # self.user_1 = User(1, "Pat")
+        # user_2 = User(2, "Aiden")
+        # session.add(user_1)
+        # session.commit()s
 
         self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
         self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
         self.background = pygame.image.load("backgrounds/BG1.png")
-        self.title = pygame.image.load("backgrounds/title.png")
+        self.title, x = self.createText("shapegame", 150)
         self.title_rect = self.title.get_rect()
         self.title_rect.center = (1920 / 2, 1080 / 2)
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("bahnschrift", 80)
+        self.font = pygame.font.Font("backgrounds/font.ttf", 80)
         self.game_played = False
         self.stats_surface = 0
         self.connecting_flag = False
@@ -38,45 +58,61 @@ class Menu():
         
         self.open_sound.play()
 
-        self.play = pygame.image.load("backgrounds/play.png")
-        self.play_rect = self.play.get_rect()
-        self.play_rect.center = [1920 / 2, 875]
+        self.try_again = pygame.image.load("backgrounds/tryagain.png")
+        self.try_again_rect = self.try_again.get_rect()
+        self.try_again_rect.center = [1920 / 2, 800]
 
-        self.searching = pygame.image.load("backgrounds/searching.png")
-        self.searching_rect = self.searching.get_rect()
+        self.logged_in_as = self.logged_in_as_rect = None
+
+        self.server_not_found, self.server_not_found_rect = self.createText("server not found", 150)
+        self.server_not_found_rect.center = [1920 / 2, 1080 / 2]
+
+        # self.play = pygame.image.load("backgrounds/play.png")
+        self.play, self.play_rect = self.createText("play", 100)
+        self.play_rect.center = [3 * 1920 / 4, 750]
+
+        self.network_match, self.network_match_rect = self.createText("network match", 50)
+        self.network_match_rect.center = [3 * 1920 / 4 - 200, 875]
+
+        self.local_match, self.local_match_rect = self.createText("local match", 50)
+        self.local_match_rect.center = [3 * 1920 / 4 + 200, 875]
+
+        self.collections, self.collections_rect = self.createText("collections", 100)
+        self.collections_rect.center = [1 * 1920 / 4, 750]
+
+        self.your_shapes, self.your_shapes_rect = self.createText("your shapes", 50)
+        self.your_shapes_rect.center = [1 * 1920 / 4 - 250, 875]
+
+        self.all_shapes, self.all_shapes_rect = self.createText("all shapes & powerups", 50)
+        self.all_shapes_rect.center = [1 * 1920 / 4 + 250, 875]
+
+
+        self.searching, self.searching_rect = self.createText("searching for opponent...", 150)
         self.searching_rect.center = [1920 / 2, 1080 / 2]
         
-        self.match_found = pygame.image.load("backgrounds/matchfound.png")
-        self.match_found_rect = self.match_found.get_rect()
+        self.match_found, self.match_found_rect = self.createText("match found!", 150)
         self.match_found_rect.center = [1920 / 2, 1080 / 2]
 
-        self.opponent_disconnected = pygame.image.load("backgrounds/opponentdisconnected.png")
-        self.opponent_disconnected_rect = self.opponent_disconnected.get_rect()
+        self.opponent_disconnected, self.opponent_disconnected_rect = self.createText("opponent disconnected :()", 150)
         self.opponent_disconnected_rect.center = [1920 / 2, 1080 / 2]
 
-        self.you = pygame.image.load("backgrounds/you.png")
-        self.you_rect = self.you.get_rect()
+        self.you, self.you_rect = self.createText("you", 150)
         self.you_rect.center = (450, 680)
 
-        self.opponent = pygame.image.load("backgrounds/opponent.png")
-        self.opponent_rect = self.opponent.get_rect()
+        self.opponent, self.opponent_rect = self.createText("opponent", 150)
         self.opponent_rect.center = (1470, 680)
 
-        self.ready_red = pygame.image.load("backgrounds/readyred.png")
-        self.ready_red_rect = self.ready_red.get_rect()
+        self.ready_red, self.ready_red_rect = self.createText("ready", 150, "red")
         self.ready_red_rect.center = (1920 / 2, 1000)
 
-        self.ready_green = pygame.image.load("backgrounds/readygreen.png")
-        self.ready_green_rect = self.ready_green.get_rect()
+        self.ready_green, self.ready_green_rect = self.createText("ready", 150, "green")
         self.ready_green_rect.center = (1920 / 2, 1000)
 
-        self.simulate = pygame.image.load("backgrounds/simulate.png")
-        self.simulate_rect = self.simulate.get_rect()
-        self.simulate_rect.center = [1920 / 2, 980]
+        self.start_surface, self.start_rect = self.createText("start", 100)
+        self.start_rect.center = [1920 / 2, 750]
 
-        self.network_match = pygame.image.load("backgrounds/networkmatch.png")
-        self.network_match_rect = self.network_match.get_rect()
-        self.network_match_rect.center = [1920 / 2, 725]
+        self.simulate, self.simulate_rect = self.createText("simulate", 65)
+        self.simulate_rect.center = [1920 / 2, 850]
 
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title, self.title_rect)
@@ -112,12 +148,14 @@ class Menu():
         self.arrow_right = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
         self.arrow_left = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
 
-        self.exit = pygame.image.load("backgrounds/exit.png")
-        self.exit_rect = self.exit.get_rect()
+        self.exit, self.exit_rect = self.createText("exit", 50)
         self.exit_rect.center = (1870, 1050)
 
-        self.loading = pygame.image.load("backgrounds/loading.png")
-        self.simulating = pygame.image.load("backgrounds/simulating.png")
+        self.loading, self.loading_rect = self.createText("loading", 150)
+        self.loading_rect.center = [1920 / 2, 1080 / 2]
+
+        self.simulating, self.simulating_rect = self.createText("simulating", 150)
+        self.simulating_rect.center = [1920 / 2, 1080 / 2]
 
         # draw arrows
         self.color_right_1 = self.arrow_right
@@ -179,26 +217,47 @@ class Menu():
 
         self.seed_input_clicked = False
 
-        self.input_manager = pygame_textinput.TextInputManager()
-        self.input_manager.value = "Seed (optional)"
-        self.input_manager.cursor_pos = len(self.input_manager.value)
+        self.seed_input_manager = pygame_textinput.TextInputManager()
+        self.seed_input_manager.value = "Seed (optional)"
+        self.seed_input_manager.cursor_pos = len(self.seed_input_manager.value)
 
-        self.seed_input = pygame_textinput.TextInputVisualizer(self.input_manager, pygame.font.SysFont("bahnschrift", 35))
+        self.seed_input = pygame_textinput.TextInputVisualizer(self.seed_input_manager, pygame.font.Font("backgrounds/font.ttf", 35))
         self.seed_input.font_color = "white"
         self.seed_input.cursor_color = "white"
         self.seed_input.cursor_visible = False
         self.seed_input_rect = self.seed_input.surface.get_rect()
         self.seed_input_rect.center = [1920 / 2, 1050]
+
+        # Username text input handler
+        self.username_input_manager = pygame_textinput.TextInputManager()
+        self.username_input_manager.value = "Username: "
+        self.username_input_manager.cursor_pos = len(self.username_input_manager.value)
+
+        self.username_input = pygame_textinput.TextInputVisualizer(self.username_input_manager, pygame.font.Font("backgrounds/font.ttf", 35))
+        self.username_input.font_color = "white"
+        self.username_input.cursor_color = "white"
+        self.username_input.cursor_visible = True
+        self.username_input_rect = self.username_input.surface.get_rect()
+        self.username_input_rect.center = [1920 / 2, 1050]
+
+
         # self.seed_input.value = "Seed (optional)"
         # self.seed_input.cursor_pos = 2
 
         self.stat_rects = [{}, {}]
         self.menu_music.play(-1)
 
+    def createText(self, text, size, color = "white", font_name = "sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheadingbolditalicsitkadisplaybolditalicsitkabannerbolditalic"):
+        font = pygame.font.Font("backgrounds/font.ttf", size)
+
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+
+        return text_surface, text_rect
+
     def createCircleStatsSurfaces(self):
         surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
         surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
-        font = pygame.font.SysFont("bahnschrift", 30)
 
         keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:"]
         values_0 = [str(circles[self.face_0]["density"]), str(circles[self.face_0]["velocity"]), 
@@ -212,6 +271,7 @@ class Menu():
                     str(circles[self.face_1]["luck"])]
 
         element_count = 0
+        font = pygame.font.Font("backgrounds/font.ttf", 35)
         for element in keys:
             key_obj = font.render(element, 1, "white")
             key_rect = key_obj.get_rect()
@@ -223,6 +283,7 @@ class Menu():
         keys_for_rects = ["density", "velocity", "radius", "health", "dmg_multiplier", "luck"]
 
         element_count = 0
+        font = pygame.font.Font("backgrounds/font.ttf", 30)
         for element in values_0:
             key_obj = font.render(element, 1, "white")
             key_rect = key_obj.get_rect()
@@ -234,6 +295,7 @@ class Menu():
             element_count += 1
 
         element_count = 0
+        font = pygame.font.Font("backgrounds/font.ttf", 35)
         for element in keys:
             key_obj = font.render(element, 1, "white")
             key_rect = key_obj.get_rect()
@@ -243,6 +305,7 @@ class Menu():
             element_count += 1
 
         element_count = 0
+        font = pygame.font.Font("backgrounds/font.ttf", 30)
         for element in values_1:
             key_obj = font.render(element, 1, "white")
             key_rect = key_obj.get_rect()
@@ -258,7 +321,7 @@ class Menu():
     def createCircleStatsSurfacesNetwork(self, player_face, opponent_face):
         surface_0 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
         surface_1 = pygame.Surface((400, 400), pygame.SRCALPHA, 32)
-        font = pygame.font.SysFont("bahnschrift", 30)
+        font = pygame.font.Font("backgrounds/font.ttf", 30)
 
         keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:", "Team Size:"]
         values_0 = [str(circles_unchanged[player_face]["density"]), str(circles_unchanged[player_face]["velocity"]), 
@@ -460,7 +523,7 @@ class Menu():
         v2p = v2np_ + v2tp_
         c2.setVel(v2p)
 
-    def show(self):
+    def localPregame(self):
         running = True
         while running:
             # Want to have two circles spawn in from opposite sides of the screen and bounce away from each other
@@ -480,17 +543,18 @@ class Menu():
 
             # Bottom half of screen
             simulate_clicked = False
-            play_clicked = False
+            start_clicked = False
             self.shown_circles = [[self.face_0, colors[self.color_0][0]], [self.face_1, colors[self.color_1][0]]]
 
             # Draw some shit
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
             self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
-            self.screen.blit(self.play, self.play_rect)
+            # self.screen.blit(self.play, self.play_rect)
             self.screen.blit(self.exit, self.exit_rect)
             self.screen.blit(self.simulate, self.simulate_rect)
-            self.screen.blit(self.network_match, self.network_match_rect)
+            self.screen.blit(self.start_surface, self.start_rect)
+            # self.screen.blit(self.network_match, self.network_match_rect)
 
             # Show two circles 
             self.screen.blit(self.circle_1, (2 * 1920 / 3 - self.circle_1.get_size()[0] / 2, 2 * 1080 / 3))
@@ -636,7 +700,7 @@ class Menu():
                         elif self.color_left_1_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 -= 1
                             if self.color_1 == -1: self.color_1 = len(colors) - 1
-                            # play_clicked = True
+                            # start_clicked = True
                             self.changeCircles()
 
                         elif self.face_right_1_rect.collidepoint(pygame.mouse.get_pos()):
@@ -657,7 +721,7 @@ class Menu():
                         elif self.color_left_0_rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 -= 1
                             if self.color_0 == -1: self.color_0 = len(colors) - 1
-                            # play_clicked = True
+                            # start_clicked = True
                             self.changeCircles()
 
                         elif self.face_right_0_rect.collidepoint(pygame.mouse.get_pos()):
@@ -670,8 +734,8 @@ class Menu():
                             if self.face_0 == -1: self.face_0 = self.num_faces - 1
                             self.changeCircles()
 
-                        elif self.play_rect.collidepoint(pygame.mouse.get_pos()):
-                            play_clicked = True
+                        elif self.start_rect.collidepoint(pygame.mouse.get_pos()):
+                            start_clicked = True
 
                         elif self.simulate_rect.collidepoint(pygame.mouse.get_pos()):
                             simulate_clicked = True
@@ -690,8 +754,7 @@ class Menu():
 
                         elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
                             self.close_sound.play()
-                            self.exit_clicked = True
-                            pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+                            return
 
                         if unclick_seed_input:
                             self.seed_input_clicked = False
@@ -703,7 +766,7 @@ class Menu():
 
             if simulate_clicked:
                 self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.simulating, (1920 / 2 - self.simulating.get_size()[0] / 2, 1080 / 2 - self.simulating.get_size()[1] / 2))
+                self.screen.blit(self.simulating, self.simulating_rect)
                 pygame.display.update()
 
                 circle_0 = circles[self.face_0].copy()
@@ -729,9 +792,9 @@ class Menu():
                 self.stats_surface = game.play_game()
                 self.game_played = True
 
-            if play_clicked:
+            if start_clicked:
                 self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
+                self.screen.blit(self.loading, self.loading_rect)
                 pygame.display.update()
 
                 circle_0 = circles[self.face_0].copy()
@@ -764,6 +827,127 @@ class Menu():
             self.screen.blit(self.cursor, self.cursor_rect)
 
             if self.exit_clicked:
+                running = False
+
+            # limits FPS to 60
+            self.clock.tick(60)
+            # print(self.clock.get_fps())
+
+    def start(self):
+        # Do while loop to get user to sign in
+        try_again_flag = False
+        while self.user == None:
+            events = pygame.event.get()
+            keys_pressed = pygame.key.get_pressed()
+
+            for event in events:
+                if event.type == MOUSEBUTTONDOWN and self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                    self.close_sound.play()
+                    self.exit_clicked = True
+                    pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+
+                if event.type == KEYDOWN and event.key == K_BACKSPACE and keys_pressed[K_LCTRL]:
+                    self.username_input.value = ""
+
+                if event.type == KEYDOWN and event.key == K_RETURN:
+                    username = self.username_input.value
+                    if username[:9] == "Username:": username = username[10:].lower()
+
+                    try:
+                        self.user = self.session.query(User).filter(User.username == username).one()
+                        print(self.user)
+
+                        self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
+                        self.logged_in_as_rect.topleft = (10, 1030)
+
+                        self.shapes = self.session.query(Shape).filter(Shape.owner_id == 1).all()
+                    except:
+                        try_again_flag = True
+
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
+            self.screen.blit(self.exit, self.exit_rect)
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
+
+            self.username_input.update(events); 
+            self.username_input_rect = self.username_input.surface.get_rect(); 
+            self.username_input_rect.center = [1920 / 2, 1000]
+            self.screen.blit(self.username_input.surface, self.username_input_rect)
+
+            if self.exit_clicked:
+                self.frames_since_exit_clicked += 1
+                if self.frames_since_exit_clicked == 60:
+                    return
+
+            if try_again_flag:
+                self.screen.blit(self.try_again, self.try_again_rect)
+
+            self.clock.tick(60)
+
+        # move rects
+        # self.play_rect.center = [2 * 1920/ 3, 2 * 1080 / 3]
+
+        running = True
+        while running:
+            # Want to have two circles spawn in from opposite sides of the screen and bounce away from each other
+            if len(self.circles) == 0:
+                self.addNewCircles()
+
+            if self.game_played:
+                if self.stats_surface != 0:
+                    self.screen.blit(self.stats_surface, (1920 / 2 - self.stats_surface.get_size()[0] / 2, 50)) 
+            else:
+                self.circles.draw(self.screen)
+            self.circles.update()
+            self.checkCollisions()
+
+            # Draw some shit
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
+            self.screen.blit(self.play, self.play_rect)
+            self.screen.blit(self.network_match, self.network_match_rect)
+            self.screen.blit(self.local_match, self.local_match_rect)
+            self.screen.blit(self.collections, self.collections_rect)
+            self.screen.blit(self.your_shapes, self.your_shapes_rect)
+            self.screen.blit(self.all_shapes, self.all_shapes_rect)
+            self.screen.blit(self.exit, self.exit_rect)
+            self.screen.blit(self.logged_in_as, self.logged_in_as_rect)
+
+            events = pygame.event.get()
+            for event in events:
+                if event.type == MOUSEBUTTONDOWN:
+                    self.click_sound.play()
+                    if event.button == 1:
+                        if self.network_match_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.networkPreGame()
+                            self.exit_clicked = False
+
+                        elif self.local_match_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.localPregame()
+                            self.exit_clicked = False
+
+                        elif self.your_shapes_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.userCollection()
+
+                        elif self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                            self.close_sound.play()
+                            self.exit_clicked = True
+                            pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+
+                if event.type == KEYDOWN:
+                    if event.key == 9:
+                        self.game_played = not self.game_played
+
+            if self.menu_music.get_num_channels() == 0:
+                self.menu_music.play(-1)
+
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
+
+            if self.exit_clicked:
                 self.frames_since_exit_clicked += 1
                 if self.frames_since_exit_clicked == 60:
                     running = False
@@ -772,6 +956,23 @@ class Menu():
             self.clock.tick(60)
             # print(self.clock.get_fps())
     
+    def userCollection(self):
+        while True:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == MOUSEBUTTONDOWN and self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                    self.close_sound.play()
+                    return
+
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 4 - self.title.get_size()[1] / 2))
+            self.screen.blit(self.exit, self.exit_rect)
+            self.cursor_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.cursor, self.cursor_rect)
+
+            self.clock.tick(60)
+
     def changeCircles(self):
         self.circle_1 = self.circle_images[self.face_0][self.color_0]
         self.circle_2 = self.circle_images[self.face_1][self.color_1]
@@ -789,7 +990,22 @@ class Menu():
 
     def networkPreGame(self):
         self.network = Network()
-        player = int(self.network.getPlayer())
+        player = self.network.getPlayer()
+
+        if player != None: 
+            player = int(player)
+        else:
+            frames = 0
+            while frames <= 120:
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.server_not_found, self.server_not_found_rect)
+                pygame.display.update()
+
+
+                frames += 1
+                self.clock.tick(60)
+            return
+
         pregame_copy = None
         frames = 0
 
