@@ -1,8 +1,12 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR 
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
 BaseClass = declarative_base()
+
+if os.path.isfile("shapegame.db"):
+    os.remove("shapegame.db")
 
 class User(BaseClass):
     __tablename__ = "users"
@@ -63,9 +67,37 @@ user_2 = User(2, "Aiden")
 
 shape_1 = Shape(1, 1, 2, 4, 1, 3, 30, 45, 260, 1.7, 8, 15)
 shape_2 = Shape(2, 1, 4, 10, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_3 = Shape(3, 1, 1, 7, 1, 4, 69, 71, 750, 1.5, 8, 5)
+shape_4 = Shape(4, 1, 2, 2, 1, 4, 33, 44, 750, 1.5, 8, 5)
+shape_5 = Shape(5, 1, 4, 1, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_6 = Shape(6, 1, 3, 3, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_7 = Shape(7, 1, 0, 5, 1, 4, 75, 80, 750, 1.5, 8, 5)
+
+shape_8 = Shape(8, 2, 2, 4, 1, 3, 30, 45, 260, 1.7, 8, 15)
+shape_9 = Shape(9, 2, 4, 10, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_10 = Shape(10, 2, 1, 7, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_11 = Shape(11, 2, 2, 2, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_12 = Shape(12, 2, 4, 1, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_13 = Shape(13, 2, 3, 3, 1, 4, 75, 80, 750, 1.5, 8, 5)
+shape_14 = Shape(14, 2, 0, 5, 1, 4, 75, 80, 750, 1.5, 8, 5)
+
 # user_2 = User(2, "Aiden")
 session.add(user_1)
 session.add(user_2)
 session.add(shape_1)
 session.add(shape_2)
+session.add(shape_3)
+session.add(shape_4)
+session.add(shape_5)
+session.add(shape_6)
+session.add(shape_7)
+
+session.add(shape_8)
+session.add(shape_9)
+session.add(shape_10)
+session.add(shape_11)
+session.add(shape_12)
+session.add(shape_13)
+session.add(shape_14)
+
 session.commit()
