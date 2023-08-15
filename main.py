@@ -1,4 +1,4 @@
-import pygame, os, sqlite3
+import pygame, os
 from pygame.locals import *
 from circledata import *
 from menu import Menu
@@ -52,41 +52,6 @@ def generateAllCircles():
                                     image.set_at((j, k), color[2])
 
                         pygame.image.save(image, "circles/{}/{}/{}.png".format(id, color[0], face))
-
-def createDatabase():
-    connection = sqlite3.connect("shapegame.db")
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER,
-            username TEXT PRIMARY KEY
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS shapes (
-            id INTEGER PRIMARY KEY,
-            owner_id INTEGER
-        )
-    """)
-
-    # cursor.execute("""
-    #     INSERT INTO users VALUES
-    #         (1, "Pat"),
-    #         (2, "Aiden")         
-    # """)
-
-    # cursor.execute("""
-    #     INSERT INTO shapes VALUES
-    #         (1, 1),
-    #         (2, 1),
-    #         (3, 2),
-    #         (4, 2)       
-    # """)
-
-    connection.commit()
-    connection.close()
 
 def main():
     # print(pygame.font.get_fonts()); exit
