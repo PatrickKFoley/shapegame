@@ -7,6 +7,7 @@ from circledata import *
 from user2 import User
 from shape import Shape
 from clickabletext import ClickableText
+from menucircle import MenuShape
 
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR 
 from sqlalchemy.ext.declarative import declarative_base
@@ -17,7 +18,7 @@ class Menu():
 
         self.network = None
         self.user = None
-        self.shapes = None
+        self.shapes = []
 
         self.BaseClass = declarative_base()
         self.engine = create_engine("sqlite:///shapegame.db", echo=True)
@@ -26,7 +27,7 @@ class Menu():
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
-        self.shown_collection = []
+        self.collection_group = pygame.sprite.Group()
 
         # self.user_1 = User(1, "Pat")
         # user_2 = User(2, "Aiden")
@@ -389,45 +390,6 @@ class Menu():
             element_count += 1
 
         return [surface_0, surface_1]
-
-    def createCircleStatsSurfacesCollection(self, shape):
-        surface_0 = pygame.Surface((500, 500), pygame.SRCALPHA, 32)
-        font = pygame.font.Font("backgrounds/font.ttf", 45)
-
-        keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:", "Team Size:"]
-        values_0 = [str(shape.density), str(shape.velocity), 
-                    str(shape.radius_min) + " - " + str(shape.radius_max), 
-                    str(shape.health), str(shape.dmg_multiplier), 
-                    str(shape.luck), str(shape.team_size)]
-        
-
-        element_count = 0
-        for element in keys:
-            key_obj = font.render(element, 1, "white")
-            key_rect = key_obj.get_rect()
-            key_rect.topright = (250, element_count * 45)
-
-            surface_0.blit(key_obj, key_rect)
-            element_count += 1
-
-        keys_for_rects = ["density", "velocity", "radius", "health", "dmg_multiplier", "luck", "team_size"]
-
-        element_count = 0
-        for element in values_0:
-            key_obj = font.render(element, 1, "white")
-            key_rect = key_obj.get_rect()
-            key_rect.topleft = (270, element_count * 45)
-
-            surface_0.blit(key_obj, key_rect)
-
-            self.stat_rects[0][str(keys_for_rects[element_count])] = key_rect
-            element_count += 1
-
-        surface_0_rect = surface_0.get_rect()
-        surface_0_rect.center = [1920 / 2, 950]
-
-        return surface_0, surface_0_rect
-
 
     def addNewCircles(self):
         # CHANGE WHEN ADDING FACE_IDS
@@ -913,7 +875,7 @@ class Menu():
                         self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
                         self.logged_in_as_rect.topleft = (10, 1030)
 
-                        self.shapes = self.session.query(Shape).filter(Shape.owner_id == 1).all()
+                        self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
                     except:
                         try_again_flag = True
 
@@ -1014,34 +976,48 @@ class Menu():
             # print(self.clock.get_fps())
     
     def userCollection(self):
-        shown_shape = 3
-        offset = 0
-        num_shapes = len(self.shapes)
+        selected_shape = 0
 
-        stats_surface, stats_surface_rect = self.createCircleStatsSurfacesCollection(self.shapes[shown_shape])
+        if len(self.collection_group) == 0:
+            text_surface, text_rect = self.createText("loading your shapes", 100)
+            text_rect.center = [1920 / 2, 1080 / 2]
 
-        for i in range(7):
-            try:
-                if i + offset == shown_shape:
-                    shape_surface = self.circle_images_larger[self.shapes[i + offset].face_id][self.shapes[i + offset].color_id]
-                else:
-                    shape_surface = self.circle_images[self.shapes[i + offset].face_id][self.shapes[i + offset].color_id]
-                shape_rect = shape_surface.get_rect()
-                shape_rect.center = ((i) * 1920 / 6, 500)
-                self.shown_collection.append([shape_surface, shape_rect])
-            except:
-                self.shown_collection.append(None)
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(text_surface, text_rect)
+            pygame.display.update()
 
-        l_arrow = self.arrow_left
+            counter = 1
+            for shape in self.shapes:
+                self.collection_group.add(MenuShape(counter, shape, len(self.shapes)))
+                counter += 1
+
+        if len(self.shapes) >= 5:
+            selected_shape = 3
+        elif len(self.shapes) == 4:
+            selected_shape = 3
+        elif len(self.shapes) == 3:
+            selected_shape = 2
+        elif len(self.shapes) == 2:
+            selected_shape = 2
+        else:
+            selected_shape = 1
+
+        counter = 0
+        for shape in self.collection_group.sprites():
+            counter += 1
+            if counter == selected_shape:
+                shape.toggleSelected()
+            
+        l_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (100, 75))
         l_arrow_rect = l_arrow.get_rect()
-        l_arrow_rect.center = [1920 / 2 - 30, 650]
+        l_arrow_rect.center = [1920 / 2 - 50, 700]
 
-        r_arrow = self.arrow_right
+        r_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (100, 75))
         r_arrow_rect = r_arrow.get_rect()
-        r_arrow_rect.center = [1920 / 2 + 30, 650]
+        r_arrow_rect.center = [1920 / 2 + 50, 700]
 
-        while True:
-
+        running = True
+        while running:
             mouse_pos = pygame.mouse.get_pos()
             for clickable in self.clickables:
                 clickable.update(mouse_pos)
@@ -1053,36 +1029,39 @@ class Menu():
 
                     if self.exit_clickable.rect.collidepoint(mouse_pos):
                         self.close_sound.play()
-                        return
+                        running = False
                     
-                    if r_arrow_rect.collidepoint(mouse_pos) or l_arrow_rect.collidepoint(mouse_pos):
-                        if r_arrow_rect.collidepoint(mouse_pos):
-                            if offset <= num_shapes - 5:
-                                offset += 1
-                                shown_shape += 1
-                        else:
-                            if offset >= -2:
-                                offset -= 1
-                                shown_shape -= 1
+                    elif l_arrow_rect.collidepoint(mouse_pos) or r_arrow_rect.collidepoint(mouse_pos):
+                        if l_arrow_rect.collidepoint(mouse_pos):
+                            if selected_shape != 1:
+                                selected_shape -= 1
+                                for shape in self.collection_group.sprites():
+                                    if len(self.shapes) >= 6:
+                                        shape.moveRight()
 
-                        self.shown_collection = []
-                        for i in range(7):
-                            try:
-                                if i + offset <= num_shapes and i + offset > -1:
-                                    if i + offset == shown_shape:
-                                        shape_surface = self.circle_images_larger[self.shapes[i + offset].face_id][self.shapes[i + offset].color_id]
-                                    else:
-                                        shape_surface = self.circle_images[self.shapes[i + offset].face_id][self.shapes[i + offset].color_id]
-                                    shape_rect = shape_surface.get_rect()
-                                    shape_rect.center = ((i) * 1920 / 6, 500)
-                                    self.shown_collection.append([shape_surface, shape_rect])
-                                else: self.shown_collection.append(None)
-                            except:
-                                self.shown_collection.append(None)
+                        elif r_arrow_rect.collidepoint(mouse_pos):
+                            if selected_shape != len(self.shapes):
+                                selected_shape += 1
+                                for shape in self.collection_group.sprites():
+                                    counter += 1
+                                    if len(self.shapes) >= 6:
+                                        shape.moveLeft()
 
-                        stats_surface, stats_surface_rect = self.createCircleStatsSurfacesCollection(self.shapes[shown_shape])
+                        counter = 0
+                        for shape in self.collection_group.sprites():
+                            counter += 1
+                            if counter == selected_shape:
+                                shape.select()
+                            else:
+                                shape.disable()
+
+
+            self.collection_group.draw(self.screen)
+            self.collection_group.update(self.screen) 
 
             pygame.display.flip()
+            
+
             self.screen.blit(self.background, (0, 0))
             self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 5 - self.title.get_size()[1] / 2))
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
@@ -1090,16 +1069,14 @@ class Menu():
             self.screen.blit(l_arrow, l_arrow_rect)
             self.screen.blit(r_arrow, r_arrow_rect)
 
-            # draw circles left to right, limit to 5 per screen
-            for shape in self.shown_collection:
-                if shape != None: self.screen.blit(shape[0], shape[1])
-
-            self.screen.blit(stats_surface, stats_surface_rect)
-
             self.cursor_rect.center = pygame.mouse.get_pos()
             self.screen.blit(self.cursor, self.cursor_rect)
 
             self.clock.tick(60)
+
+        for shape in self.collection_group.sprites():
+            shape.goHome()
+            shape.disable()
 
     def changeCircles(self):
         self.circle_1 = self.circle_images[self.face_0][self.color_0]
@@ -1108,13 +1085,6 @@ class Menu():
 
         self.c0_count = circles[self.face_0]["team_size"]
         self.c1_count = circles[self.face_1]["team_size"]
-
-    def decodePlayer(self, string):
-        tuple = string.split(",")
-        return int(tuple[0]), int(tuple[1])
-
-    def encodePlayer(self, tuple):
-        return str(tuple[0]) + "," + str(tuple[1])
 
     def networkPreGame(self):
         self.network = Network()

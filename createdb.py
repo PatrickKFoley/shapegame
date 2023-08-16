@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
+from circledata import *
+import random
 import os
 
 BaseClass = declarative_base()
@@ -56,6 +58,24 @@ class Shape(BaseClass):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
 
+def createShape(id, owner_id):
+    face_id = random.randint(0, 4)
+    color_id = random.randint(0, len(colors)-1)
+
+    base = circles_unchanged[face_id]
+
+    density = base["density"]
+    velocity = base["velocity"] + random.randint(-3, 3)
+    radius_min = base["radius_min"] + random.randint(-3, 3)
+    radius_max = base["radius_max"] + random.randint(-3, 3)
+    health = base["health"] + random.randint(-100, 100)
+    dmg_multiplier = base["dmg_multiplier"] + (random.randint(-10, 10) / 10)
+    luck = base["luck"] + (random.randint(-10, 10) / 10)
+    team_size = base["team_size"] + random.randint(-3, 3)
+
+    return Shape(id, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
+
+
 engine = create_engine("sqlite:///shapegame.db", echo=True)
 BaseClass.metadata.create_all(bind=engine)
 
@@ -64,40 +84,15 @@ session = Session()
 
 user_1 = User(1, "pat")
 user_2 = User(2, "Aiden")
+user_3 = User(3, "Camille")
 
-shape_1 = Shape(1, 1, 2, 4, 1, 3, 30, 45, 260, 1.7, 8, 15)
-shape_2 = Shape(2, 1, 4, 10, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_3 = Shape(3, 1, 1, 7, 1, 4, 69, 71, 750, 1.5, 8, 5)
-shape_4 = Shape(4, 1, 2, 2, 1, 4, 33, 44, 750, 1.5, 8, 5)
-shape_5 = Shape(5, 1, 4, 1, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_6 = Shape(6, 1, 3, 3, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_7 = Shape(7, 1, 0, 5, 1, 4, 75, 80, 750, 1.5, 8, 5)
-
-shape_8 = Shape(8, 2, 2, 4, 1, 3, 30, 45, 260, 1.7, 8, 15)
-shape_9 = Shape(9, 2, 4, 10, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_10 = Shape(10, 2, 1, 7, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_11 = Shape(11, 2, 2, 2, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_12 = Shape(12, 2, 4, 1, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_13 = Shape(13, 2, 3, 3, 1, 4, 75, 80, 750, 1.5, 8, 5)
-shape_14 = Shape(14, 2, 0, 5, 1, 4, 75, 80, 750, 1.5, 8, 5)
-
-# user_2 = User(2, "Aiden")
 session.add(user_1)
 session.add(user_2)
-session.add(shape_1)
-session.add(shape_2)
-session.add(shape_3)
-session.add(shape_4)
-session.add(shape_5)
-session.add(shape_6)
-session.add(shape_7)
+session.add(user_3)
 
-session.add(shape_8)
-session.add(shape_9)
-session.add(shape_10)
-session.add(shape_11)
-session.add(shape_12)
-session.add(shape_13)
-session.add(shape_14)
+for j in range(1, 4):
+    for i in range(10):
+        shape = createShape(j * 10 + i, j)
+        session.add(shape)
 
 session.commit()
