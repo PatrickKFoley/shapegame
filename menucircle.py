@@ -2,13 +2,20 @@ import pygame
 from circledata import *
 
 class MenuShape(pygame.sprite.Sprite):
-    def __init__(self, id, shape, num_shapes, selected = False):
+    def __init__(self, id, shape, num_shapes, mode = "PLAYER", selected = False):
         self.id = id
         super().__init__()
         self.image_full =  pygame.image.load("circles/{}/{}/0.png".format(shape.face_id, colors[shape.color_id][0]))
         self.num_shapes = min(num_shapes + 1, 6)
         self.x = id  * 1920 / self.num_shapes
-        self.y = 500
+        self.mode = mode
+
+        if mode == "COLLECTIONS":
+            self.y = 500
+        elif mode == "OPPONENT":
+            self.y = 300
+        else:
+            self.y = 600
 
         self.next_x = self.x
 
@@ -17,10 +24,23 @@ class MenuShape(pygame.sprite.Sprite):
 
         self.stats_surface = self.createStatsSurface()
         self.stats_surface_rect = self.stats_surface.get_rect()
-        self.stats_surface_rect.center = [1920 / 2 - 50, 1000]
 
-        self.small_r = 200
-        self.large_r = 300
+        if mode == "COLLECTIONS":
+            self.stats_surface_rect.center = [1920 / 2 - 50, 1000]
+        elif mode == "OPPONENT":
+            self.stats_surface_rect.center = [1920 / 2 + 500, 1050]
+        else:
+            self.stats_surface_rect.center = [1920 / 2 - 500, 1050]
+
+        if mode == "COLLECTIONS":
+            self.small_r = 180
+            self.large_r = 280
+        elif mode == "OPPONENT":
+            self.small_r = 140
+            self.large_r = 210
+        else:
+            self.small_r = 180
+            self.large_r = 280
 
         if selected:
             self.image = pygame.transform.scale(self.image_full, (self.large_r, self.large_r))
@@ -34,8 +54,13 @@ class MenuShape(pygame.sprite.Sprite):
         self.rect.center = [self.x, self.y]
 
     def createStatsSurface(self):
+        if self.mode == "PLAYER" or self.mode == "OPPONENT":
+            font_size = 35
+        else:
+            font_size = 40
+
         surface = pygame.Surface((500, 500), pygame.SRCALPHA, 32)
-        font = pygame.font.Font("backgrounds/font.ttf", 45)
+        font = pygame.font.Font("backgrounds/font.ttf", font_size)
 
         keys = ["Density:", "Velocity:", "Radius:", "Health:", "Damage x:", "Luck:", "Team Size:"]
         keys_for_rects = ["density", "velocity", "radius_min", "radius_max", "health", "dmg_multiplier", "luck", "team_size"]
@@ -58,7 +83,7 @@ class MenuShape(pygame.sprite.Sprite):
             bonus_rect = bonus_surface.get_rect()
 
             if keys_for_rects[i] != "radius_min":
-                bonus_rect.topright = (500, line * 45)
+                bonus_rect.topright = (500, line * font_size)
                 surface.blit(bonus_surface, bonus_rect)
                 line += 1
             
@@ -68,13 +93,13 @@ class MenuShape(pygame.sprite.Sprite):
         for value in values:
             key_text = font.render(keys[i], 1, "white")
             key_text_rect = key_text.get_rect()
-            key_text_rect.topright = (250, i * 45)
+            key_text_rect.topright = (250, i * font_size)
 
             surface.blit(key_text, key_text_rect)
 
             value_text = font.render(value, 1, "white")
             value_text_rect = value_text.get_rect()
-            value_text_rect.topleft = (270, i * 45)
+            value_text_rect.topleft = (270, i * font_size)
 
             surface.blit(value_text, value_text_rect)
             i += 1

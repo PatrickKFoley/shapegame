@@ -28,6 +28,7 @@ class Menu():
         self.session = Session()
 
         self.collection_group = pygame.sprite.Group()
+        self.opponent_group = pygame.sprite.Group()
 
         # self.user_1 = User(1, "Pat")
         # user_2 = User(2, "Aiden")
@@ -94,11 +95,11 @@ class Menu():
         self.opponent, self.opponent_rect = self.createText("opponent", 150)
         self.opponent_rect.center = (1470, 680)
 
-        self.ready_red, self.ready_red_rect = self.createText("ready", 150, "red")
-        self.ready_red_rect.center = (1920 / 2, 1000)
+        self.ready_q, self.ready_q_rect = self.createText("ready?", 150)
+        self.ready_q_rect.center = (1920 / 2, 1000)
 
-        self.ready_green, self.ready_green_rect = self.createText("ready", 150, "green")
-        self.ready_green_rect.center = (1920 / 2, 1000)
+        self.ready_e, self.ready_e_rect = self.createText("ready!", 150)
+        self.ready_e_rect.center = (1920 / 2, 1000)
 
         self.loading, self.loading_rect = self.createText("loading", 150)
         self.loading_rect.center = [1920 / 2, 1080 / 2]
@@ -545,7 +546,7 @@ class Menu():
 
             if self.game_played:
                 if self.stats_surface != 0:
-                    self.screen.blit(self.stats_surface, (1920 / 2 - self.stats_surface.get_size()[0] / 2, 50)) 
+                    self.screen.blit(self.stats_surface, (1920 / 2 - self.stats_surface.get_size()[0] / 2, 25)) 
             else:
                 self.circles.draw(self.screen)
             self.circles.update()
@@ -876,6 +877,13 @@ class Menu():
                         self.logged_in_as_rect.topleft = (10, 1030)
 
                         self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
+
+                        # Load your MenuShapes (check if already exists)
+                        if len(self.collection_group) == 0:
+                            counter = 1
+                            for shape in self.shapes:
+                                self.collection_group.add(MenuShape(counter, shape, len(self.shapes)))
+                                counter += 1
                     except:
                         try_again_flag = True
 
@@ -978,18 +986,19 @@ class Menu():
     def userCollection(self):
         selected_shape = 0
 
-        if len(self.collection_group) == 0:
-            text_surface, text_rect = self.createText("loading your shapes", 100)
-            text_rect.center = [1920 / 2, 1080 / 2]
+        # if len(self.collection_group) == 0:
+        text_surface, text_rect = self.createText("loading your shapes", 100)
+        text_rect.center = [1920 / 2, 1080 / 2]
 
-            self.screen.blit(self.background, (0, 0))
-            self.screen.blit(text_surface, text_rect)
-            pygame.display.update()
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(text_surface, text_rect)
+        pygame.display.update()
+        self.collection_group.empty()
 
-            counter = 1
-            for shape in self.shapes:
-                self.collection_group.add(MenuShape(counter, shape, len(self.shapes)))
-                counter += 1
+        counter = 1
+        for shape in self.shapes:
+            self.collection_group.add(MenuShape(counter, shape, len(self.shapes), "COLLECTIONS"))
+            counter += 1
 
         if len(self.shapes) >= 5:
             selected_shape = 3
@@ -1008,11 +1017,11 @@ class Menu():
             if counter == selected_shape:
                 shape.toggleSelected()
             
-        l_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (100, 75))
+        l_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
         l_arrow_rect = l_arrow.get_rect()
         l_arrow_rect.center = [1920 / 2 - 50, 700]
 
-        r_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (100, 75))
+        r_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
         r_arrow_rect = r_arrow.get_rect()
         r_arrow_rect.center = [1920 / 2 + 50, 700]
 
@@ -1088,10 +1097,11 @@ class Menu():
 
     def networkPreGame(self):
         self.network = Network()
-        player = self.network.getPlayer()
+        player_id = self.network.getPlayer()
 
-        if player != None: 
-            player = int(player)
+        # Check for server (probably can be done better)
+        if player_id != None: 
+            player_id = int(player_id)
         else:
             frames = 0
             while frames <= 120:
@@ -1103,73 +1113,128 @@ class Menu():
                 frames += 1
                 self.clock.tick(60)
             return
-
-        pregame_copy = None
-        frames = 0
-
-        self.connecting_flag = True
-
-        if player == 0: opponent = 1
+        
+        # Check who you are
+        if player_id == 0: opponent = 1
         else: opponent = 0
 
-        face_id = random.randint(0, self.num_faces - 1)
-        color_id = random.randint(0, len(colors) - 1)
-        
-        y_offset = 240
+        # Send your user_id to the server
+        self.network.send("USER_" + str(self.user.id))
+
+        # Determine who you have selected
+        you_selected = 0
+        if len(self.shapes) >= 5:
+            you_selected = 3
+        elif len(self.shapes) == 4:
+            you_selected = 3
+        elif len(self.shapes) == 3:
+            you_selected = 2
+        elif len(self.shapes) == 2:
+            you_selected = 2
+        else:
+            you_selected = 1
+
+        self.network.send("SELECTED_" + str(you_selected))
+        time.sleep(0.5)
+
+        # Retrieve opponent user id and query for their shapes
+        pregame = self.network.send("GET")
+        opponent_shapes = self.session.query(Shape).filter(Shape.owner_id == int(pregame.user_ids[opponent])).all()
+
+        while opponent_shapes == []:
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.searching, self.searching_rect)
+            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
+
+            # self.cursor_rect.center = pygame.mouse.get_pos()
+            # self.screen.blit(self.cursor, self.cursor_rect)
+
+            for event in pygame.event.get():
+                if event.type == MOUSEBUTTONDOWN and self.exit_clickable.rect.collidepoint(pygame.mouse.get_pos()):
+                    self.network.send("KILL")
+                    return
+
+            pregame = self.network.send("GET")
+            opponent_shapes = self.session.query(Shape).filter(Shape.owner_id == int(pregame.user_ids[opponent])).all()
+            self.clock.tick(2)
+
+        # -- Load opponent --
+        self.opponent_group.empty()
+        text_surface, text_rect = self.createText("loading your shapes", 100)
+        text_rect.center = [1920 / 2, 1080 / 2]
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(text_surface, text_rect)
+        pygame.display.update()
+
+        counter = 1
+        for shape in opponent_shapes:
+            self.opponent_group.add(MenuShape(counter, shape, len(opponent_shapes), "OPPONENT"))
+            counter += 1
+
+        # Determine opponents selected shape
+        opponent_selected = 0
+        if len(opponent_shapes) >= 5:
+            opponent_selected = 3
+        elif len(opponent_shapes) == 4:
+            opponent_selected = 3
+        elif len(opponent_shapes) == 3:
+            opponent_selected = 2
+        elif len(opponent_shapes) == 2:
+            opponent_selected = 2
+        else:
+            opponent_selected = 1
+
+        counter = 0
+        for shape in self.opponent_group.sprites():
+            counter += 1
+            if counter == opponent_selected:
+                shape.select()
+            else:
+                shape.disable()
+
+        counter = 0
+        for shape in self.collection_group.sprites():
+            counter += 1
+            if counter == you_selected:
+                shape.select()
+            else:
+                shape.disable()
 
         # create arrows
-        color_right = self.arrow_right
-        color_right_rect = color_right.get_rect()
-        color_right_rect.center = [500, 750 + y_offset]
+        right_surface = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
+        right_rect = right_surface.get_rect()
+        right_rect.center = [1920 / 2 + 50, 800]
 
-        color_left = self.arrow_left
-        color_left_rect = color_left.get_rect()
-        color_left_rect.center = [400, 750 + y_offset]
+        left_surface = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
+        left_rect = left_surface.get_rect()
+        left_rect.center = [1920 / 2 - 50, 800]
 
-        face_right = self.arrow_right
-        face_right_rect = face_right.get_rect()
-        face_right_rect.center = [500, 800 + y_offset]
+        print(you_selected, opponent_selected)
 
-        face_left = self.arrow_left
-        face_left_rect = face_left.get_rect()
-        face_left_rect.center = [400, 800 + y_offset]
-
-        player_circle = self.circle_images[0][0]
-        player_circle_rect = player_circle.get_rect()
-        player_circle_rect.center = (450, 600 + y_offset)
-
-        opponent_circle = self.circle_images[0][0]
-        opponent_circle_rect = opponent_circle.get_rect()
-        opponent_circle_rect.center = (1470, 600 + y_offset)
-
+        # other things
+        pregame_copy = None
+        frames = 0
+        self.connecting_flag = True
         running = True
         ready = False
 
-        pregame = None
+        opponent_user = self.session.query(User).filter(User.id == int(pregame.user_ids[opponent])).one()
+        opponent_username_surface, opponent_username_rect = self.createText(opponent_user.username, 100)
+        opponent_username_rect.center = [1920 / 2 + 500 + 50, 750]
 
-        player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(0, 0)
-        player_stats_rect = player_stats.get_rect()
-        player_stats_rect.center = (650, 690 + y_offset)
-        opponent_stats_rect = opponent_stats.get_rect()
-        opponent_stats_rect.center = (1190, 690 + y_offset)
+        you_username_surface, you_username_rect = self.createText(self.user.username, 100)
+        you_username_rect.center = [1920 / 2 - 500 + 50, 750]
 
         while running:
             self.clock.tick(60)
-
-            # self.circles.draw(self.screen)
-            # self.circles.update()
-            # self.checkCollisions()
 
             mouse_pos = pygame.mouse.get_pos()
             for clickable in self.clickables:
                 clickable.update(mouse_pos)
 
             try:
-                # if frames == 0:
                 pregame = self.network.send("GET")
-
-                # if frames % 20 == 0:
-                #     pregame = self.network.send("GET")
 
                 while not pregame.ready:
                     pygame.display.flip()
@@ -1181,9 +1246,11 @@ class Menu():
                     self.screen.blit(self.cursor, self.cursor_rect)
 
                     for event in pygame.event.get():
-                        if event.type == MOUSEBUTTONDOWN and self.exit_clickable.rect.collidepoint(pygame.mouse.get_pos()):
-                            self.network.send("KILL")
-                            return
+                        if event.type == MOUSEBUTTONDOWN:
+                            if self.exit_clickable.rect.collidepoint(mouse_pos):
+                                self.network.send("KILL")
+                                return
+
 
                     pregame = self.network.send("GET")
                     self.clock.tick(60)
@@ -1205,9 +1272,6 @@ class Menu():
                 pygame.display.update()
                 time.sleep(0.5)
 
-            self.network.send("FACE_" + str(face_id))
-            self.network.send("COLOR_" + str(color_id))
-
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
@@ -1216,73 +1280,76 @@ class Menu():
                     if self.exit_clickable.rect.collidepoint(mouse_pos):
                         self.exit_clicked = True
 
-                    elif color_right_rect.collidepoint(mouse_pos) and not ready:
-                        # if pregame.colors[player] != len(colors) - 1:
-                        #     self.network.send("INC_COLOR")
-
-                        color_id += 1
-                        if color_id == len(colors): color_id = 0; self.network.send("COLOR_" + str(color_id))
-
-
-                    elif color_left_rect.collidepoint(mouse_pos) and not ready:
-                        # if pregame.colors[player] != 0:
-                        #     self.network.send("DEC_COLOR")
-                        
-                        color_id -= 1
-                        if color_id == -1: color_id = len(colors) - 1; self.network.send("COLOR_" + str(color_id))
-
-                    elif face_right_rect.collidepoint(mouse_pos) and not ready:
-                        # if pregame.faces[player] != self.num_faces - 1:
-                        #     self.network.send("INC_FACE")
-
-                        face_id += 1
-                        if face_id == self.num_faces: face_id = 0; self.network.send("FACE_" + str(face_id))
-
-                    elif face_left_rect.collidepoint(mouse_pos) and not ready:
-                        # if pregame.faces[player] != 0:
-                        #     self.network.send("DEC_FACE")
-
-                        face_id -= 1
-                        if face_id == -1: face_id = self.num_faces - 1; self.network.send("FACE_" + str(face_id))
-
-                    elif self.ready_red_rect.collidepoint(mouse_pos):
+                    elif self.ready_q_rect.collidepoint(mouse_pos):
                         ready = True
                         self.network.send("READY")
 
+                    elif right_rect.collidepoint(mouse_pos) or left_rect.collidepoint(mouse_pos):
+                        if left_rect.collidepoint(mouse_pos):
+                            # Check if selected shape in bounds
+                            if you_selected != 1:
+                                you_selected -= 1
+                                self.network.send("SELECTED_" + str(you_selected))
+
+                                if len(self.shapes) >= 6:
+                                    for shape in self.collection_group.sprites():
+                                        shape.moveRight()
+
+                        elif right_rect.collidepoint(mouse_pos):
+                            if you_selected != len(self.shapes):
+                                you_selected += 1
+                                self.network.send("SELECTED_" + str(you_selected))
+
+                                if len(self.shapes) >= 6:
+                                    for shape in self.collection_group.sprites():
+                                        shape.moveLeft()
+
+                        counter = 0
+                        for shape in self.collection_group.sprites():
+                            counter += 1
+                            if counter == you_selected:
+                                shape.select()
+                            else:
+                                shape.disable()
+
+            # Check if your record of the opponent selected shape matches with server
+            if opponent_selected != pregame.users_selected[opponent]:
+                if opponent_selected < pregame.users_selected[opponent]:
+                    opponent_selected += 1
+                    for opponent_shape in self.opponent_group.sprites():
+                        opponent_shape.moveLeft()
+
+                else:
+                    opponent_selected -= 1
+                    for opponent_shape in self.opponent_group.sprites():
+                            opponent_shape.moveRight()
+
+                counter = 0
+                for shape in self.opponent_group.sprites():
+                    counter += 1
+                    if counter == opponent_selected:
+                        shape.select()
+                    else:
+                        shape.disable()
+
+            self.collection_group.draw(self.screen)
+            self.collection_group.update(self.screen)
+
+            self.opponent_group.draw(self.screen)
+            self.opponent_group.update(self.screen)
+
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.title, self.title_rect)  
+            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 50))  
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
+            self.screen.blit(left_surface, left_rect)
+            self.screen.blit(right_surface, right_rect)
+            self.screen.blit(you_username_surface, you_username_rect)
+            self.screen.blit(opponent_username_surface, opponent_username_rect)
 
-            player_face_id = pregame.faces[player]
-            player_color_id = pregame.colors[player]
-            opponent_face_id = pregame.faces[opponent]
-            opponent_color_id = pregame.colors[opponent]
+            if not ready: self.screen.blit(self.ready_q, self.ready_q_rect)
+            else: self.screen.blit(self.ready_e, self.ready_e_rect)
 
-            player_circle = self.circle_images[player_face_id][player_color_id]
-            opponent_circle = self.circle_images[opponent_face_id][opponent_color_id]
-
-            if pregame_copy != None:
-                if pregame_copy.faces[opponent] != pregame.faces[opponent] or pregame_copy.colors[opponent] != pregame.colors[opponent] or pregame_copy.faces[player] != pregame.faces[player] or pregame_copy.colors[player] != pregame.colors[player]:
-                    player_stats, opponent_stats = self.createCircleStatsSurfacesNetwork(player_face_id, opponent_face_id)
-
-            self.screen.blit(player_circle, player_circle_rect)
-            self.screen.blit(opponent_circle, opponent_circle_rect)
-            self.screen.blit(player_stats, player_stats_rect)
-            self.screen.blit(opponent_stats, opponent_stats_rect)
-
-            self.screen.blit(self.you, self.you_rect)
-            self.screen.blit(self.opponent, self.opponent_rect)
-
-            if ready:
-                self.screen.blit(self.ready_green, self.ready_green_rect)
-            else:
-                self.screen.blit(self.ready_red, self.ready_red_rect)
-
-                self.screen.blit(color_right, color_right_rect)
-                self.screen.blit(color_left, color_left_rect)
-                self.screen.blit(face_right, face_right_rect)
-                self.screen.blit(face_left, face_left_rect)
 
             if self.exit_clicked:
                 self.network.send("KILL")
@@ -1293,34 +1360,62 @@ class Menu():
                 self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
                 pygame.display.update()
 
-                circle_0 = circles_unchanged[player_face_id].copy()
-                circle_1 = circles_unchanged[opponent_face_id].copy()
 
-                circle_0["color"] = colors[player_color_id]
-                circle_0["group_id"] = 0
-                circle_0["face_id"] = player_face_id
+                your_circle = {}
+                your_shape = self.shapes[you_selected]
+                their_circle = {}
+                their_shape = opponent_shapes[opponent_selected]
 
-                circle_1["color"] = colors[opponent_color_id]
-                circle_1["group_id"] = 1
-                circle_1["face_id"] = opponent_face_id
+                your_circle["circle_id"] = 0
+                your_circle["face_id"] = your_shape.face_id
+                your_circle["color"] = colors[your_shape.color_id]
+                your_circle["density"] = your_shape.density
+                your_circle["velocity"] = your_shape.velocity
+                your_circle["radius_min"] = your_shape.radius_min
+                your_circle["radius_max"] = your_shape.radius_max
+                your_circle["health"] = your_shape.health
+                your_circle["dmg_multiplier"] = your_shape.dmg_multiplier
+                your_circle["luck"] = your_shape.luck
+                your_circle["team_size"] = your_shape.team_size
+
+                their_circle["circle_id"] = 0
+                their_circle["face_id"] = their_shape.face_id
+                their_circle["color"] = colors[their_shape.color_id]
+                their_circle["density"] = their_shape.density
+                their_circle["velocity"] = their_shape.velocity
+                their_circle["radius_min"] = their_shape.radius_min
+                their_circle["radius_max"] = their_shape.radius_max
+                their_circle["health"] = their_shape.health
+                their_circle["dmg_multiplier"] = their_shape.dmg_multiplier
+                their_circle["luck"] = their_shape.luck
+                their_circle["team_size"] = their_shape.team_size
+            
                 
                 real = True
                 print("Playing game with seed: {}".format(pregame.seed))
                 self.start_sound.play()
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
 
-                if player == 0:
-                    game = Game(circle_0, circle_0["team_size"], circle_1, circle_1["team_size"], self.screen, pregame.seed, real)
+                if player_id == 0:
+                    your_circle["group_id"] = 0
+                    their_circle["group_id"] = 1
+                    game = Game(your_circle, your_circle["team_size"], their_circle, their_circle["team_size"], self.screen, pregame.seed, real)
                 else:
-                    circle_0["group_id"] = 1
-                    circle_1["group_id"] = 0
-                    game = Game(circle_1, circle_1["team_size"], circle_0, circle_0["team_size"], self.screen, pregame.seed, real)
+                    your_circle["group_id"] = 1
+                    their_circle["group_id"] = 0
+                    game = Game(their_circle, their_circle["team_size"], your_circle, your_circle["team_size"], self.screen, pregame.seed, real)
                 self.stats_surface = game.play_game()
                 self.network.send("KILL")
                 break
             
             self.cursor_rect.center = pygame.mouse.get_pos()
             self.screen.blit(self.cursor, self.cursor_rect)
-
-            pregame_copy = pregame   
             frames += 1    
+
+        for shape in self.collection_group.sprites():
+            shape.goHome()
+            shape.disable()
+
+        for shape in self.opponent_group.sprites():
+            shape.goHome()
+            shape.disable()

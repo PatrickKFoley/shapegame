@@ -69,8 +69,8 @@ def createShape(id, owner_id):
     radius_min = base["radius_min"] + random.randint(-3, 3)
     radius_max = base["radius_max"] + random.randint(-3, 3)
     health = base["health"] + random.randint(-100, 100)
-    dmg_multiplier = base["dmg_multiplier"] + (random.randint(-10, 10) / 10)
-    luck = base["luck"] + (random.randint(-10, 10) / 10)
+    dmg_multiplier = base["dmg_multiplier"] + round((random.randint(-10, 10) / 10), 2)
+    luck = base["luck"] + round((random.randint(-10, 10) / 10), 2)
     team_size = base["team_size"] + random.randint(-3, 3)
 
     return Shape(id, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
