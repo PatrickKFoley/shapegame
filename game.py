@@ -12,7 +12,7 @@ class Game:
         self.real = real
         self.god_mode = god_mode
 
-        self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
@@ -38,13 +38,13 @@ class Game:
         # Explosion
         for i in range(1, 8):
             image = pygame.image.load("smoke/explosion{}.png".format(i))
-            # image = pygame.transform.scale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
+            # image = pygame.transform.smoothscale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
             self.explosion_images.append(image)
 
         # Smoke
         for i in range(1, 6):
             image = pygame.image.load("smoke/smoke{}.png".format(i))
-            image = pygame.transform.scale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
+            image = pygame.transform.smoothscale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
             self.smoke_images.append(image)
 
         # Circles
@@ -108,16 +108,16 @@ class Game:
             ["powerups/mushroom.png", 9],
         ]
 
-        self.coffin_img = pygame.transform.scale(pygame.image.load("powerups/coffin.png"), (40, 40))
+        self.coffin_img = pygame.transform.smoothscale(pygame.image.load("powerups/coffin.png"), (40, 40))
 
         for powerup in self.powerups:
             image = pygame.image.load(powerup[0])
-            self.powerup_images_screen.append(pygame.transform.scale(image, (40, 40)))
-            self.powerup_images_hud.append(pygame.transform.scale(image, (20, 20)))
+            self.powerup_images_screen.append(pygame.transform.smoothscale(image, (40, 40)))
+            self.powerup_images_hud.append(pygame.transform.smoothscale(image, (20, 20)))
 
-        self.blood_image = pygame.transform.scale(pygame.image.load("powerups/blood.png"), (40, 40))
-        self.sword_image = pygame.transform.scale(pygame.image.load("powerups/sword.png"), (40, 40))
-        self.blood_image_small = pygame.transform.scale(pygame.image.load("powerups/blood.png"), (30, 30))
+        self.blood_image = pygame.transform.smoothscale(pygame.image.load("powerups/blood.png"), (40, 40))
+        self.sword_image = pygame.transform.smoothscale(pygame.image.load("powerups/sword.png"), (40, 40))
+        self.blood_image_small = pygame.transform.smoothscale(pygame.image.load("powerups/blood.png"), (30, 30))
 
         self.images = [self.c0_images, self.c1_images]
 
@@ -946,7 +946,7 @@ class Game:
             image = self.images[0][1]
         else:
             image = self.images[0][0]
-        image = pygame.transform.scale(image, (85, 85))
+        image = pygame.transform.smoothscale(image, (85, 85))
 
         self.screen.blit(image, (self.screen_w + 105, 10))
         self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 147, 105)
@@ -964,7 +964,7 @@ class Game:
             image = self.images[1][1]
         else:
             image = self.images[1][0]
-        image = pygame.transform.scale(image, (85, 85))
+        image = pygame.transform.smoothscale(image, (85, 85))
 
         offset = self.screen_w / 2 - 100
         self.screen.blit(image, (self.screen_w + 10, 10))
@@ -1017,8 +1017,8 @@ class Game:
                 color = self.circles[1]["color"][1]
             self.draw_text("{} Team".format(self.circles[1]["color"][0].capitalize()), font, color, 500 - 10, 50, True, self.stats_surface)
 
-            self.stats_surface.blit(pygame.transform.scale(self.images[0][0], (175, 175)), (30 + 850 - 10, 10))
-            self.stats_surface.blit(pygame.transform.scale(self.images[1][0], (175, 175)), (30 - 10, 10))
+            self.stats_surface.blit(pygame.transform.smoothscale(self.images[0][0], (175, 175)), (30 + 850 - 10, 10))
+            self.stats_surface.blit(pygame.transform.smoothscale(self.images[1][0], (175, 175)), (30 - 10, 10))
 
             self.stats_surface.blit(self.sword_image, (256 - 10, 150))
             self.stats_surface.blit(self.blood_image, (329 - 10, 150))

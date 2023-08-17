@@ -28,14 +28,10 @@ class Menu():
         self.session = Session()
 
         self.collection_group = pygame.sprite.Group()
+        self.you_group = pygame.sprite.Group()
         self.opponent_group = pygame.sprite.Group()
 
-        # self.user_1 = User(1, "Pat")
-        # user_2 = User(2, "Aiden")
-        # session.add(user_1)
-        # session.commit()s
-
-        self.cursor = pygame.transform.scale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
         self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
@@ -155,20 +151,20 @@ class Menu():
         for i in range(0, 5):
             self.circle_images_larger.append([])
             for circle in self.circle_images_full[i]:
-                self.circle_images_larger[i].append(pygame.transform.scale(circle, (250, 250)))
+                self.circle_images_larger[i].append(pygame.transform.smoothscale(circle, (250, 250)))
 
         self.circle_images = []
         for i in range(0, 5):
             self.circle_images.append([])
             for circle in self.circle_images_full[i]:
-                self.circle_images[i].append(pygame.transform.scale(circle, (200, 200)))
+                self.circle_images[i].append(pygame.transform.smoothscale(circle, (200, 200)))
 
 
         self.circle_1 = self.circle_images[self.face_0][self.color_0]
         self.circle_2 = self.circle_images[self.face_1][self.color_1]
 
-        self.arrow_right = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
-        self.arrow_left = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
+        self.arrow_right = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_right.png"), (50, 50))
+        self.arrow_left = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_left.png"), (50, 50))
 
 
         # draw arrows
@@ -879,10 +875,10 @@ class Menu():
                         self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
 
                         # Load your MenuShapes (check if already exists)
-                        if len(self.collection_group) == 0:
+                        if len(self.you_group) == 0:
                             counter = 1
                             for shape in self.shapes:
-                                self.collection_group.add(MenuShape(counter, shape, len(self.shapes)))
+                                self.you_group.add(MenuShape(counter, shape, len(self.shapes)))
                                 counter += 1
                     except:
                         try_again_flag = True
@@ -1017,11 +1013,11 @@ class Menu():
             if counter == selected_shape:
                 shape.toggleSelected()
             
-        l_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
+        l_arrow = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
         l_arrow_rect = l_arrow.get_rect()
         l_arrow_rect.center = [1920 / 2 - 50, 700]
 
-        r_arrow = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
+        r_arrow = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
         r_arrow_rect = r_arrow.get_rect()
         r_arrow_rect.center = [1920 / 2 + 50, 700]
 
@@ -1083,6 +1079,7 @@ class Menu():
 
             self.clock.tick(60)
 
+        # self.collection_group.empty()
         for shape in self.collection_group.sprites():
             shape.goHome()
             shape.disable()
@@ -1194,7 +1191,7 @@ class Menu():
                 shape.disable()
 
         counter = 0
-        for shape in self.collection_group.sprites():
+        for shape in self.you_group.sprites():
             counter += 1
             if counter == you_selected:
                 shape.select()
@@ -1202,11 +1199,11 @@ class Menu():
                 shape.disable()
 
         # create arrows
-        right_surface = pygame.transform.scale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
+        right_surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
         right_rect = right_surface.get_rect()
         right_rect.center = [1920 / 2 + 50, 800]
 
-        left_surface = pygame.transform.scale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
+        left_surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
         left_rect = left_surface.get_rect()
         left_rect.center = [1920 / 2 - 50, 800]
 
@@ -1261,6 +1258,12 @@ class Menu():
                 self.screen.blit(self.background, (0, 0))
                 self.screen.blit(self.opponent_disconnected, self.opponent_disconnected_rect)
                 pygame.display.update()
+
+                self.opponent_group.empty()
+                for shape in self.you_group.sprites():
+                    shape.goHome()
+                    shape.disable()
+
                 time.sleep(0.5)
                 break
 
@@ -1292,7 +1295,7 @@ class Menu():
                                 self.network.send("SELECTED_" + str(you_selected))
 
                                 if len(self.shapes) >= 6:
-                                    for shape in self.collection_group.sprites():
+                                    for shape in self.you_group.sprites():
                                         shape.moveRight()
 
                         elif right_rect.collidepoint(mouse_pos):
@@ -1301,11 +1304,11 @@ class Menu():
                                 self.network.send("SELECTED_" + str(you_selected))
 
                                 if len(self.shapes) >= 6:
-                                    for shape in self.collection_group.sprites():
+                                    for shape in self.you_group.sprites():
                                         shape.moveLeft()
 
                         counter = 0
-                        for shape in self.collection_group.sprites():
+                        for shape in self.you_group.sprites():
                             counter += 1
                             if counter == you_selected:
                                 shape.select()
@@ -1332,8 +1335,8 @@ class Menu():
                     else:
                         shape.disable()
 
-            self.collection_group.draw(self.screen)
-            self.collection_group.update(self.screen)
+            self.you_group.draw(self.screen)
+            self.you_group.update(self.screen)
 
             self.opponent_group.draw(self.screen)
             self.opponent_group.update(self.screen)
@@ -1353,6 +1356,12 @@ class Menu():
 
             if self.exit_clicked:
                 self.network.send("KILL")
+
+                self.opponent_group.empty()
+                for shape in self.you_group.sprites():
+                    shape.goHome()
+                    shape.disable()
+
                 break
 
             if pregame.seed != False:
@@ -1412,10 +1421,6 @@ class Menu():
             self.screen.blit(self.cursor, self.cursor_rect)
             frames += 1    
 
-        for shape in self.collection_group.sprites():
-            shape.goHome()
-            shape.disable()
-
-        for shape in self.opponent_group.sprites():
+        for shape in self.you_group.sprites():
             shape.goHome()
             shape.disable()
