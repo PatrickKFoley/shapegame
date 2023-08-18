@@ -6,9 +6,10 @@ from explosion import Explosion
 from clouds import Clouds
 from killfeed import Killfeed
 from circle import Circle
+from circledata import *
 
 class Game: 
-    def __init__(self, c0, c0_count, c1, c1_count, screen, seed = False, real = True, god_mode = False):
+    def __init__(self, c0, c1, username_0, username_1, screen, seed = False, real = True, god_mode = False):
         self.real = real
         self.god_mode = god_mode
 
@@ -23,8 +24,8 @@ class Game:
         self.c1 = c1
         self.circles = [c0, c1]
 
-        self.c0_count = c0_count
-        self.c1_count = c1_count
+        self.c0_count = c0["team_size"]
+        self.c1_count = c1["team_size"]
         self.circle_counts = [self.c0_count, self.c1_count]
 
         # Preprocess images
@@ -34,6 +35,14 @@ class Game:
         self.explosion_images = []
         self.powerup_images_hud = []
         self.powerup_images_screen = []
+
+        self.player_0_username = username_0
+        self.player_1_username = username_1
+
+        self.player_0_wins, self.player_0_wins_rect = self.createText("{} wins!".format(username_0), 160, self.circles[0]["color"][2])
+        self.player_1_wins, self.player_1_wins_rect = self.createText("{} wins!".format(username_1), 160, self.circles[1]["color"][2])
+        self.player_0_wins_rect.center = self.player_1_wins_rect.center = [1920 / 2, 1080 / 2]
+
 
         # Explosion
         for i in range(1, 8):
@@ -661,7 +670,7 @@ class Game:
         text_obj = font.render(text, 1, color)
         text_rect = text_obj.get_rect()
         if center:
-            text_rect.topleft = (x - font.size(text)[0] / 2, y)
+            text_rect.topleft = (x - text_obj.get_size()[0] / 2, y)
         else:
             text_rect.topleft = (x, y)
 
@@ -865,14 +874,15 @@ class Game:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if self.real: self.draw_text("{} Wins!".format(self.circles[1]["color"][0].capitalize()), self.font, "white", self.screen_w / 2, self.screen_h / 6)
+                if self.real:
+                    self.screen.blit(self.player_1_wins, self.player_1_wins_rect)
 
             elif len(self.groups[1].sprites()) == 0:
                 self.done = True
                 self.fortnite_x_growing = self.fortnite_y_growing = False
 
-                if self.real: self.draw_text("{} Wins!".format(self.circles[0]["color"][0].capitalize()), self.font, "white", self.screen_w / 2, self.screen_h / 6)
-
+                if self.real: 
+                    self.screen.blit(self.player_0_wins, self.player_0_wins_rect)
             
             if self.done and self.play_sound:
                 self.play_sound = False
@@ -1005,17 +1015,11 @@ class Game:
             self.stats_surface.set_alpha(220)
             self.stats_surface.fill("darkgray")
 
-            if type(self.circles[0]["color"][1]) == type("string"):
-                color = self.circles[0]["color"][2]
-            else:
-                color = self.circles[0]["color"][1]
-            self.draw_text("{} Team".format(self.circles[0]["color"][0].capitalize()), font, color, 500 + 850 - 10, 50, True, self.stats_surface)
-            
-            if type(self.circles[1]["color"][1]) == type("string"):
-                color = self.circles[1]["color"][2]
-            else:
-                color = self.circles[1]["color"][1]
-            self.draw_text("{} Team".format(self.circles[1]["color"][0].capitalize()), font, color, 500 - 10, 50, True, self.stats_surface)
+            color = self.circles[0]["color"][2]
+            self.draw_text("{}".format(self.player_0_username), font, color, 500 + 850 - 10, 50, True, self.stats_surface)
+
+            color = self.circles[1]["color"][2]
+            self.draw_text("{}".format(self.player_1_username), font, color, 500 - 10, 50, True, self.stats_surface)
 
             self.stats_surface.blit(pygame.transform.smoothscale(self.images[0][0], (175, 175)), (30 + 850 - 10, 10))
             self.stats_surface.blit(pygame.transform.smoothscale(self.images[1][0], (175, 175)), (30 - 10, 10))

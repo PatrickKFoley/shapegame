@@ -122,6 +122,7 @@ class MenuShape(pygame.sprite.Sprite):
 
     def goHome(self):
         self.x = self.id  * 1920 / self.num_shapes
+        self.next_x = self.x
 
     def disable(self):
         if not self.selected: return

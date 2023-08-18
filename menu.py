@@ -815,10 +815,12 @@ class Menu():
                 circle_0["color"] = colors[self.color_0]
                 circle_0["group_id"] = 0
                 circle_0["face_id"] = self.face_0
+                circle_0["team_size"] = self.c0_count
 
                 circle_1["color"] = colors[self.color_1]
                 circle_1["group_id"] = 1
                 circle_1["face_id"] = self.face_1
+                circle_1["team_size"] = self.c1_count
 
                 seed = self.seed_input.value
                 if seed == "Seed (optional)":
@@ -828,7 +830,7 @@ class Menu():
                 print("Playing game with seed: {}".format(seed))
                 self.start_sound.play()
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
-                game = Game(circle_0, self.c0_count, circle_1, self.c1_count, self.screen, seed, real, True)
+                game = Game(circle_0, circle_1, circle_0["name"], circle_1["name"], self.screen, seed, real, True)
                 self.stats_surface = game.play_game()
                 self.game_played = True
 
@@ -1207,8 +1209,6 @@ class Menu():
         left_rect = left_surface.get_rect()
         left_rect.center = [1920 / 2 - 50, 800]
 
-        print(you_selected, opponent_selected)
-
         # other things
         pregame_copy = None
         frames = 0
@@ -1370,10 +1370,12 @@ class Menu():
                 pygame.display.update()
 
 
+                print(you_selected, opponent_selected)
+
                 your_circle = {}
-                your_shape = self.shapes[you_selected]
+                your_shape = self.shapes[you_selected -1]
                 their_circle = {}
-                their_shape = opponent_shapes[opponent_selected]
+                their_shape = opponent_shapes[opponent_selected -1]
 
                 your_circle["circle_id"] = 0
                 your_circle["face_id"] = your_shape.face_id
@@ -1408,11 +1410,11 @@ class Menu():
                 if player_id == 0:
                     your_circle["group_id"] = 0
                     their_circle["group_id"] = 1
-                    game = Game(your_circle, your_circle["team_size"], their_circle, their_circle["team_size"], self.screen, pregame.seed, real)
+                    game = Game(your_circle, their_circle, self.user.username, opponent_user.username, self.screen, pregame.seed, real)
                 else:
                     your_circle["group_id"] = 1
                     their_circle["group_id"] = 0
-                    game = Game(their_circle, their_circle["team_size"], your_circle, your_circle["team_size"], self.screen, pregame.seed, real)
+                    game = Game(their_circle, your_circle, opponent_user.username, self.user.username, self.screen, pregame.seed, real)
                 self.stats_surface = game.play_game()
                 self.network.send("KILL")
                 break
@@ -1421,6 +1423,7 @@ class Menu():
             self.screen.blit(self.cursor, self.cursor_rect)
             frames += 1    
 
+        print("RUN")
         for shape in self.you_group.sprites():
             shape.goHome()
             shape.disable()

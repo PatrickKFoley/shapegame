@@ -48,7 +48,8 @@ circles = [
         "health": 260,
         "dmg_multiplier": 1.7,
         "luck": 8,
-        "team_size": 15
+        "team_size": 15,
+        "name": "glee"
     },
     {
         "density": 1,
@@ -58,7 +59,8 @@ circles = [
         "health": 340,
         "dmg_multiplier": 1.5,
         "luck": 10,
-        "team_size": 15
+        "team_size": 15,
+        "name": "stale"
     },
     {
         "density": 1,
@@ -68,7 +70,8 @@ circles = [
         "health": 120,
         "dmg_multiplier": 1,
         "luck": 15,
-        "team_size": 15
+        "team_size": 15,
+        "name": "grinn"
     },
     {
         "density": 1,
@@ -78,7 +81,8 @@ circles = [
         "health": 160,
         "dmg_multiplier": 2.5,
         "luck": 12,
-        "team_size": 15
+        "team_size": 15,
+        "name": "dink"
     },
     {
         "density": 1,
@@ -88,7 +92,8 @@ circles = [
         "health": 750,
         "dmg_multiplier": 1.5,
         "luck": 8,
-        "team_size": 5
+        "team_size": 5,
+        "name": "mech"
     },
 ]
 circles_unchanged = copy.deepcopy(circles)
