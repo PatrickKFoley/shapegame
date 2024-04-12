@@ -1,8 +1,10 @@
 import pygame
 
 class Laser(pygame.sprite.Sprite):
-    def __init__(self, circle, g_id, x, y, vx, vy, image):
+    def __init__(self, circle, g_id, x, y, vx, vy, image, real = True):
         super().__init__()
+        self.real = real
+
         self.g_id = g_id
         self.circle = circle
         self.x = x
@@ -10,9 +12,11 @@ class Laser(pygame.sprite.Sprite):
         self.vx = vx *3
         self.vy = vy *3
         self.image = image
-        self.r = image.get_size()[0]/2
+        self.r = 20
         self.frames = 0
         self.ids_collided_with = []
+
+        if not self.real: return
 
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
@@ -38,12 +42,9 @@ class Laser(pygame.sprite.Sprite):
             self.y = self.r + game.fortnite_y
             self.vy = -1 * self.vy
 
-        self.image.set_alpha(255)
-        # game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2)))
-        
-        # game.screen.blit(self.image, self.x, self.y)
-
-        self.rect.center = [self.x, self.y]
+        if self.real:
+            self.image.set_alpha(255)
+            self.rect.center = [self.x, self.y]
 
         self.frames += 1
         if self.frames >= game.fps * 5:

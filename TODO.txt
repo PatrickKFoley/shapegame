@@ -1,0 +1,33 @@
+USER EXPERIENCE
+    - user creation
+        - create/alter user account - CREATE DONE  
+    - social side
+        - friends
+        - messaging
+    - shape creation
+        - shape creation token
+            - rewarded after wins/time elapse - TOKEN AND SHAPE CREATION DONE
+        - shape leveling system
+            -  shape win/loss reward/penalty
+    - shape collection
+        - edit collection
+            - add/remove shapes
+            - favorite/showcase
+        - alter shapes (name?)
+    - games played record
+        - player names, shapes used, outcome
+    - automate dependency installation
+
+GAME FUNCTIONALITY
+    - threaded server communication on match screen
+    - server game simulation
+        - reward winner/punish loser
+        - playing for keeps toggle
+    - invite friends
+    - bridge gap between circle objects in menu -> in game
+        - server game simulation requirement
+
+QOL/EXTRA
+    - about screen
+    - tutorial/mechanic screen
+    - powerup screen

@@ -4,8 +4,11 @@ from clouds import Clouds
 from laser import Laser
 
 class Circle(pygame.sprite.Sprite):
-    def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = []):
+    def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = [], real = True):
         super().__init__()
+
+        self.real = real
+
         self.g_id = attributes["group_id"]
         self.id = id
         self.game = game
@@ -46,11 +49,6 @@ class Circle(pygame.sprite.Sprite):
 
         self.m = round(attributes["density"] * (3/4) * 3.14 * self.r**3)
 
-        self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
-        self.images = images
-        self.circle_image = self.getNextImage(0)
-        self.circle_image_rect = self.circle_image.get_rect()
-        self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
 
         self.hp = self.max_hp = attributes["health"]
         self.dmg_multiplier = attributes["dmg_multiplier"]
@@ -65,6 +63,15 @@ class Circle(pygame.sprite.Sprite):
         self.powerups = []
         self.dmg_counter = 0
 
+        if not self.real:
+            return
+
+        self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
+        self.images = images
+        self.circle_image = self.getNextImage(0)
+        self.circle_image_rect = self.circle_image.get_rect()
+        self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
+
         self.constructSurface(True)
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
@@ -74,6 +81,8 @@ class Circle(pygame.sprite.Sprite):
         self.next_r = radius
 
     def constructSurface(self, powerups = False):
+        if not self.real: return
+        
         if powerups:
             # show powerups
             self.image = pygame.Surface((4*self.r, 4*self.r), pygame.SRCALPHA, 32)
@@ -138,7 +147,7 @@ class Circle(pygame.sprite.Sprite):
         self.image.blit(text_obj, text_rect)
 
     def killCircle(self):
-        self.game.clouds_group.add(Clouds(self.x, self.y, self.game.smoke_images, self.game.screen))
+        if self.real: self.game.clouds_group.add(Clouds(self.x, self.y, self.game.smoke_images, self.game.screen))
 
         stats = self.stats
         id = self.id
@@ -162,6 +171,9 @@ class Circle(pygame.sprite.Sprite):
         self.game.createStatsScreen(False, True)
 
     def getNextImage(self, index):
+        if not self.real:
+            return None
+
         multiplier = self.getRad() / 1024
         return pygame.transform.scale(self.images[index], (int(2048 * multiplier), int(2048 * multiplier)))
 
@@ -202,7 +214,11 @@ class Circle(pygame.sprite.Sprite):
             current_speed = math.sqrt(self.v_x**2 + self.v_y**2)
             multiplier = desired_speed / current_speed
 
-            self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
+            if self.real:
+                self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
+            else:
+                self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, None, self.real))
+
             self.game.playSound(self.game.laser_sound)
 
         if id == 9:
@@ -236,7 +252,7 @@ class Circle(pygame.sprite.Sprite):
             self.next_r = self.r + self.growth_amount
 
             # heal some amount + killfeed and shit
-            self.game.playSound(self.game.heal_sound)
+            if self.real: self.game.playSound(self.game.heal_sound)
             self.stats.heal(100)
             self.hp += 100
             self.checkImageChange()
@@ -275,21 +291,25 @@ class Circle(pygame.sprite.Sprite):
             if self.r < self.next_r:
                 self.r += 1
                 self.m = round(self.density * (3/4) * 3.14 * self.r**3)
-                self.checkImageChange()
-                self.constructSurface(True)
-                self.circle_image_rect = self.circle_image.get_rect()
-                self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
-                self.rect = self.image.get_rect()
-                self.rect.center = [self.x, self.y]
+
+                if self.real:
+                    self.checkImageChange()
+                    self.constructSurface(True)
+                    self.circle_image_rect = self.circle_image.get_rect()
+                    self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
+                    self.rect = self.image.get_rect()
+                    self.rect.center = [self.x, self.y]
             elif self.r > self.next_r:
                 self.r -= 1
                 self.m = round(self.density * (3/4) * 3.14 * self.r**3)
-                self.checkImageChange()
-                self.constructSurface(True)
-                self.circle_image_rect = self.circle_image.get_rect()
-                self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
-                self.rect = self.image.get_rect()
-                self.rect.center = [self.x, self.y]
+
+                if self.real:
+                    self.checkImageChange()
+                    self.constructSurface(True)
+                    self.circle_image_rect = self.circle_image.get_rect()
+                    self.circle_image_rect.center = (self.image.get_size()[0] / 2, self.image.get_size()[1] / 2)
+                    self.rect = self.image.get_rect()
+                    self.rect.center = [self.x, self.y]
             else:
                 self.growing = False
 
@@ -310,13 +330,14 @@ class Circle(pygame.sprite.Sprite):
         if self.dmg_counter > 0:
             self.dmg_counter -= 1
 
-            hp_circle_r = min(self.r/2, 16)
-            offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
-            self.image.blit(self.game.blood_image_small, (self.image.get_size()[0] / 2 + self.r, self.image.get_size()[1] / 2 - self.game.blood_image_small.get_size()[0] - 5))
+            if self.real:
+                hp_circle_r = min(self.r/2, 16)
+                offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
+                self.image.blit(self.game.blood_image_small, (self.image.get_size()[0] / 2 + self.r, self.image.get_size()[1] / 2 - self.game.blood_image_small.get_size()[0] - 5))
 
-            if self.dmg_counter == 0:
-                flag = True
-                self.constructSurface(True)
+                if self.dmg_counter == 0:
+                    flag = True
+                    self.constructSurface(True)
         
         if self.took_dmg or flag:
             hp_p = round(round(self.hp) / self.max_hp * 100)
@@ -332,7 +353,7 @@ class Circle(pygame.sprite.Sprite):
 
             offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
 
-            pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
+            if self.real: pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
             
             if self.game.hp_mode:
                 if hp_p == 100:
@@ -349,11 +370,13 @@ class Circle(pygame.sprite.Sprite):
 
                 text = str(round(self.hp))
 
-            font = pygame.font.SysFont("bahnschrift", size)
-            text_obj = font.render(text, 1, "black")
-            text_rect = text_obj.get_rect()
-            text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(text)[1] / 2)
-            self.image.blit(text_obj, text_rect)
+            if self.real:
+
+                font = pygame.font.SysFont("bahnschrift", size)
+                text_obj = font.render(text, 1, "black")
+                text_rect = text_obj.get_rect()
+                text_rect.topleft = (self.image.get_size()[0] / 2 + offset - font.size(text)[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(text)[1] / 2)
+                self.image.blit(text_obj, text_rect)
 
             self.took_dmg = False
 
@@ -398,7 +421,8 @@ class Circle(pygame.sprite.Sprite):
 
         # update position
         # self.rect = self.image.get_rect()
-        self.rect.center = [self.x, self.y]
+        if self.real:
+            self.rect.center = [self.x, self.y]
 
     def setVel(self, v_x, v_y):
         self.v_x = v_x
@@ -430,6 +454,8 @@ class Circle(pygame.sprite.Sprite):
         return round(self.dmg_multiplier * velocity * self.m / 100000)
 
     def checkImageChange(self):
+        if not self.real: return
+
         if self.hp <= self.max_hp / 4:
             self.circle_image = self.getNextImage(3)
             # self.circle_image_rect = self.circle_image.get_rect()

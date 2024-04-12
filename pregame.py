@@ -7,7 +7,13 @@ class Pregame:
 
         self.users_selected = [-1, -1]
 
+        self.shape_ids = [-1, -1]
+
         self.user_ids = [-1, -1]
 
+        self.keeps = [0, 0]
+
         self.seed = False
+
+        self.kill = [False, False]
 

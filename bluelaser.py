@@ -1,8 +1,10 @@
 import pygame
 
 class BlueLaser(pygame.sprite.Sprite):
-    def __init__(self, circle, directions, image):
+    def __init__(self, circle, directions, image, real = True):
         super().__init__()
+        self.real = real
+
         self.circle = circle
         self.g_id = circle.getG_id()
         self.x = circle.getXY()[0]
@@ -10,8 +12,10 @@ class BlueLaser(pygame.sprite.Sprite):
         self.vx = directions[0]
         self.vy = directions[1]
         self.image = image
-        self.r = image.get_size()[0]/2
+        self.r = 20
         self.ids_collided_with = []
+
+        if not self.real: return
 
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
@@ -20,7 +24,6 @@ class BlueLaser(pygame.sprite.Sprite):
         self.x += self.vx
         self.y += self.vy
 
-        self.rect.center = [self.x, self.y]
 
         flag = False
         # ensure laser stays within bounds
@@ -38,5 +41,7 @@ class BlueLaser(pygame.sprite.Sprite):
 
         if flag == True: self.kill()
 
+        if not self.real: return
+
         self.image.set_alpha(255)
-        # game.screen.blit(self.image, (int(self.x - self.image.get_size()[0]/2), int(self.y - self.image.get_size()[1]/2))) 
+        self.rect.center = [self.x, self.y]
