@@ -4,6 +4,7 @@ from newmenushape import NewMenuShape
 from circledata import *
 from user import User
 from shape import Shape
+from threading import Thread
 from clickabletext import ClickableText
 
 class CreateShapeMenu():
@@ -170,12 +171,13 @@ class CreateShapeMenu():
 
     # FUNCTIONS
 
+    def commitShape(self, shape):
+        self.session.query(User).filter(User.id == self.user.id).update({'shape_tokens': User.shape_tokens -1})
+        self.session.add(shape)
+        self.session.commit()
+
     def createShape(self, owner_id = -1):
         # decrement number of shape tokens
-        if owner_id != -1:
-            self.session.query(User).filter(User.id == self.user.id).update({'shape_tokens': User.shape_tokens -1})
-            self.session.commit()
-
         face_id = random.randint(0, 4)
         color_id = random.randint(0, len(colors)-1)
 
@@ -193,8 +195,11 @@ class CreateShapeMenu():
         if owner_id != -1:
             try:
                 shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
-                self.session.add(shape)
-                self.session.commit()
+                
+                thread = Thread(target=self.commitShape(shape))
+                thread.start()
+                # thread.join()
+
                 return shape
             except:
                 self.session.rollback()
