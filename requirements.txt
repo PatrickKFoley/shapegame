@@ -1,0 +1,5 @@
+numpy==1.25.0
+pygame==2.0.0.dev18
+pygame_textinput==1.0.1
+SQLAlchemy==2.0.19
+sqlalchemy_utils==0.41.2
