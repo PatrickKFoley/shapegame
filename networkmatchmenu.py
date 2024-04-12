@@ -159,7 +159,7 @@ class NetworkMatchMenu():
                     return
 
             pregame = self.network.getPregame()
-            self.clock.tick(2)
+            self.clock.tick(60)
 
         # -- Load opponent --
         opponent_shapes = self.session.query(Shape).filter(Shape.owner_id == int(pregame.user_ids[opponent])).all()
@@ -260,6 +260,22 @@ class NetworkMatchMenu():
                     pregame = self.network.getPregame()
                     self.clock.tick(60)
             except:
+                running = False
+
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.opponent_disconnected, self.opponent_disconnected_rect)
+                pygame.display.update()
+
+                self.opponent_group.empty()
+                for shape in self.you_group.sprites():
+                    shape.goHome()
+                    shape.disable()
+
+                time.sleep(0.5)
+                break
+
+            # check if opponent left
+            if pregame.kill[opponent]:
                 running = False
 
                 self.screen.blit(self.background, (0, 0))
@@ -397,6 +413,22 @@ class NetworkMatchMenu():
             # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
 
             pregame = self.network.getPregame()
+
+            # check if opponent left
+            if pregame.kill[opponent]:
+                running = False
+
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.opponent_disconnected, self.opponent_disconnected_rect)
+                pygame.display.update()
+
+                self.opponent_group.empty()
+                for shape in self.you_group.sprites():
+                    shape.goHome()
+                    shape.disable()
+
+                time.sleep(0.5)
+                break
 
             if pregame.seed != False:
                 self.screen.blit(self.background, (0, 0))

@@ -72,7 +72,16 @@ def threaded_client(conn, player, game_id):
                         pregame.user_ids[player] = user_id
                     
                     elif data[:9] == "SELECTED_":
-                        pregame.users_selected[player] = int(data[9:])
+                        id = data[9:]
+
+                        if len(id) > 1 and id[1] in ["G", "S"]:
+                            id = id[:1]
+                        elif len(id) > 2 and id[2] in ["G", "S"]:
+                            id = id[:2]
+                        elif len(id) > 3 and id[3] in ["G", "S"]:
+                            id = id[:3]
+
+                        pregame.users_selected[player] = int(id)
 
                     elif data[:6] == "SHAPE_":
                         id = data[6:]
@@ -85,7 +94,7 @@ def threaded_client(conn, player, game_id):
                         elif len(id) > 2 and id[2] in ["G", "S"]:
                             id = id[:2]
                         elif len(id) > 3 and id[3] in ["G", "S"]:
-                            id = id[3]
+                            id = id[:3]
                         print(id)
                         pregame.shape_ids[player] = int(id)
 
@@ -98,6 +107,7 @@ def threaded_client(conn, player, game_id):
 
                     elif data == "KILL":
                         pregame.kill[player] = True
+                        break
 
                     if pregame.players_ready[0] and pregame.players_ready[1]:
                         pregame.seed = seeds[game_id]
@@ -176,7 +186,7 @@ def threaded_client(conn, player, game_id):
                         else: shape1.num_wins += 1
                         session.commit()
 
-                        # del pregames[game_id]
+                        del pregames[game_id]
                         seeds.pop(0)
 
                         print("player 0 breaking")
@@ -190,6 +200,9 @@ def threaded_client(conn, player, game_id):
                     if game_played == True and player == 1:
                         print("player 1 breaking")
                         break
+
+                    # if pregame.kill[player]:
+                    #     break
                     
                     # if not pregames[game_id]:
                     #     id_count -= 1
@@ -203,6 +216,10 @@ def threaded_client(conn, player, game_id):
 
             else:
                 print("HUHHUH")
+                
+                reply = {'kill': [True, True]}
+                conn.sendall(pickle.dumps(reply))
+
                 break
         except Exception as e:
             print(e)
@@ -210,7 +227,7 @@ def threaded_client(conn, player, game_id):
     
     print("Lost connection! {}".format(player))
 
-    # id_count -= 1
+    id_count -= 1
     conn.close()
 
     # # try to delete game
@@ -218,6 +235,13 @@ def threaded_client(conn, player, game_id):
     #     # del pregames[game_id]
     #     print("Closing game: ", game_id); 
     #     seeds.pop(0)
+
+    if player == 0:
+        try:
+            del pregames[game_id]
+            seeds.pop(0)
+
+        except: pass
 
 
     # except: pass
