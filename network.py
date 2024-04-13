@@ -39,7 +39,7 @@ class Network:
 
     def readyUp(self):
         try:
-            self.client.send(str.encode("READY"))
+            self.client.send(str.encode("READY."))
 
             response = pickle.loads(self.client.recv(4096))
             self.pregame = response
@@ -48,7 +48,7 @@ class Network:
 
     def updatePregame(self):
         try:
-            self.client.send(str.encode("GET"))
+            self.client.send(str.encode("GET."))
 
             response = pickle.loads(self.client.recv(4096))
             self.pregame = response

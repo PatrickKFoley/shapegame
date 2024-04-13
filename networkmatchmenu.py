@@ -124,7 +124,7 @@ class NetworkMatchMenu():
         else: opponent = 0
 
         # Send your user_id to the server
-        self.network.send("USER_" + str(self.user.id))
+        self.network.send("USER_" + str(self.user.id) + ".")
 
         # Determine who you have selected
         you_selected = 0
@@ -139,7 +139,7 @@ class NetworkMatchMenu():
         else:
             you_selected = 1
 
-        self.network.send("SELECTED_" + str(you_selected))
+        self.network.send("SELECTED_" + str(you_selected) + ".")
         time.sleep(1)
 
         # Retrieve opponent user id and query for their shapes
@@ -155,7 +155,7 @@ class NetworkMatchMenu():
 
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN and self.exit_clickable.rect.collidepoint(pygame.mouse.get_pos()):
-                    self.network.send("KILL")
+                    self.network.send("KILL.")
                     return
 
             pregame = self.network.getPregame()
@@ -228,7 +228,7 @@ class NetworkMatchMenu():
         you_username_rect.center = [1920 / 2 - 500 + 50, 750]
 
         # MAIN LOOP ---------------------------------------------
-        self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+        self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id) + ".")
 
 
         while running:
@@ -253,7 +253,7 @@ class NetworkMatchMenu():
                     for event in pygame.event.get():
                         if event.type == MOUSEBUTTONDOWN:
                             if self.exit_clickable.rect.collidepoint(mouse_pos):
-                                self.network.send("KILL")
+                                self.network.send("KILL.")
                                 return
 
 
@@ -311,7 +311,7 @@ class NetworkMatchMenu():
 
                         print(self.checkbox.getValue())
 
-                        self.network.send("KEEPS_" + str(self.checkbox.getValue()))
+                        self.network.send("KEEPS_" + str(self.checkbox.getValue()) + ".")
 
                     elif self.ready_q_rect.collidepoint(mouse_pos):
                         ready = True
@@ -322,8 +322,8 @@ class NetworkMatchMenu():
                             # Check if selected shape in bounds
                             if you_selected != 1:
                                 you_selected -= 1
-                                self.network.send("SELECTED_" + str(you_selected))
-                                # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+                                self.network.send("SELECTED_" + str(you_selected) + ".")
+                                # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id + "."))
 
                                 if len(self.shapes) >= 6:
                                     for shape in self.you_group.sprites():
@@ -332,14 +332,14 @@ class NetworkMatchMenu():
                         elif right_rect.collidepoint(mouse_pos):
                             if you_selected != len(self.shapes):
                                 you_selected += 1
-                                self.network.send("SELECTED_" + str(you_selected))
-                                # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+                                self.network.send("SELECTED_" + str(you_selected) + ".")
+                                # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id + "."))
 
                                 if len(self.shapes) >= 6:
                                     for shape in self.you_group.sprites():
                                         shape.moveLeft()
 
-                        self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+                        self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id) + ".")
 
                         counter = 0
                         for shape in self.you_group.sprites():
@@ -349,7 +349,7 @@ class NetworkMatchMenu():
                             else:
                                 shape.disable()
 
-            # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+            # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id + "."))
 
             # Check if your record of the opponent selected shape matches with server
             if opponent_selected != pregame.users_selected[opponent]:
@@ -401,7 +401,7 @@ class NetworkMatchMenu():
             pygame.display.flip()
             
             if self.exit_clicked:
-                self.network.send("KILL")
+                self.network.send("KILL.")
 
                 self.opponent_group.empty()
                 for shape in self.you_group.sprites():
@@ -410,7 +410,7 @@ class NetworkMatchMenu():
 
                 break
             
-            # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+            # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id + "."))
 
             pregame = self.network.getPregame()
 
@@ -435,7 +435,7 @@ class NetworkMatchMenu():
                 self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
                 pygame.display.update()
 
-                self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id))
+                self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id) + ".")
 
 
                 print(you_selected, opponent_selected)
@@ -485,7 +485,7 @@ class NetworkMatchMenu():
                     game = Game(their_circle, your_circle, opponent_user.username, self.user.username, self.screen, pregame.seed, real)
                 self.stats_surface = game.play_game()
 
-                # self.network.send("KILL")
+                # self.network.send("KILL.")
                 
                 break
             

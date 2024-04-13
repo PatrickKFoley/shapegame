@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
 
 BaseClass = declarative_base()
-engine = create_engine(connection_string, echo=True)
+engine = create_engine(connection_string, echo=False)
 BaseClass.metadata.create_all(bind=engine)
 SessionMaker = sessionmaker(bind=engine)
 
@@ -37,6 +37,43 @@ connected = set()
 pregames = {}
 id_count = 0
 
+def processData(data):
+    parts = data.split('.')
+
+    user = False
+    selected = False
+    shape = False
+    keeps = False
+    ready = False
+    kill = False
+    get = False
+
+    for part in parts:
+        if part[:5] == "USER_":
+            user = int(part[5:])
+
+        elif part[:9] == "SELECTED_":
+            selected = int(part[9:])
+
+        elif part[:6] == "SHAPE_":
+            shape = int(part[6:])
+
+        elif part[:6] == "KEEPS_":
+            keeps = int(part[6:])
+
+        elif part == "READY":
+            ready = True
+
+        elif part == "KILL":
+            kill = True
+
+        elif part == "GET":
+            get = True
+    
+    return user, selected, shape, keeps, ready, kill, get
+
+
+
 def threaded_client(conn, player, game_id):
     session = SessionMaker()
 
@@ -54,82 +91,53 @@ def threaded_client(conn, player, game_id):
     killed = False
     killed_counter = 0
     while True:
-        data = conn.recv(4096).decode()
+
+        try:
+            data = conn.recv(4096).decode()
+        except Exception as err:
+            print("----- ERROR RECIEVING DATA -----\n{}".format(err))
+            break
 
         try:
             if game_id in pregames:
                 pregame = pregames[game_id]
 
                 if not data:
-                    # pass
                     break
                 else:
-                    print(data)
+                    user, selected, shape, keeps, ready, kill, get = processData(data)
 
-                    if data[:5] == "USER_":
-                        user_id = data[5:]
-
-                        pregame.user_ids[player] = user_id
+                    if user != False:
+                        pregame.user_ids[player] = user
                     
-                    elif data[:9] == "SELECTED_":
-                        id = data[9:]
+                    if selected != False:
+                        pregame.users_selected[player] = selected
 
-                        if len(id) > 1 and id[1] in ["G", "S"]:
-                            id = id[:1]
-                        elif len(id) > 2 and id[2] in ["G", "S"]:
-                            id = id[:2]
-                        elif len(id) > 3 and id[3] in ["G", "S"]:
-                            id = id[:3]
+                    if shape != False:
+                        pregame.shape_ids[player] = shape
 
-                        pregame.users_selected[player] = int(id)
+                    if keeps != False:
+                        pregame.keeps[player] = keeps
 
-                    elif data[:6] == "SHAPE_":
-                        id = data[6:]
+                    if ready != False:
+                        pregame.players_ready[player] = ready
 
-                        if "GET" in data:
-                            data = "GET"
-
-                        if len(id) > 1 and id[1] in ["G", "S"]:
-                            id = id[:1]
-                        elif len(id) > 2 and id[2] in ["G", "S"]:
-                            id = id[:2]
-                        elif len(id) > 3 and id[3] in ["G", "S"]:
-                            id = id[:3]
-                        print(id)
-                        pregame.shape_ids[player] = int(id)
-
-                    elif data[:6] == "KEEPS_":
-                        pregame.keeps[player] = int(data[6:])
-
-                    elif data == "READY":
-                        pregame.players_ready[player] = True
-
-
-                    elif data == "KILL":
-                        pregame.kill[player] = True
+                    if kill != False:
+                        pregame.kill[player] = kill
                         break
 
                     if pregame.players_ready[0] and pregame.players_ready[1]:
                         pregame.seed = seeds[game_id]
 
                     # SECOND HALF TO ABOVE CHECK
-                    if data == "READY":
-                        reply = pregame
-                        print("PREGAME: ----------------- {}".format(pregame.players_ready))
-                        conn.sendall(pickle.dumps(reply))
-
-                    if data in ["READY", "GET"]:
-                        reply = pregame
-                        conn.sendall(pickle.dumps(reply))
+                    if ready or get:
+                        conn.sendall(pickle.dumps(pregame))
 
                     # One of the threads simulates the game
 
                     # print("------------ {} {} {} {} ------------".format(player, pregame.players_ready[0], pregame.players_ready[1], game_played))
                     if player == 0 and pregame.players_ready[0] and pregame.players_ready[1] and not game_played:
-                        print("-----THANK GOD------")
-
-                        reply = pregame
-                        conn.sendall(pickle.dumps(reply))
+                        conn.sendall(pickle.dumps(pregame))
 
                         session.commit()
 
@@ -170,11 +178,11 @@ def threaded_client(conn, player, game_id):
                         game_shape1["luck"] = shape1.luck
                         game_shape1["team_size"] = shape1.team_size
 
-                        print("ABOUT TO PLAY GAME")
+                        print("----------- ABOUT TO SIMULATE GAME -----------")
 
                         winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
 
-                        print("GAME FINISHED: {}".format(winner))
+                        print("------ GAME FINISHED: {} -----".format(winner))
                         game_played = True
 
                     if game_played == True and player == 0:
@@ -193,36 +201,22 @@ def threaded_client(conn, player, game_id):
                         break
 
                     if player == 1 and pregame.players_ready[0] and pregame.players_ready[1] and not game_played:
-                        reply = pregame
-                        conn.sendall(pickle.dumps(reply))
+                        conn.sendall(pickle.dumps(pregame))
                         game_played = True
 
                     if game_played == True and player == 1:
                         print("player 1 breaking")
                         break
 
-                    # if pregame.kill[player]:
-                    #     break
-                    
-                    # if not pregames[game_id]:
-                    #     id_count -= 1
-                    #     conn.close()
-                    #     break
-
-                    # if pregame.kill[0] and pregame.kill[1]:
-                    #     id_count -= 1
-                    #     conn.close()
-                    #     break
-
             else:
-                print("HUHHUH")
+                print("----- GAME ID NOT IN PREGAMES -----")
                 
                 reply = {'kill': [True, True]}
                 conn.sendall(pickle.dumps(reply))
 
                 break
-        except Exception as e:
-            print(e)
+        except Exception as err:
+            print("----- ISSUE IN MAIN LOOP -----\n{}".format(err))
             break
     
     print("Lost connection! {}".format(player))
@@ -230,21 +224,12 @@ def threaded_client(conn, player, game_id):
     id_count -= 1
     conn.close()
 
-    # # try to delete game
-    # try: 
-    #     # del pregames[game_id]
-    #     print("Closing game: ", game_id); 
-    #     seeds.pop(0)
-
     if player == 0:
         try:
             del pregames[game_id]
             seeds.pop(0)
 
         except: pass
-
-
-    # except: pass
 
 while True:
     conn, addr = socket.accept()
