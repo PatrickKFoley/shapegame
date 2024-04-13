@@ -318,6 +318,7 @@ class NetworkMatchMenu():
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
+                    # print(mouse_pos)
                     self.click_sound.play()
 
                     if self.exit_clickable.rect.collidepoint(mouse_pos):
@@ -325,9 +326,6 @@ class NetworkMatchMenu():
 
                     elif self.checkbox.rect.collidepoint(mouse_pos):
                         self.checkbox.toggle()
-
-                        print(self.checkbox.getValue())
-
                         self.network.send("KEEPS_" + str(self.checkbox.getValue()) + ".")
 
                     elif self.ready_q_rect.collidepoint(mouse_pos):
@@ -460,7 +458,7 @@ class NetworkMatchMenu():
                 self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id) + ".")
 
 
-                print(you_selected, opponent_selected)
+                # print(you_selected, opponent_selected)
 
                 your_circle = {}
                 your_shape = self.shapes[you_selected -1]
@@ -515,7 +513,7 @@ class NetworkMatchMenu():
             self.screen.blit(self.cursor, self.cursor_rect)
             frames += 1    
 
-        print("RUN")
+        # print("RUN")
         for shape in self.you_group.sprites():
             shape.goHome()
             shape.disable()
