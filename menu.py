@@ -23,7 +23,7 @@ class Menu():
         self.user = None
         self.shapes = []
         self.BaseClass = declarative_base()
-        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=True)
+        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=False)
         # self.BaseClass.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()

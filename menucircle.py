@@ -29,9 +29,9 @@ class MenuShape(pygame.sprite.Sprite):
         if mode == "COLLECTIONS":
             self.stats_surface_rect.center = [1920 / 2 - 50, 1000]
         elif mode == "OPPONENT":
-            self.stats_surface_rect.center = [1920 / 2 + 500, 1050]
+            self.stats_surface_rect.center = [1920 / 2 + 480, 1050]
         else:
-            self.stats_surface_rect.center = [1920 / 2 - 500, 1050]
+            self.stats_surface_rect.center = [1920 / 2 - 600, 1050]
 
         if mode == "COLLECTIONS":
             self.small_r = 180

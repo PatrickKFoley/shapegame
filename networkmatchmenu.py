@@ -21,10 +21,20 @@ class NetworkMatchMenu():
         self.you_group = pygame.sprite.Group()
         self.opponent_group = pygame.sprite.Group()
 
+        self.you_names = []
+        self.opponent_names = []
+
         counter = 1
         for shape in self.shapes:
             self.you_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
             counter += 1
+
+        self.checked = pygame.transform.smoothscale(pygame.image.load("backgrounds/box_checked.png"), (28, 28))
+        self.checked_rect = self.checked.get_rect()
+        self.unchecked = pygame.transform.smoothscale(pygame.image.load("backgrounds/box_unchecked.png"),  (28, 28))
+        self.unchecked_rect = self.unchecked.get_rect()
+        self.checked_rect.center = self.unchecked_rect.center = [1118, 900]
+
 
         self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
@@ -90,8 +100,8 @@ class NetworkMatchMenu():
         self.simulating, self.simulating_rect = self.createText("simulating", 150)
         self.simulating_rect.center = [1920 / 2, 1080 / 2]
 
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
-        self.checkbox = Checkbox("playing for keeps", 40, 200, 35)
+        self.exit_clickable = ClickableText("back", 50, 1860, 1045)
+        self.checkbox = Checkbox("playing for keeps", 40, 975, 900)
 
         self.clickables = []
         self.clickables.append(self.exit_clickable)
@@ -163,6 +173,7 @@ class NetworkMatchMenu():
 
         # -- Load opponent --
         opponent_shapes = self.session.query(Shape).filter(Shape.owner_id == int(pregame.user_ids[opponent])).all()
+        opponent_user = self.session.query(User).filter(User.id == int(pregame.user_ids[opponent])).one()
         self.opponent_group.empty()
         text_surface, text_rect = self.createText("loading your shapes", 100)
         text_rect.center = [1920 / 2, 1080 / 2]
@@ -170,10 +181,24 @@ class NetworkMatchMenu():
         self.screen.blit(text_surface, text_rect)
         pygame.display.update()
 
+        # Build opponent shapes + username tags for each player
         counter = 1
         for shape in opponent_shapes:
             self.opponent_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(opponent_shapes), "OPPONENT"))
+            
+            opponent_username_surface, opponent_username_rect = self.createText(opponent_user.username, 100, colors[shape.color_id][2])
+            opponent_username_rect.center = [1515, 750]
+
+            self.opponent_names.append([opponent_username_surface, opponent_username_rect])
+
             counter += 1
+
+        for shape in self.shapes:
+            you_username_surface, you_username_rect = self.createText(self.user.username, 100, colors[shape.color_id][2])
+            you_username_rect.center = [420, 750]
+
+            self.you_names.append([you_username_surface, you_username_rect])
+
 
         # Determine opponents selected shape
         opponent_selected = 0
@@ -214,18 +239,10 @@ class NetworkMatchMenu():
         left_rect.center = [1920 / 2 - 50, 800]
 
         # other things
-        pregame_copy = None
         frames = 0
         self.connecting_flag = True
         running = True
         ready = False
-
-        opponent_user = self.session.query(User).filter(User.id == int(pregame.user_ids[opponent])).one()
-        opponent_username_surface, opponent_username_rect = self.createText(opponent_user.username, 100)
-        opponent_username_rect.center = [1920 / 2 + 500 + 50, 750]
-
-        you_username_surface, you_username_rect = self.createText(self.user.username, 100)
-        you_username_rect.center = [1920 / 2 - 500 + 50, 750]
 
         # MAIN LOOP ---------------------------------------------
         self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id) + ".")
@@ -388,9 +405,14 @@ class NetworkMatchMenu():
             self.screen.blit(self.checkbox.surface, self.checkbox.rect)
             self.screen.blit(left_surface, left_rect)
             self.screen.blit(right_surface, right_rect)
-            self.screen.blit(you_username_surface, you_username_rect)
-            self.screen.blit(opponent_username_surface, opponent_username_rect)
+            # self.screen.blit(you_username_surface, you_username_rect)
+            # self.screen.blit(opponent_username_surface, opponent_username_rect)
+            self.screen.blit(self.you_names[you_selected-1][0], self.you_names[you_selected-1][1])
+            self.screen.blit(self.opponent_names[opponent_selected-1][0], self.opponent_names[opponent_selected-1][1])
             self.screen.blit(self.logged_in_as, self.logged_in_as_rect)
+
+            if pregame.keeps[opponent]: self.screen.blit(self.checked, self.checked_rect)
+            else: self.screen.blit(self.unchecked, self.unchecked_rect)
 
             self.cursor_rect.center = mouse_pos
             self.screen.blit(self.cursor, self.cursor_rect)
