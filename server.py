@@ -40,13 +40,13 @@ id_count = 0
 def processData(data):
     parts = data.split('.')
 
-    user = False
-    selected = False
-    shape = False
-    keeps = False
-    ready = False
-    kill = False
-    get = False
+    user = None
+    selected = None
+    shape = None
+    keeps = None
+    ready = None
+    kill = None
+    get = None
 
     for part in parts:
         if part[:5] == "USER_":
@@ -107,22 +107,22 @@ def threaded_client(conn, player, game_id):
                 else:
                     user, selected, shape, keeps, ready, kill, get = processData(data)
 
-                    if user != False:
+                    if user != None:
                         pregame.user_ids[player] = user
                     
-                    if selected != False:
+                    if selected != None:
                         pregame.users_selected[player] = selected
 
-                    if shape != False:
+                    if shape != None:
                         pregame.shape_ids[player] = shape
 
-                    if keeps != False:
+                    if keeps != None:
                         pregame.keeps[player] = keeps
 
-                    if ready != False:
+                    if ready != None:
                         pregame.players_ready[player] = ready
 
-                    if kill != False:
+                    if kill != None:
                         pregame.kill[player] = kill
                         break
 
@@ -211,8 +211,9 @@ def threaded_client(conn, player, game_id):
             else:
                 print("----- GAME ID NOT IN PREGAMES -----")
                 
-                reply = {'kill': [True, True]}
-                conn.sendall(pickle.dumps(reply))
+                pregame = Pregame(-1)
+                pregame.kill = [True, True]
+                conn.sendall(pickle.dumps(pregame))
 
                 break
         except Exception as err:
