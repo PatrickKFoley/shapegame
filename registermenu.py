@@ -115,8 +115,8 @@ class RegisterMenu():
                             pass
 
                         # password must be > 8 character
-                        if (len(self.register_password_editable.getText()) <= 8):
-                            short_password_flag = True
+                        # if (len(self.register_password_editable.getText()) <= 8):
+                        #     short_password_flag = True
 
                         # passwords must match
                         if (self.register_password_confirm_editable.getText() != self.register_password_editable.getText()):

@@ -48,7 +48,7 @@ class Game:
 
         self.screen_w = 1720
         self.screen_h = 1080
-        self.fps = 144
+        self.fps = 60
         self.screen = screen
         self.running = True
         self.frames = 0

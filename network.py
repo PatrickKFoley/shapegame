@@ -37,9 +37,9 @@ class Network:
         thread = Thread(target=self.asyncSend(data))
         thread.start()
 
-    def readyUp(self):
+    def readyUp(self, data):
         try:
-            self.client.send(str.encode("READY."))
+            self.client.send(str.encode("READY_{}.".format(data)))
 
             response = pickle.loads(self.client.recv(4096))
             self.pregame = response

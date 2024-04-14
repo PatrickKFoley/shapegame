@@ -6,7 +6,7 @@ from circledata import *
 from user import User
 from shape import Shape
 from clickabletext import ClickableText
-from checkbox import Checkbox
+from doublecheckbox import Checkbox
 from menucircle import MenuShape
 
 class NetworkMatchMenu():
@@ -34,6 +34,12 @@ class NetworkMatchMenu():
         self.unchecked = pygame.transform.smoothscale(pygame.image.load("backgrounds/box_unchecked.png"),  (28, 28))
         self.unchecked_rect = self.unchecked.get_rect()
         self.checked_rect.center = self.unchecked_rect.center = [1118, 900]
+
+        self.ready_checked = pygame.transform.smoothscale(pygame.image.load("backgrounds/box_checked.png"), (133, 133))
+        self.ready_checked_rect = self.ready_checked.get_rect()
+        self.ready_unchecked = pygame.transform.smoothscale(pygame.image.load("backgrounds/box_unchecked.png"),  (133, 133))
+        self.ready_unchecked_rect = self.ready_unchecked.get_rect()
+        self.ready_checked_rect.center = self.ready_unchecked_rect.center = [1125, 1000]
 
 
         self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
@@ -101,7 +107,8 @@ class NetworkMatchMenu():
         self.simulating_rect.center = [1920 / 2, 1080 / 2]
 
         self.exit_clickable = ClickableText("back", 50, 1860, 1045)
-        self.checkbox = Checkbox("playing for keeps", 40, 975, 900)
+        self.checkbox = Checkbox("playing for keeps", 40, 1920/2, 900)
+        self.ready_checkbox = Checkbox("ready", 100, 1920/2, 1000)
 
         self.clickables = []
         self.clickables.append(self.exit_clickable)
@@ -291,6 +298,16 @@ class NetworkMatchMenu():
                 time.sleep(0.5)
                 break
 
+            # print(repr(pregame))
+
+            # check if opponent clicked ready
+            if pregame.players_ready[opponent] != self.ready_checkbox.opp_checked:
+                self.ready_checkbox.oppToggle()
+
+            # check if opponent clicked keeps
+            if pregame.keeps[opponent] != self.checkbox.opp_checked:
+                self.checkbox.oppToggle()
+
             # check if opponent left
             if pregame.kill[opponent]:
                 running = False
@@ -328,9 +345,9 @@ class NetworkMatchMenu():
                         self.checkbox.toggle()
                         self.network.send("KEEPS_" + str(self.checkbox.getValue()) + ".")
 
-                    elif self.ready_q_rect.collidepoint(mouse_pos):
-                        ready = True
-                        self.network.readyUp()
+                    elif self.ready_checkbox.rect.collidepoint(mouse_pos):
+                        self.ready_checkbox.toggle()
+                        self.network.readyUp(str(self.ready_checkbox.getValue()))
 
                     elif right_rect.collidepoint(mouse_pos) or left_rect.collidepoint(mouse_pos):
                         if left_rect.collidepoint(mouse_pos):
@@ -401,6 +418,7 @@ class NetworkMatchMenu():
             self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 50))  
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
             self.screen.blit(self.checkbox.surface, self.checkbox.rect)
+            self.screen.blit(self.ready_checkbox.surface, self.ready_checkbox.rect)
             self.screen.blit(left_surface, left_rect)
             self.screen.blit(right_surface, right_rect)
             # self.screen.blit(you_username_surface, you_username_rect)
@@ -409,14 +427,14 @@ class NetworkMatchMenu():
             self.screen.blit(self.opponent_names[opponent_selected-1][0], self.opponent_names[opponent_selected-1][1])
             self.screen.blit(self.logged_in_as, self.logged_in_as_rect)
 
-            if pregame.keeps[opponent]: self.screen.blit(self.checked, self.checked_rect)
-            else: self.screen.blit(self.unchecked, self.unchecked_rect)
+            # if pregame.keeps[opponent]: self.screen.blit(self.checked, self.checked_rect)
+            # else: self.screen.blit(self.unchecked, self.unchecked_rect)
 
             self.cursor_rect.center = mouse_pos
             self.screen.blit(self.cursor, self.cursor_rect)
 
-            if not ready: self.screen.blit(self.ready_q, self.ready_q_rect)
-            else: self.screen.blit(self.ready_e, self.ready_e_rect)
+            # if not ready: self.screen.blit(self.ready_q, self.ready_q_rect)
+            # else: self.screen.blit(self.ready_e, self.ready_e_rect)
 
             pygame.display.flip()
             
