@@ -6,8 +6,9 @@ from circledata import *
 from user import User
 from shape import Shape
 from clickabletext import ClickableText
-from doublecheckbox import Checkbox
+from doublecheckbox import DoubleCheckbox
 from menucircle import MenuShape
+from arrow import Arrow
 
 class NetworkMatchMenu():
     def __init__(self, screen, user, shapes, session, circle_images_full):
@@ -107,11 +108,16 @@ class NetworkMatchMenu():
         self.simulating_rect.center = [1920 / 2, 1080 / 2]
 
         self.exit_clickable = ClickableText("back", 50, 1860, 1045)
-        self.checkbox = Checkbox("playing for keeps", 40, 1920/2, 900)
-        self.ready_checkbox = Checkbox("ready", 100, 1920/2, 1000)
+        self.checkbox = DoubleCheckbox("playing for keeps", 40, 1920/2, 900)
+        self.ready_checkbox = DoubleCheckbox("ready", 100, 1920/2, 1000)
+
+        self.right = Arrow(1920/2 + 50, 800, "->")
+        self.left = Arrow(1920/2 - 50, 800, "<-")
 
         self.clickables = []
         self.clickables.append(self.exit_clickable)
+        self.clickables.append(self.right)
+        self.clickables.append(self.left)
 
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title, self.title_rect)
@@ -237,13 +243,13 @@ class NetworkMatchMenu():
                 shape.disable()
 
         # create arrows
-        right_surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
-        right_rect = right_surface.get_rect()
-        right_rect.center = [1920 / 2 + 50, 800]
+        # right_surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
+        # right_rect = right_surface.get_rect()
+        # right_rect.center = [1920 / 2 + 50, 800]
 
-        left_surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
-        left_rect = left_surface.get_rect()
-        left_rect.center = [1920 / 2 - 50, 800]
+        # left_surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
+        # left_rect = left_surface.get_rect()
+        # left_rect.center = [1920 / 2 - 50, 800]
 
         # other things
         frames = 0
@@ -349,28 +355,25 @@ class NetworkMatchMenu():
                         self.ready_checkbox.toggle()
                         self.network.readyUp(str(self.ready_checkbox.getValue()))
 
-                    elif right_rect.collidepoint(mouse_pos) or left_rect.collidepoint(mouse_pos):
-                        if left_rect.collidepoint(mouse_pos):
+                    elif self.right.rect.collidepoint(mouse_pos) or self.left.rect.collidepoint(mouse_pos):
+                        if self.left.rect.collidepoint(mouse_pos):
                             # Check if selected shape in bounds
                             if you_selected != 1:
                                 you_selected -= 1
-                                self.network.send("SELECTED_" + str(you_selected) + ".")
-                                # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id + "."))
 
                                 if len(self.shapes) >= 6:
                                     for shape in self.you_group.sprites():
                                         shape.moveRight()
 
-                        elif right_rect.collidepoint(mouse_pos):
+                        elif self.right.rect.collidepoint(mouse_pos):
                             if you_selected != len(self.shapes):
                                 you_selected += 1
-                                self.network.send("SELECTED_" + str(you_selected) + ".")
-                                # self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id + "."))
-
+                                
                                 if len(self.shapes) >= 6:
                                     for shape in self.you_group.sprites():
                                         shape.moveLeft()
 
+                        self.network.send("SELECTED_" + str(you_selected) + ".")
                         self.network.send("SHAPE_" + str(self.shapes[you_selected-1].id) + ".")
 
                         counter = 0
@@ -419,8 +422,10 @@ class NetworkMatchMenu():
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
             self.screen.blit(self.checkbox.surface, self.checkbox.rect)
             self.screen.blit(self.ready_checkbox.surface, self.ready_checkbox.rect)
-            self.screen.blit(left_surface, left_rect)
-            self.screen.blit(right_surface, right_rect)
+            # self.screen.blit(left_surface, left_rect)
+            # self.screen.blit(right_surface, right_rect)
+            self.screen.blit(self.right.surface, self.right.rect)
+            self.screen.blit(self.left.surface, self.left.rect)
             # self.screen.blit(you_username_surface, you_username_rect)
             # self.screen.blit(opponent_username_surface, opponent_username_rect)
             self.screen.blit(self.you_names[you_selected-1][0], self.you_names[you_selected-1][1])

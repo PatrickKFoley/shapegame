@@ -130,7 +130,7 @@ class PowerupDisplayMenu():
         for sound in self.death_sounds:
             sound.set_volume(.5)
 
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
+        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
 
         self.clickables = []
         self.clickables.append(self.exit_clickable)

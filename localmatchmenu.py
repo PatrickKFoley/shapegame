@@ -4,6 +4,7 @@ from simplecircle import SimpleCircle
 from game import Game
 from circledata import *
 from clickabletext import ClickableText
+from arrow import Arrow
 
 class LocalMatchMenu():
     def __init__(self, screen, circle_images_full):
@@ -56,7 +57,7 @@ class LocalMatchMenu():
 
         self.start_clickable = ClickableText("start", 100, 1920 / 2, 750)
         self.simulate_clickable = ClickableText("simulate", 65, 1920 / 2, 850)
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
+        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
 
         self.clickables = []
         self.clickables.append(self.start_clickable)
@@ -102,62 +103,100 @@ class LocalMatchMenu():
 
 
         # draw arrows
-        self.color_right_1 = self.arrow_right
-        self.color_right_1_rect = self.color_right_1.get_rect()
-        self.color_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 230)
+        # self.color_right_1 = self.arrow_right
+        # self.color_right_1_rect = self.color_right_1.get_rect()
+        # self.color_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 230)
 
-        self.color_left_1 = self.arrow_left
-        self.color_left_1_rect = self.color_right_1.get_rect()
-        self.color_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 230)
+        self.color_right_1 = Arrow(1920 / 3 + 50, 2 * 1080 / 3 + 230, "->", 50, 50)
 
-        self.face_right_1 = self.arrow_right
-        self.face_right_1_rect = self.face_right_1.get_rect()
-        self.face_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 270)
+        # self.color_left_1 = self.arrow_left
+        # self.color_left_1_rect = self.color_right_1.get_rect()
+        # self.color_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 230)
 
-        self.face_left_1 = self.arrow_left
-        self.face_left_1_rect = self.face_right_1.get_rect()
-        self.face_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 270)
+        self.color_left_1 = Arrow(1920 / 3 - 50, 2 * 1080 / 3 + 230,  "<-", 50, 50)
 
-        self.color_right_0 = self.arrow_right
-        self.color_right_0_rect = self.color_right_0.get_rect()
-        self.color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 230)
+        # self.face_right_1 = self.arrow_right
+        # self.face_right_1_rect = self.face_right_1.get_rect()
+        # self.face_right_1_rect.center = (1920 / 3 + 50, 2 * 1080 / 3 + 270)
 
-        self.color_left_0 = self.arrow_left
-        self.color_left_0_rect = self.color_right_0.get_rect()
-        self.color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 230)
+        self.face_right_1 = Arrow(1920 / 3 + 50, 2 * 1080 / 3 + 290, "->", 50, 50)
 
-        self.face_right_0 = self.arrow_right
-        self.face_right_0_rect = self.face_right_0.get_rect()
-        self.face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 270)
+        # self.face_left_1 = self.arrow_left
+        # self.face_left_1_rect = self.face_right_1.get_rect()
+        # self.face_left_1_rect.center = (1920 / 3 - 50, 2 * 1080 / 3 + 270)
 
-        self.face_left_0 = self.arrow_left
-        self.face_left_0_rect = self.face_right_0.get_rect()
-        self.face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 270)
+        self.face_left_1 = Arrow(1920 / 3 - 50, 2 * 1080 / 3 + 290, "<-", 50, 50)
+
+        # self.color_right_0 = self.arrow_right
+        # self.color_right_0_rect = self.color_right_0.get_rect()
+        # self.color_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 230)
+
+        self.color_right_0 = Arrow(2 * 1920 / 3 + 50, 2 * 1080 / 3 + 230, "->", 50, 50)
+
+        # self.color_left_0 = self.arrow_left
+        # self.color_left_0_rect = self.color_right_0.get_rect()
+        # self.color_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 230)
+
+        self.color_left_0 = Arrow(2 * 1920 / 3 - 50, 2 * 1080 / 3 + 230, "<-", 50, 50)
+
+        # self.face_right_0 = self.arrow_right
+        # self.face_right_0_rect = self.face_right_0.get_rect()
+        # self.face_right_0_rect.center = (2 * 1920 / 3 + 50, 2 * 1080 / 3 + 270)
+
+        self.face_right_0 = Arrow(2 * 1920 / 3 + 50, 2 * 1080 / 3 + 290, "->", 50, 50)
+
+        # self.face_left_0 = self.arrow_left
+        # self.face_left_0_rect = self.face_right_0.get_rect()
+        # self.face_left_0_rect.center = (2 * 1920 / 3 - 50, 2 * 1080 / 3 + 270)
+
+        self.face_left_0 = Arrow(2 * 1920 / 3 - 50, 2 * 1080 / 3 + 290, "<-", 50, 50)
+
+        self.l_left = Arrow(1920 - 155, 880, "<-", 50, 50)
+        self.l_right = Arrow(1920 - 90, 880, "->", 50, 50)
+
+        self.r_left = Arrow(90, 880, "<-", 50, 50)
+        self.r_right = Arrow(155, 880, "->", 50, 50)
+
+        self.clickables.append(self.color_right_1)
+        self.clickables.append(self.color_left_1)
+        self.clickables.append(self.face_right_1)
+        self.clickables.append(self.face_left_1)
+        self.clickables.append(self.color_right_0)
+        self.clickables.append(self.color_left_0)
+        self.clickables.append(self.face_right_0)
+        self.clickables.append(self.face_left_0)
+        self.clickables.append(self.l_left)
+        self.clickables.append(self.l_right)
+        self.clickables.append(self.r_left)
+        self.clickables.append(self.r_right)
+    
 
 
         self.l_count_obj = self.font.render(str(self.c0_count), 1, "white")
         self.l_count_rect = self.l_count_obj.get_rect()
         self.l_count_rect.center = (1920 - 125, 820)
         
-        self.l_left = self.arrow_left
-        self.l_left_rect = self.l_left.get_rect()
-        self.l_left_rect.center = (1920 - 150, 880)
+        # self.l_left = self.arrow_left
+        # self.l_left_rect = self.l_left.get_rect()
+        # self.l_left_rect.center = (1920 - 150, 880)
 
-        self.l_right = self.arrow_right
-        self.l_right_rect = self.l_right.get_rect()
-        self.l_right_rect.center = (1920 - 95, 880)
+        # self.l_right = self.arrow_right
+        # self.l_right_rect = self.l_right.get_rect()
+        # self.l_right_rect.center = (1920 - 95, 880)
+
+        
 
         self.r_count_obj = self.font.render(str(self.c1_count), 1, "white")
         self.r_count_rect = self.r_count_obj.get_rect()
         self.r_count_rect.center = (125, 820)
         
-        self.r_left = self.arrow_left
-        self.r_left_rect = self.r_left.get_rect()
-        self.r_left_rect.center = (100, 880)
+        # self.r_left = self.arrow_left
+        # self.r_left_rect = self.r_left.get_rect()
+        # self.r_left_rect.center = (100, 880)
 
-        self.r_right = self.arrow_right
-        self.r_right_rect = self.r_right.get_rect()
-        self.r_right_rect.center = (150, 880)
+        # self.r_right = self.arrow_right
+        # self.r_right_rect = self.r_right.get_rect()
+        # self.r_right_rect.center = (150, 880)
 
         self.seed_input_clicked = False
 
@@ -212,16 +251,16 @@ class LocalMatchMenu():
             self.screen.blit(self.circle_2, (1920 / 3 - self.circle_2.get_size()[0] / 2, 2 * 1080 / 3))
 
 
-            self.screen.blit(self.color_right_1, self.color_right_1_rect)
-            self.screen.blit(self.color_left_1, self.color_left_1_rect)
-            self.screen.blit(self.face_right_1, self.face_right_1_rect)
-            self.screen.blit(self.face_left_1, self.face_left_1_rect)
+            self.screen.blit(self.color_right_1.surface, self.color_right_1.rect)
+            self.screen.blit(self.color_left_1.surface, self.color_left_1.rect)
+            self.screen.blit(self.face_right_1.surface, self.face_right_1.rect)
+            self.screen.blit(self.face_left_1.surface, self.face_left_1.rect)
 
 
-            self.screen.blit(self.color_right_0, self.color_right_0_rect)
-            self.screen.blit(self.color_left_0, self.color_left_0_rect)
-            self.screen.blit(self.face_right_0, self.face_right_0_rect)
-            self.screen.blit(self.face_left_0, self.face_left_0_rect)
+            self.screen.blit(self.color_right_0.surface, self.color_right_0.rect)
+            self.screen.blit(self.color_left_0.surface, self.color_left_0.rect)
+            self.screen.blit(self.face_right_0.surface, self.face_right_0.rect)
+            self.screen.blit(self.face_left_0.surface, self.face_left_0.rect)
 
             [self.surface_0, self.surface_1] = self.createCircleStatsSurfaces()
 
@@ -239,12 +278,12 @@ class LocalMatchMenu():
 
             # draw counts + arrows
             self.screen.blit(self.l_count_obj, self.l_count_rect)
-            self.screen.blit(self.l_left, self.l_left_rect)
-            self.screen.blit(self.l_right, self.l_right_rect)
+            self.screen.blit(self.l_left.surface, self.l_left.rect)
+            self.screen.blit(self.l_right.surface, self.l_right.rect)
 
             self.screen.blit(self.r_count_obj, self.r_count_rect)
-            self.screen.blit(self.r_left, self.r_left_rect)
-            self.screen.blit(self.r_right, self.r_right_rect)
+            self.screen.blit(self.r_left.surface, self.r_left.rect)
+            self.screen.blit(self.r_right.surface, self.r_right.rect)
 
             events = pygame.event.get()
 
@@ -339,44 +378,44 @@ class LocalMatchMenu():
                             self.seed_input.cursor_visible = True
                             unclick_seed_input = False
 
-                        elif self.color_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_right_1.rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 += 1
                             if self.color_1 == len(colors): self.color_1 = 0
                             self.changeCircles()
 
-                        elif self.color_left_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_left_1.rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_1 -= 1
                             if self.color_1 == -1: self.color_1 = len(colors) - 1
                             # start_clicked = True
                             self.changeCircles()
 
-                        elif self.face_right_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_right_1.rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 += 1
                             if self.face_1 == self.num_faces: self.face_1 = 0
                             self.changeCircles()
 
-                        elif self.face_left_1_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_left_1.rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_1 -= 1
                             if self.face_1 == -1: self.face_1 = self.num_faces - 1
                             self.changeCircles()
 
-                        elif self.color_right_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_right_0.rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 += 1
                             if self.color_0 == len(colors): self.color_0 = 0
                             self.changeCircles()
 
-                        elif self.color_left_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.color_left_0.rect.collidepoint(pygame.mouse.get_pos()):
                             self.color_0 -= 1
                             if self.color_0 == -1: self.color_0 = len(colors) - 1
                             # start_clicked = True
                             self.changeCircles()
 
-                        elif self.face_right_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_right_0.rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_0 += 1
                             if self.face_0 == self.num_faces: self.face_0 = 0
                             self.changeCircles()
 
-                        elif self.face_left_0_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.face_left_0.rect.collidepoint(pygame.mouse.get_pos()):
                             self.face_0 -= 1
                             if self.face_0 == -1: self.face_0 = self.num_faces - 1
                             self.changeCircles()
@@ -387,16 +426,16 @@ class LocalMatchMenu():
                         elif self.simulate_clickable.rect.collidepoint(pygame.mouse.get_pos()):
                             simulate_clicked = True
 
-                        elif self.l_left_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.l_left.rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c0_count != 1: self.c0_count -= 1
 
-                        elif self.l_right_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.l_right.rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c0_count != 20: self.c0_count += 1
 
-                        elif self.r_left_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.r_left.rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c1_count != 1: self.c1_count -= 1
 
-                        elif self.r_right_rect.collidepoint(pygame.mouse.get_pos()):
+                        elif self.r_right.rect.collidepoint(pygame.mouse.get_pos()):
                             if self.c1_count != 20: self.c1_count += 1
 
                         elif self.exit_clickable.rect.collidepoint(pygame.mouse.get_pos()):

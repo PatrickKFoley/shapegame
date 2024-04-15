@@ -3,6 +3,7 @@ from pygame.locals import *
 from circledata import *
 from clickabletext import ClickableText
 from menucircle import MenuShape
+from arrow import Arrow
 
 class UserCollectionMenu():
     def __init__(self, screen, circle_images_full, shapes, user):
@@ -29,12 +30,17 @@ class UserCollectionMenu():
         self.close_sound = pygame.mixer.Sound("sounds/close.wav")
         self.close_sound.set_volume(.5)
 
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
+        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
         self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
         self.logged_in_as_rect.topleft = (10, 1030)
 
+        self.right = Arrow(1920/2 + 50, 700, "->")
+        self.left = Arrow(1920/2 - 50, 700, "<-")
+
         self.clickables = []
         self.clickables.append(self.exit_clickable)
+        self.clickables.append(self.right)
+        self.clickables.append(self.left)
 
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title, self.title_rect)
@@ -72,15 +78,7 @@ class UserCollectionMenu():
             counter += 1
             if counter == selected_shape:
                 shape.toggleSelected()
-            
-        l_arrow = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_left.png"), (75, 50))
-        l_arrow_rect = l_arrow.get_rect()
-        l_arrow_rect.center = [1920 / 2 - 50, 700]
-
-        r_arrow = pygame.transform.smoothscale(pygame.image.load("backgrounds/arrow_right.png"), (75, 50))
-        r_arrow_rect = r_arrow.get_rect()
-        r_arrow_rect.center = [1920 / 2 + 50, 700]
-
+                
         running = True
         while running:
             mouse_pos = pygame.mouse.get_pos()
@@ -96,15 +94,15 @@ class UserCollectionMenu():
                         self.close_sound.play()
                         running = False
                     
-                    elif l_arrow_rect.collidepoint(mouse_pos) or r_arrow_rect.collidepoint(mouse_pos):
-                        if l_arrow_rect.collidepoint(mouse_pos):
+                    elif self.left.rect.collidepoint(mouse_pos) or self.right.rect.collidepoint(mouse_pos):
+                        if self.left.rect.collidepoint(mouse_pos):
                             if selected_shape != 1:
                                 selected_shape -= 1
                                 for shape in self.collection_group.sprites():
                                     if len(self.shapes) >= 6:
                                         shape.moveRight()
 
-                        elif r_arrow_rect.collidepoint(mouse_pos):
+                        elif self.right.rect.collidepoint(mouse_pos):
                             if selected_shape != len(self.shapes):
                                 selected_shape += 1
                                 for shape in self.collection_group.sprites():
@@ -129,8 +127,8 @@ class UserCollectionMenu():
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
             self.screen.blit(self.logged_in_as, self.logged_in_as_rect)
 
-            self.screen.blit(l_arrow, l_arrow_rect)
-            self.screen.blit(r_arrow, r_arrow_rect)
+            self.screen.blit(self.left.surface, self.left.rect)
+            self.screen.blit(self.right.surface, self.right.rect)
 
             self.cursor_rect.center = pygame.mouse.get_pos()
             self.screen.blit(self.cursor, self.cursor_rect)
