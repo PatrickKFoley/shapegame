@@ -184,13 +184,22 @@ class CreateShapeMenu():
         base = circles_unchanged[face_id]
 
         density = base["density"]
-        velocity = base["velocity"] + random.randint(-3, 3)
+        velocity = base["velocity"] + random.randint(0, 3)
         radius_min = base["radius_min"] + random.randint(-3, 3)
         radius_max = base["radius_max"] + random.randint(-3, 3)
         health = base["health"] + random.randint(-100, 100)
-        dmg_multiplier = round(base["dmg_multiplier"] + round((random.randint(-10, 10) / 10), 2), 2)
-        luck = round(base["luck"] + round((random.randint(-10, 10) / 10), 2), 2)
+        dmg_multiplier = round(base["dmg_multiplier"] + (random.randint(-10, 10) / 10), 2)
+        luck = round(base["luck"] + (random.randint(-10, 10) / 10), 2)
         team_size = base["team_size"] + random.randint(-3, 3)
+
+        # DON'T LET RAD_MIN > RAD_MAX
+        while radius_min >= radius_max:
+            radius_min = base["radius_min"] + random.randint(-3, 3)
+            radius_max = base["radius_max"] + random.randint(-3, 3)
+
+        # DON'T LET DMGX == 0
+        while dmg_multiplier == 0.0:
+            dmg_multiplier = round(base["dmg_multiplier"] + (random.randint(-10, 10) / 10), 2)
 
         if owner_id != -1:
             try:

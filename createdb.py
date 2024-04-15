@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float
 from sqlalchemy_utils import database_exists, create_database
 import urllib.parse
 from sqlalchemy.orm import declarative_base
@@ -44,8 +44,8 @@ class Shape(BaseClass):
     radius_min = Column("radius_min", Integer)
     radius_max = Column("radius_max", Integer)
     health = Column("health", Integer)
-    dmg_multiplier = Column("dmg_multiplier", Integer)
-    luck = Column("luck", Integer)
+    dmg_multiplier = Column("dmg_multiplier", Float)
+    luck = Column("luck", Float)
     team_size = Column("team_size", Integer)
 
     def __init__(self, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size):
@@ -81,19 +81,20 @@ def createShape(owner_id):
 
     return Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
 
-str1 = "postgresql://db_user:"
-strm = urllib.parse.quote_plus("$y$j9T$6C3HeUj8d4qRiEP9N6XwN/$OckraHKRhE9PbuUL1sD3DeZYxFK.vs3zZO1gTQZFa21")
-str2 = "@localhost/root/shapegame-server-2024/shapegame.db"
-
 connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
 
 engine = create_engine(connection_string, echo=True)
-# if not database_exists(engine.url):
-#     create_database(engine.url)
+if not database_exists(engine.url):
+    create_database(engine.url)
+BaseClass.metadata.drop_all(bind=engine)
 BaseClass.metadata.create_all(bind=engine)
 
 Session = sessionmaker(bind=engine)
 session = Session()
+
+
+session.query(Shape).delete()
+session.query(User).delete()
 
 try:
     user_1 = User("pat")
@@ -106,9 +107,9 @@ try:
     session.add(user_2)
     session.commit()
 
-    session.add(shape_2)
-    session.add(shape_1)
-    session.commit()
+    # session.add(shape_2)
+    # session.add(shape_1)
+    # session.commit()
 except Exception as e:
     session.rollback()
     print(e)

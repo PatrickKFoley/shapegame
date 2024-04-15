@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR 
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -17,8 +17,8 @@ class Shape(BaseClass):
     radius_min = Column("radius_min", Integer)
     radius_max = Column("radius_max", Integer)
     health = Column("health", Integer)
-    dmg_multiplier = Column("dmg_multiplier", Integer)
-    luck = Column("luck", Integer)
+    dmg_multiplier = Column("dmg_multiplier", Float)
+    luck = Column("luck", Float)
     team_size = Column("team_size", Integer)
     num_wins = Column("num_wins", Integer, default=0)
     level = Column("level", Integer, default=1)
