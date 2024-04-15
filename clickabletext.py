@@ -1,6 +1,6 @@
 import pygame
 
-MAX_GROWTH = 10
+MAX_GROWTH = 6
 
 class ClickableText:
     def __init__(self, text, size, x, y):
