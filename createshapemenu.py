@@ -203,7 +203,7 @@ class CreateShapeMenu():
 
         if owner_id != -1:
             try:
-                shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
+                shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, self.user.username)
                 
                 thread = Thread(target=self.commitShape(shape))
                 thread.start()
@@ -214,7 +214,7 @@ class CreateShapeMenu():
                 self.session.rollback()
                 return False
         else:
-            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
+            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, "no one")
             return shape
 
     def checkShapeCollisions(self, group, damage = False):

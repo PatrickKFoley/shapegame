@@ -1,4 +1,4 @@
-import pygame
+import pygame, datetime, pytz
 from circledata import *
 
 class MenuShape(pygame.sprite.Sprite):
@@ -27,7 +27,7 @@ class MenuShape(pygame.sprite.Sprite):
         self.stats_surface_rect = self.stats_surface.get_rect()
 
         if mode == "COLLECTIONS":
-            self.stats_surface_rect.center = [1920 / 2 - 50, 1000]
+            self.stats_surface_rect.center = [1920 / 2 - 35, 1000]
         elif mode == "OPPONENT":
             self.stats_surface_rect.center = [1920 / 2 + 480, 1050]
         else:
@@ -57,12 +57,18 @@ class MenuShape(pygame.sprite.Sprite):
     def createStatsSurface(self):
         if self.mode == "PLAYER" or self.mode == "OPPONENT":
             font_size = 35
+            width = 500
         else:
             font_size = 40
+            width = 1000
 
         big_font_size = 60
 
-        surface = pygame.Surface((500, 500), pygame.SRCALPHA, 32)
+
+
+        surface = pygame.Surface((width, 500), pygame.SRCALPHA, 32)
+        # background = pygame.transform.smoothscale(pygame.image.load("backgrounds/transparent_background.png"), (width, 500))
+        # surface.blit(background, (0, 0))
         font = pygame.font.Font("backgrounds/font.ttf", font_size)
         font_big = pygame.font.Font("backgrounds/font.ttf", big_font_size)
 
@@ -119,7 +125,57 @@ class MenuShape(pygame.sprite.Sprite):
             surface.blit(value_text, value_text_rect)
             i += 1
 
+        # Draw on the right side of the screen
+
+        utc_timezone = pytz.timezone('UTC')
+        est_timezone = pytz.timezone('US/Eastern')
+
+        obtained_on_datetime = utc_timezone.localize(self.shape.obtained_on).astimezone(est_timezone)
+        created_on_datetime = utc_timezone.localize(self.shape.created_on).astimezone(est_timezone)
+
+        obtained_on_str = ["obtained on: ", "{}".format(obtained_on_datetime.strftime("%m/%d/%Y, %H:%M"))]
+        created_on_surface, created_on_rect = self.createText(obtained_on_str, font_size)
+        surface.blit(created_on_surface, [750 - created_on_surface.get_size()[0]/2, -10])
+
+        created_on_str = ["created on: ", "{}".format(created_on_datetime.strftime("%m/%d/%Y, %H:%M"))]
+        created_surface, created_rect = self.createText(created_on_str, font_size)
+        surface.blit(created_surface, [750 - created_surface.get_size()[0]/2, 75])
+
+        num_owners_str = "number of owners: {}".format(self.shape.num_owners)
+        num_owners_surface, num_owners_rect = self.createText(num_owners_str, font_size)
+        surface.blit(num_owners_surface, [750 - num_owners_surface.get_size()[0]/2, 200])
+
+        created_by_str = "created by: {}".format(self.shape.created_by)
+        created_by_surface, created_by_rect = self.createText(created_by_str, font_size)
+        surface.blit(created_by_surface, [750 - created_by_surface.get_size()[0]/2, 250])
+
         return surface
+
+    @staticmethod
+    def createText(text, size, color = "white"):
+        font = pygame.font.Font("backgrounds/font.ttf", size)
+        
+
+        if type(text) == type("string"):
+            text_surface = font.render(text, True, color)
+            text_rect = text_surface.get_rect()
+
+            return text_surface, text_rect
+        
+        elif type(text) == type(["array"]):
+            text_surfaces = []
+            for element in text:
+                text_surfaces.append(font.render(element, True, color))
+
+            max_line_length = max(surface.get_size()[0] for surface in text_surfaces)
+            line_height = text_surfaces[0].get_size()[1]
+
+            surface = pygame.Surface((max_line_length, (len(text_surfaces) + 1) * line_height), pygame.SRCALPHA, 32)
+
+            for i, text_surface in enumerate(text_surfaces):
+                surface.blit(text_surface, [max_line_length/2 - text_surface.get_size()[0]/2, line_height * (i+1)])
+
+            return surface, surface.get_rect()
 
     def moveLeft(self):
         self.next_x -= 1920 / self.num_shapes
