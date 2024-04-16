@@ -270,7 +270,7 @@ class PowerupDisplayMenu():
         luck = round(base["luck"] + round((random.randint(-10, 10) / 10), 2), 2)
         team_size = base["team_size"] + random.randint(-3, 3)
 
-        shape = Shape(-1, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
+        shape = Shape(-1, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, "no one")
         return shape
 
     # ALL POWERUP DISPLAY HELPERS

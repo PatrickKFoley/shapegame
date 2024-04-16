@@ -3,6 +3,8 @@ from shape import Shape
 from sqlalchemy import func
 from circledata import *
 
+OFFSET = -35
+
 class MenuShape(pygame.sprite.Sprite):
     def __init__(self, id, shape, image_full, num_shapes, mode = "PLAYER", selected = False, session = False):
         self.id = id
@@ -17,9 +19,9 @@ class MenuShape(pygame.sprite.Sprite):
         if mode == "COLLECTIONS":
             self.y = 500
         elif mode == "OPPONENT":
-            self.y = 300
+            self.y = 300  - 35
         else:
-            self.y = 600
+            self.y = 600  - 35
 
         self.next_x = self.x
 
@@ -32,9 +34,9 @@ class MenuShape(pygame.sprite.Sprite):
         if mode == "COLLECTIONS":
             self.stats_surface_rect.center = [1920 / 2 - 35, 1000]
         elif mode == "OPPONENT":
-            self.stats_surface_rect.center = [1920 / 2 + 480, 1050]
+            self.stats_surface_rect.center = [1920 / 2 + 480, 1050 + OFFSET]
         else:
-            self.stats_surface_rect.center = [1920 / 2 - 600, 1050]
+            self.stats_surface_rect.center = [1920 / 2 - 600, 1050 + OFFSET]
 
         if mode == "COLLECTIONS":
             self.small_r = 180
@@ -127,6 +129,26 @@ class MenuShape(pygame.sprite.Sprite):
 
             surface.blit(value_text, value_text_rect)
             i += 1
+
+        # Add a line for how long the owner has owned the shape
+
+        if self.mode == "PLAYER" or self.mode == "OPPONENT":
+            time_owned = str(datetime.datetime.utcnow() - self.shape.obtained_on)
+            time_owned = (time_owned.split(".")[0]).split(":")
+            days = int(int(time_owned[0]) // 24)
+            hours = int(int(time_owned[0]) % 24)
+            minutes = int(time_owned[1])
+
+            time_owned_str = "time owned:"
+            time_owned_surface, time_owned_rect = self.createText(time_owned_str, font_size)
+            time_owned_rect.topright = (250, i * font_size + big_font_size)
+
+            date_str = "{}d, {}h, {}m".format(days, hours, minutes)
+            date_surface, date_rect = self.createText(date_str, font_size)
+            date_rect.topleft = (270, i * font_size + big_font_size)
+
+            surface.blit(time_owned_surface, time_owned_rect)
+            surface.blit(date_surface, date_rect)
 
         # Draw on the right side of the screen
 

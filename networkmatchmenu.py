@@ -200,7 +200,7 @@ class NetworkMatchMenu():
             self.opponent_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(opponent_shapes), "OPPONENT"))
             
             opponent_username_surface, opponent_username_rect = self.createText(opponent_user.username, 100, colors[shape.color_id][2])
-            opponent_username_rect.center = [1515, 750]
+            opponent_username_rect.center = [1515, 750 - 35]
 
             self.opponent_names.append([opponent_username_surface, opponent_username_rect])
 
@@ -208,7 +208,7 @@ class NetworkMatchMenu():
 
         for shape in self.shapes:
             you_username_surface, you_username_rect = self.createText(self.user.username, 100, colors[shape.color_id][2])
-            you_username_rect.center = [420, 750]
+            you_username_rect.center = [420, 750 - 35]
 
             self.you_names.append([you_username_surface, you_username_rect])
 
@@ -418,7 +418,7 @@ class NetworkMatchMenu():
             self.opponent_group.draw(self.screen)
             self.opponent_group.update(self.screen)
 
-            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 50))  
+            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 50 - 35))  
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
             self.screen.blit(self.checkbox.surface, self.checkbox.rect)
             self.screen.blit(self.ready_checkbox.surface, self.ready_checkbox.rect)
