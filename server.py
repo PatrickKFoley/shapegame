@@ -1,4 +1,4 @@
-import socket, pickle, random
+import socket, pickle, random, datetime
 from _thread import *
 from pregame import Pregame
 from game import Game
@@ -33,7 +33,6 @@ except:
 socket.listen()
 print("Waiting for connection...")
 
-connected = set()
 pregames = {}
 id_count = 0
 
@@ -61,8 +60,10 @@ def processData(data):
         elif part[:6] == "KEEPS_":
             keeps = int(part[6:])
 
-        elif part == "READY":
-            ready = True
+        elif part[:6] == "READY_":
+            ready = int(part[6:])
+
+            ready = ready == 1
 
         elif part == "KILL":
             kill = True
@@ -130,19 +131,17 @@ def threaded_client(conn, player, game_id):
                         pregame.seed = seeds[game_id]
 
                     # SECOND HALF TO ABOVE CHECK
-                    if ready or get:
+                    if ready != None or get:
                         conn.sendall(pickle.dumps(pregame))
 
                     # One of the threads simulates the game
-
-                    # print("------------ {} {} {} {} ------------".format(player, pregame.players_ready[0], pregame.players_ready[1], game_played))
                     if player == 0 and pregame.players_ready[0] and pregame.players_ready[1] and not game_played:
                         conn.sendall(pickle.dumps(pregame))
 
                         session.commit()
 
-                        print("USER IDS: {}".format(pregame.user_ids))
-                        print("SHAPE IDS: {}".format(pregame.shape_ids))
+                        # print("USER IDS: {}".format(pregame.user_ids))
+                        # print("SHAPE IDS: {}".format(pregame.shape_ids))
 
                         player0_id = session.query(User).filter(User.id == int(pregame.user_ids[0])).first().id
                         player1_id = session.query(User).filter(User.id == int(pregame.user_ids[1])).first().id
@@ -187,8 +186,15 @@ def threaded_client(conn, player, game_id):
 
                     if game_played == True and player == 0:
                         if pregame.keeps[0] == 1 and pregame.keeps[1] == 1:
-                            if winner == 0: shape1.owner_id = player0_id
-                            else: shape0.owner_id = player1_id
+                            if winner == 0: 
+                                shape1.owner_id = player0_id
+                                shape1.num_owners += 1
+                                shape1.obtained_on = datetime.datetime.utcnow()
+                            
+                            else: 
+                                shape0.owner_id = player1_id
+                                shape0.num_owners += 1
+                                shape0.obtained_on = datetime.datetime.utcnow()
 
                         if winner == 0: shape0.num_wins += 1
                         else: shape1.num_wins += 1

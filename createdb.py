@@ -1,17 +1,13 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime
 import urllib.parse
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 from circledata import *
 from user import User
 from shape import Shape
-import random
-import os
+import random, os, datetime
 
 BaseClass = declarative_base()
-
-# if os.path.isfile("shapegame.db"):
-#     os.remove("shapegame.db")
 
 class User(BaseClass):
     __tablename__ = "users"
@@ -32,11 +28,9 @@ class Shape(BaseClass):
     __tablename__ = "shapes"
 
     id = Column("id", Integer, primary_key=True, autoincrement=True)
-    owner_id = Column("owner_id", Integer, ForeignKey("users.id"))
+    owner_id = Column("owner_id", Integer)
     face_id = Column("face_id", Integer)
     color_id = Column("color_id", Integer)
-    num_wins = Column("num_wins", Integer, default=0)
-    level = Column("level", Integer, default=1)
 
     density = Column("density", Integer)
     velocity = Column("velocity", Integer)
@@ -46,8 +40,15 @@ class Shape(BaseClass):
     dmg_multiplier = Column("dmg_multiplier", Float)
     luck = Column("luck", Float)
     team_size = Column("team_size", Integer)
+    num_wins = Column("num_wins", Integer, default=0)
+    level = Column("level", Integer, default=1)
+    num_owners = Column("num_owners", Integer, default=1)
 
-    def __init__(self, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size):
+    created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow())
+    obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
+    created_by = Column("created_by", String)
+
+    def __init__(self, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, creator_username):
         self.owner_id = owner_id
         self.face_id = face_id
         self.color_id = color_id
@@ -59,7 +60,8 @@ class Shape(BaseClass):
         self.dmg_multiplier = dmg_multiplier
         self.luck = luck
         self.team_size = team_size
-
+        self.created_by = creator_username
+    
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
@@ -80,13 +82,12 @@ def createShape(owner_id):
 
     return Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
 
-connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
 
+connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
 engine = create_engine(connection_string, echo=True)
-if not database_exists(engine.url):
-    create_database(engine.url)
 BaseClass.metadata.drop_all(bind=engine)
 BaseClass.metadata.create_all(bind=engine)
+
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -97,10 +98,10 @@ session.query(User).delete()
 
 try:
     user_1 = User("pat")
-    shape_1 = createShape(1)
+    # shape_1 = createShape(1)
 
     user_2 = User("camille")
-    shape_2 = createShape(2)
+    # shape_2 = createShape(2)
     
     session.add(user_1)
     session.add(user_2)
