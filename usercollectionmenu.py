@@ -6,11 +6,12 @@ from menucircle import MenuShape
 from arrow import Arrow
 
 class UserCollectionMenu():
-    def __init__(self, screen, circle_images_full, shapes, user):
+    def __init__(self, screen, circle_images_full, shapes, user, session):
         self.screen = screen
         self.circle_images_full = circle_images_full
         self.shapes = shapes
         self.user = user
+        self.session = session
 
         self.collection_group = pygame.sprite.Group()
 
@@ -59,7 +60,7 @@ class UserCollectionMenu():
 
         counter = 1
         for shape in self.shapes:
-            self.collection_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes), "COLLECTIONS"))
+            self.collection_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes), "COLLECTIONS", False, self.session))
             counter += 1
 
         if len(self.shapes) >= 5:

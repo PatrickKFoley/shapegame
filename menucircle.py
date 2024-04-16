@@ -1,8 +1,10 @@
 import pygame, datetime, pytz
+from shape import Shape
+from sqlalchemy import func
 from circledata import *
 
 class MenuShape(pygame.sprite.Sprite):
-    def __init__(self, id, shape, image_full, num_shapes, mode = "PLAYER", selected = False):
+    def __init__(self, id, shape, image_full, num_shapes, mode = "PLAYER", selected = False, session = False):
         self.id = id
         super().__init__()
         # self.image_full =  pygame.image.load("circles/{}/{}/0.png".format(shape.face_id, colors[shape.color_id][0]))
@@ -10,6 +12,7 @@ class MenuShape(pygame.sprite.Sprite):
         self.num_shapes = min(num_shapes + 1, 6)
         self.x = id  * 1920 / self.num_shapes
         self.mode = mode
+        self.session = session
 
         if mode == "COLLECTIONS":
             self.y = 500
@@ -127,6 +130,10 @@ class MenuShape(pygame.sprite.Sprite):
 
         # Draw on the right side of the screen
 
+        if self.session != False:
+            count = self.session.query(func.count(Shape.id)).filter(Shape.face_id == self.shape.face_id, Shape.color_id == self.shape.color_id).scalar()
+        else: count = 0
+
         utc_timezone = pytz.timezone('UTC')
         est_timezone = pytz.timezone('US/Eastern')
 
@@ -134,20 +141,24 @@ class MenuShape(pygame.sprite.Sprite):
         created_on_datetime = utc_timezone.localize(self.shape.created_on).astimezone(est_timezone)
 
         obtained_on_str = ["obtained on: ", "{}".format(obtained_on_datetime.strftime("%m/%d/%Y, %H:%M"))]
-        created_on_surface, created_on_rect = self.createText(obtained_on_str, font_size)
-        surface.blit(created_on_surface, [750 - created_on_surface.get_size()[0]/2, -10])
+        created_on_surface, created_on_rect = self.createText(obtained_on_str, font_size - 5)
+        surface.blit(created_on_surface, [750 - created_on_surface.get_size()[0]/2, -25])
 
         created_on_str = ["created on: ", "{}".format(created_on_datetime.strftime("%m/%d/%Y, %H:%M"))]
-        created_surface, created_rect = self.createText(created_on_str, font_size)
-        surface.blit(created_surface, [750 - created_surface.get_size()[0]/2, 75])
+        created_surface, created_rect = self.createText(created_on_str, font_size - 5)
+        surface.blit(created_surface, [750 - created_surface.get_size()[0]/2, 45])
 
         num_owners_str = "number of owners: {}".format(self.shape.num_owners)
-        num_owners_surface, num_owners_rect = self.createText(num_owners_str, font_size)
-        surface.blit(num_owners_surface, [750 - num_owners_surface.get_size()[0]/2, 200])
+        num_owners_surface, num_owners_rect = self.createText(num_owners_str, font_size - 5)
+        surface.blit(num_owners_surface, [750 - num_owners_surface.get_size()[0]/2, 160])
 
         created_by_str = "created by: {}".format(self.shape.created_by)
-        created_by_surface, created_by_rect = self.createText(created_by_str, font_size)
-        surface.blit(created_by_surface, [750 - created_by_surface.get_size()[0]/2, 250])
+        created_by_surface, created_by_rect = self.createText(created_by_str, font_size - 5)
+        surface.blit(created_by_surface, [750 - created_by_surface.get_size()[0]/2, 205])
+
+        rarity_str = "your shape is 1 of {}".format(count)
+        rarity_surface, rarity_rect = self.createText(rarity_str, font_size - 5)
+        surface.blit(rarity_surface, [750 - rarity_surface.get_size()[0]/2, 250])
 
         return surface
 

@@ -274,7 +274,7 @@ class Menu():
                             self.clickables.append(self.shape_tokens_clickable)
 
                         elif self.your_shapes_clickable.rect.collidepoint(mouse_pos):
-                            UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user).start()
+                            UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
 
                         elif self.exit_clickable.rect.collidepoint(mouse_pos):
                             self.close_sound.play()
@@ -285,7 +285,7 @@ class Menu():
 
                         if redirect != "NONE":
                             if redirect == "COLLECTIONS":
-                                UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user).start()
+                                UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
 
                 if event.type == KEYDOWN:
                     if event.key == 9:
