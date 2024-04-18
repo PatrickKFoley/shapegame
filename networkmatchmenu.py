@@ -9,6 +9,8 @@ from clickabletext import ClickableText
 from doublecheckbox import DoubleCheckbox
 from menucircle import MenuShape
 from arrow import Arrow
+from postgame import PostGame
+from threading import Thread
 
 class NetworkMatchMenu():
     def __init__(self, screen, user, shapes, session, circle_images_full):
@@ -18,6 +20,7 @@ class NetworkMatchMenu():
         self.shapes = shapes
         self.session = session
         self.circle_images_full = circle_images_full
+        self.winner = None
 
         self.you_group = pygame.sprite.Group()
         self.opponent_group = pygame.sprite.Group()
@@ -521,15 +524,24 @@ class NetworkMatchMenu():
                 if player_id == 0:
                     your_circle["group_id"] = 0
                     their_circle["group_id"] = 1
+
                     game = Game(your_circle, their_circle, self.user.username, opponent_user.username, self.screen, pregame.seed, real)
+                    fake_game = Game(your_circle, their_circle, "", "", None, pregame.seed, False)
+
+
                 else:
                     your_circle["group_id"] = 1
                     their_circle["group_id"] = 0
-                    game = Game(their_circle, your_circle, opponent_user.username, self.user.username, self.screen, pregame.seed, real)
-                self.stats_surface = game.play_game()
 
-                # self.network.send("KILL.")
-                
+                    game = Game(their_circle, your_circle, opponent_user.username, self.user.username, self.screen, pregame.seed, real)
+                    fake_game = Game(their_circle, your_circle, "", "", None, pregame.seed, False)
+
+                self.getWinner(fake_game)
+                game.play_game()
+
+                postGame = PostGame(self.winner == player_id, your_shape, their_shape, (pregame.keeps[0] == 1 and pregame.keeps[1] == 1), self.you_names[you_selected-1], self.opponent_names[opponent_selected-1], self.screen)
+                postGame.start()
+
                 break
             
             self.cursor_rect.center = pygame.mouse.get_pos()
@@ -542,6 +554,11 @@ class NetworkMatchMenu():
             shape.disable()
 
     # HELPERS
+
+    def getWinner(self, fake_game):
+        self.winner = fake_game.play_game()
+        print("FAKE GAME DONE")
+
 
     def createText(self, text, size, color = "white"):
         font = pygame.font.Font("backgrounds/font.ttf", size)

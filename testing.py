@@ -5,6 +5,7 @@ import random
 from game import Game
 from shape import Shape
 from circledata import *
+from threading import Thread
 
 def circle():
     pygame.init()
@@ -124,6 +125,28 @@ def play_game():
     game_shape1, game_shape2 = get2Shapes()
 
     print(Game(game_shape1, game_shape2, "team 0", "team 1", screen).play_game())
-while True:
-    simulate()
+
+def countTo5():
+    i = 0
+    while i < 5:
+        i += 1
+        print(i)
+
+def thread():
+    print("STARTING")
+
+    thread = Thread(target=countTo5)
+    thread.start()
+    # thread.join()
+
+    # threa2 = Thread(target=countTo5)
+    # threa2.start()
+    # threa2.join()
+
+    print("DONE")
+
+
+# while True:
+#     simulate()
 # play_game()
+thread()

@@ -134,10 +134,17 @@ class MenuShape(pygame.sprite.Sprite):
 
         if self.mode == "PLAYER" or self.mode == "OPPONENT":
             time_owned = str(datetime.datetime.utcnow() - self.shape.obtained_on)
-            time_owned = (time_owned.split(".")[0]).split(":")
-            days = int(int(time_owned[0]) // 24)
-            hours = int(int(time_owned[0]) % 24)
-            minutes = int(time_owned[1])
+
+            if "days" not in time_owned:
+                time_owned = (time_owned.split(".")[0]).split(":")
+                days = int(int(time_owned[0]) // 24)
+                hours = int(int(time_owned[0]) % 24)
+                minutes = int(time_owned[1])
+
+            else:
+                days = int(time_owned.split(" ")[0])
+                hours = int(time_owned.split(" ")[2].split(":")[0])
+                minutes = hours = int(time_owned.split(" ")[2].split(":")[1])
 
             time_owned_str = "time owned:"
             time_owned_surface, time_owned_rect = self.createText(time_owned_str, font_size)

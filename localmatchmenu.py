@@ -475,7 +475,7 @@ class LocalMatchMenu():
                 self.start_sound.play()
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
                 game = Game(circle_0, circle_1, "team 1", "team 2", self.screen, seed, real)
-                self.stats_surface = game.play_game()
+                winner, self.stats_surface = game.play_game()
                 self.game_played = True
 
             if start_clicked:
@@ -505,7 +505,7 @@ class LocalMatchMenu():
                 self.start_sound.play()
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
                 game = Game(circle_0, circle_1, circle_0["name"], circle_1["name"], self.screen, seed, real, True)
-                self.stats_surface = game.play_game()
+                winner, self.stats_surface = game.play_game()
                 self.game_played = True
 
 
