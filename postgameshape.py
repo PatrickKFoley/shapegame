@@ -11,10 +11,10 @@ class PostGameShape(pygame.sprite.Sprite):
         self.shape = shape
         self.y = 1080/2
 
-        if victory: face_img = 0
-        else: face_img = 3
-
-        self.image_full =  pygame.image.load("circles/{}/{}/{}.png".format(shape.face_id, colors[shape.color_id][0], face_img))
+        self.image_full_0 =  pygame.image.load("circles/{}/{}/0.png".format(shape.face_id, colors[shape.color_id][0]))
+        self.image_full_3 =  pygame.image.load("circles/{}/{}/3.png".format(shape.face_id, colors[shape.color_id][0]))
+        if victory: self.image_full = self.image_full_0
+        else: self.image_full = self.image_full_3
         self.image = pygame.transform.smoothscale(self.image_full, (301, 301))
         
         self.size = 301
@@ -24,7 +24,7 @@ class PostGameShape(pygame.sprite.Sprite):
         self.victory = victory
         self.velocity = 0
 
-        if keeps: x = 275
+        if keeps and victory: x = 275
         else: x = 450
 
         if yours: self.x = x
@@ -61,7 +61,10 @@ class PostGameShape(pygame.sprite.Sprite):
         elif self.pause > 0:
             self.pause -= 1
 
-            if self.pause == 0: self.grow_sound.play()
+            if self.pause == 0: 
+                self.grow_sound.play()
+                self.image_full = self.image_full_0
+                self.victory = True
 
         elif self.size < self.next_size:
             self.size += 10
