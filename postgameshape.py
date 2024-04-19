@@ -35,9 +35,15 @@ class PostGameShape(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
 
+        self.grow_sound = pygame.mixer.Sound("sounds/grow.wav")
+        self.shrink_sound = pygame.mixer.Sound("sounds/shrink.wav")
+
+
     def moveTo(self, x):
         self.next_x = x
         self.next_size = 1
+
+        self.shrink_sound.play()
 
     def update(self):
         change_flag = False
@@ -54,6 +60,8 @@ class PostGameShape(pygame.sprite.Sprite):
             
         elif self.pause > 0:
             self.pause -= 1
+
+            if self.pause == 0: self.grow_sound.play()
 
         elif self.size < self.next_size:
             self.size += 10
