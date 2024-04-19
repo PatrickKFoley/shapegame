@@ -6,7 +6,7 @@ JUMP_FORCE = -2.5  # Initial force of the jump
 MAX_JUMP_HEIGHT = 100  # Maximum height the character can jump
 
 class PostGameShape(pygame.sprite.Sprite):
-    def __init__(self, shape, yours = True, victory = False):
+    def __init__(self, shape, yours = True, victory = False, keeps = False):
         super().__init__()
         self.shape = shape
         self.y = 1080/2
@@ -24,8 +24,11 @@ class PostGameShape(pygame.sprite.Sprite):
         self.victory = victory
         self.velocity = 0
 
-        if yours: self.x = 250
-        else: self.x = 1920 - 250
+        if keeps: x = 275
+        else: x = 450
+
+        if yours: self.x = x
+        else: self.x = 1920 - x
 
         self.next_x = self.x
         self.og_y = self.y

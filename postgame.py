@@ -11,10 +11,12 @@ class PostGame():
         self.keeps = keeps
         self.your_username = you_name
         self.their_username = their_name
+        self.your_username[1].center = [450, 725]
+        self.their_username[1].center = [1920 - 450, 725]
         self.screen = screen
 
-        self.your_shape = PostGameShape(self.your_shape_data, True, victory)
-        self.their_shape = PostGameShape(self.their_shape_data, False, not victory)
+        self.your_shape = PostGameShape(self.your_shape_data, True, victory, keeps)
+        self.their_shape = PostGameShape(self.their_shape_data, False, not victory, keeps)
         self.shapes_group = pygame.sprite.Group()
         self.shapes_group.add(self.your_shape)
         self.shapes_group.add(self.their_shape)
@@ -75,10 +77,10 @@ class PostGame():
 
     def animateElements(self):
         # move the transferred shape to the appropriate side
-        if self.frames == 100:
+        if self.frames == 100 and self.keeps:
             
-            if self.victory: self.their_shape.moveTo(600)
-            else: self.your_shape.moveTo(1920 - 600)
+            if self.victory: self.their_shape.moveTo(625)
+            else: self.your_shape.moveTo(1920 - 625)
 
 
 
