@@ -46,6 +46,13 @@ class Network:
         except:
             pass
 
+    def receive(self):
+        try:
+            self.pregame = pickle.loads(self.client.recv(4096))
+        except:
+            pass
+        
+
     def updatePregame(self):
         try:
             self.client.send(str.encode("GET."))
@@ -56,12 +63,11 @@ class Network:
             pass
 
     def getPregame(self):
-        if not self.thread.is_alive() and (self.request_count % 10) == 0:
+        if not self.thread.is_alive():
             del self.thread
             self.thread = Thread(target=self.updatePregame)
 
             self.thread.start()
             # self.thread.join()
 
-        self.request_count += 1
         return self.pregame

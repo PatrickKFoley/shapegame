@@ -81,7 +81,6 @@ def threaded_client(conn, player, game_id):
     global id_count
     conn.send(str.encode(str(player)))
 
-    winner = 0
     player0_id = None
     player1_id = None
     shape0 = None
@@ -136,7 +135,7 @@ def threaded_client(conn, player, game_id):
 
                     # One of the threads simulates the game
                     if player == 0 and pregame.players_ready[0] and pregame.players_ready[1] and not game_played:
-                        conn.sendall(pickle.dumps(pregame))
+                        # conn.sendall(pickle.dumps(pregame))
 
                         session.commit()
 
@@ -179,14 +178,16 @@ def threaded_client(conn, player, game_id):
 
                         print("----------- ABOUT TO SIMULATE GAME -----------")
 
-                        winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
+                        pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
 
-                        print("------ GAME FINISHED: {} -----".format(winner))
+                        print("------ GAME FINISHED: {} -----".format(pregame.winner))
                         game_played = True
+
+                        conn.sendall(pickle.dumps(pregame))
 
                     if game_played == True and player == 0:
                         if pregame.keeps[0] == 1 and pregame.keeps[1] == 1:
-                            if winner == 0: 
+                            if pregame.winner == 0: 
                                 shape1.owner_id = player0_id
                                 shape1.num_owners += 1
                                 shape1.obtained_on = datetime.datetime.utcnow()
@@ -196,22 +197,25 @@ def threaded_client(conn, player, game_id):
                                 shape0.num_owners += 1
                                 shape0.obtained_on = datetime.datetime.utcnow()
 
-                        if winner == 0: shape0.num_wins += 1
+                        if pregame.winner == 0: shape0.num_wins += 1
                         else: shape1.num_wins += 1
                         session.commit()
 
                         del pregames[game_id]
                         seeds.pop(0)
 
-                        print("player 0 breaking")
                         break
 
                     if player == 1 and pregame.players_ready[0] and pregame.players_ready[1] and not game_played:
-                        conn.sendall(pickle.dumps(pregame))
+                        # conn.sendall(pickle.dumps(pregame))
                         game_played = True
 
+                        while pregame.winner == None:
+                            pass
+
+                        conn.sendall(pickle.dumps(pregame))
+
                     if game_played == True and player == 1:
-                        print("player 1 breaking")
                         break
 
             else:

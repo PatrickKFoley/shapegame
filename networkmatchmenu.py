@@ -107,7 +107,7 @@ class NetworkMatchMenu():
         self.loading, self.loading_rect = self.createText("loading", 150)
         self.loading_rect.center = [1920 / 2, 1080 / 2]
 
-        self.simulating, self.simulating_rect = self.createText("simulating", 150)
+        self.simulating, self.simulating_rect = self.createText("awaiting match results...", 150)
         self.simulating_rect.center = [1920 / 2, 1080 / 2]
 
         self.exit_clickable = ClickableText("back", 50, 1860, 1045)
@@ -536,10 +536,25 @@ class NetworkMatchMenu():
                     game = Game(their_circle, your_circle, opponent_user.username, self.user.username, self.screen, pregame.seed, real)
                     fake_game = Game(their_circle, your_circle, "", "", None, pregame.seed, False)
 
-                self.getWinner(fake_game)
+                # self.getWinner(fake_game)
                 game.play_game()
+                # self.network.receive()
+                pregame = self.network.getPregame()
 
-                postGame = PostGame(self.winner == player_id, your_shape, their_shape, (pregame.keeps[0] == 1 and pregame.keeps[1] == 1), self.you_names[you_selected-1], self.opponent_names[opponent_selected-1], self.screen)
+                while pregame.winner == None:
+                    pregame = self.network.getPregame()
+
+                    mouse_pos = pygame.mouse.get_pos()
+                    self.cursor_rect.center = mouse_pos
+
+                    pygame.display.flip()
+                    self.screen.blit(self.background, [0,0])
+                    self.screen.blit(self.simulating, self.simulating_rect)
+                    self.screen.blit(self.cursor, self.cursor_rect)
+
+                    self.clock.tick(60)
+
+                postGame = PostGame(pregame.winner == player_id, your_shape, their_shape, (pregame.keeps[0] == 1 and pregame.keeps[1] == 1), self.you_names[you_selected-1], self.opponent_names[opponent_selected-1], self.screen)
                 postGame.start()
 
                 break
