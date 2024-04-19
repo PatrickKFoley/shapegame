@@ -13,21 +13,25 @@ class PostGame():
         self.their_username = their_name
         self.screen = screen
 
-        self.your_shape = PostGameShape(self.your_shape_data, True)
-        self.their_shape = PostGameShape(self.their_shape_data, False)
+        self.your_shape = PostGameShape(self.your_shape_data, True, victory)
+        self.their_shape = PostGameShape(self.their_shape_data, False, not victory)
         self.shapes_group = pygame.sprite.Group()
         self.shapes_group.add(self.your_shape)
         self.shapes_group.add(self.their_shape)
 
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.title, self.title_rect = self.createText("shapegame", 150)
-        self.title_rect.center = (1920 / 2, 1080 / 8)
+        self.title_rect.center = (1920 / 2, 1080 / 9)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font("backgrounds/font.ttf", 80)
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
+        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
         self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
+
+        if victory: self.top_text, self.top_text_rect = self.createText("you won!", 120)
+        else: self.top_text, self.top_text_rect = self.createText("you lost :(", 120)
+        self.top_text_rect.center = (1920 / 2, 1080 / 4)
 
         self.clickables = []
         self.clickables.append(self.exit_clickable)
@@ -51,26 +55,25 @@ class PostGame():
             self.updateCursor(mouse_pos)
             self.shapes_group.update()
 
-            self.animate()
-
-            # ---- DRAW THINGS ----
-
-            self.screen.blit(self.background, [0, 0])
-            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-            self.screen.blit(self.your_username[0], self.your_username[1])
-            self.screen.blit(self.their_username[0], self.their_username[1])
-            self.shapes_group.draw(self.screen)
-            
-            
-            self.screen.blit(self.cursor, self.cursor_rect)
-
+            self.animateElements()
+            self.drawElements()
 
             self.clock.tick(60)
             self.frames += 1
 
     # HELPERS
 
-    def animate(self):
+    def drawElements(self):
+        self.screen.blit(self.background, [0, 0])
+        self.screen.blit(self.title, self.title_rect)
+        self.screen.blit(self.top_text, self.top_text_rect)
+        self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
+        self.screen.blit(self.your_username[0], self.your_username[1])
+        self.screen.blit(self.their_username[0], self.their_username[1])
+        self.shapes_group.draw(self.screen)
+        self.screen.blit(self.cursor, self.cursor_rect)
+
+    def animateElements(self):
         # move the transferred shape to the appropriate side
         if self.frames == 100:
             

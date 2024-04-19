@@ -1,35 +1,79 @@
 import pygame
 from circledata import *
 
+GRAVITY = 0.1  # Acceleration due to gravity
+JUMP_FORCE = -2.5  # Initial force of the jump
+MAX_JUMP_HEIGHT = 100  # Maximum height the character can jump
+
 class PostGameShape(pygame.sprite.Sprite):
-    def __init__(self, shape, yours = True):
+    def __init__(self, shape, yours = True, victory = False):
         super().__init__()
         self.shape = shape
         self.y = 1080/2
-        self.image_full =  pygame.image.load("circles/{}/{}/0.png".format(shape.face_id, colors[shape.color_id][0]))
-        self.image = pygame.transform.smoothscale(self.image_full, (300, 300))
+
+        if victory: face_img = 0
+        else: face_img = 3
+
+        self.image_full =  pygame.image.load("circles/{}/{}/{}.png".format(shape.face_id, colors[shape.color_id][0], face_img))
+        self.image = pygame.transform.smoothscale(self.image_full, (301, 301))
+        
+        self.size = 301
+        self.next_size = self.size
+        self.pause = 0
+        
+        self.victory = victory
+        self.velocity = 0
 
         if yours: self.x = 250
         else: self.x = 1920 - 250
 
         self.next_x = self.x
+        self.og_y = self.y
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
 
     def moveTo(self, x):
         self.next_x = x
+        self.next_size = 1
 
     def update(self):
-        if self.next_x != self.x:
+        change_flag = False
 
-            if self.x < self.next_x:
-                self.x += 5
+        if self.size > self.next_size:
+            self.size -= 10
 
-                if self.x > self.next_x: self.x = self.next_x
+            if self.size == 1:
+                self.x = self.next_x
+                self.next_size = 301
+                self.pause = 60
 
-            if self.x > self.next_x:
-                self.x -= 5
+            change_flag = True
+            
+        elif self.pause > 0:
+            self.pause -= 1
 
-                if self.x < self.next_x: self.x = self.next_x
+        elif self.size < self.next_size:
+            self.size += 10
+            change_flag = True
 
+        if self.victory:
+            self.velocity += GRAVITY
+
+            if self.y >= self.og_y:
+                self.velocity = 0
+                self.y = self.og_y
+
+                self.velocity = JUMP_FORCE
+
+            self.y = int(self.y + self.velocity)
+
+            if self.y < self.og_y - MAX_JUMP_HEIGHT:
+                self.y = self.og_y - MAX_JUMP_HEIGHT
+
+            change_flag = True
+
+        if change_flag:
+            self.image = pygame.transform.smoothscale(self.image_full, (self.size, self.size))
+            self.rect = self.image.get_rect()
             self.rect.center = [self.x, self.y]
+

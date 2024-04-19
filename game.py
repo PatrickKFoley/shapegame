@@ -503,11 +503,11 @@ class Game:
                 else: return 1
 
         if self.real:
-            self.close_sound.play()
-            self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
-            pygame.display.update()
-            time.sleep(0.5)
+            # self.close_sound.play()
+            # self.screen.blit(self.background, (0, 0))
+            # self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
+            # pygame.display.update()
+            # time.sleep(0.5)
             self.createStatsScreen(True)
             return self.stats_surface
 
