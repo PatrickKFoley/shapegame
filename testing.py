@@ -146,7 +146,9 @@ def thread():
     print("DONE")
 
 
+
+
 # while True:
 #     simulate()
 # play_game()
-thread()
+# thread()

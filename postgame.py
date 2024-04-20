@@ -2,9 +2,10 @@ import pygame
 from pygame.locals import *
 from clickabletext import ClickableText
 from postgameshape import PostGameShape
+from xpbar import XpBar
 
 class PostGame():
-    def __init__(self, victory, your_shape, their_shape, keeps, you_name, their_name, screen):
+    def __init__(self, victory, your_shape, their_shape, keeps, xp_earned, you_name, their_name, screen):
         self.victory = victory
         self.your_shape_data = your_shape
         self.their_shape_data = their_shape
@@ -20,6 +21,16 @@ class PostGame():
         self.shapes_group = pygame.sprite.Group()
         self.shapes_group.add(self.your_shape)
         self.shapes_group.add(self.their_shape)
+
+        if victory:
+            self.your_xp_bar = XpBar([450, 850], your_shape.xp, xp_earned)
+            self.their_xp_bar = XpBar([1920-450, 850], their_shape.xp, 0)
+        else:
+            self.your_xp_bar = XpBar([450, 850], your_shape.xp, 0)
+            self.their_xp_bar = XpBar([1920-450, 850], their_shape.xp, xp_earned)
+        self.xp_bar_group = pygame.sprite.Group()
+        self.xp_bar_group.add(self.your_xp_bar)
+        self.xp_bar_group.add(self.their_xp_bar)
 
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.title, self.title_rect = self.createText("shapegame", 150)
@@ -56,6 +67,7 @@ class PostGame():
             self.updateClickables(mouse_pos)
             self.updateCursor(mouse_pos)
             self.shapes_group.update()
+            self.xp_bar_group.update()
 
             self.animateElements()
             self.drawElements()
@@ -73,6 +85,7 @@ class PostGame():
         self.screen.blit(self.your_username[0], self.your_username[1])
         self.screen.blit(self.their_username[0], self.their_username[1])
         self.shapes_group.draw(self.screen)
+        self.xp_bar_group.draw(self.screen)
         self.screen.blit(self.cursor, self.cursor_rect)
 
     def animateElements(self):
@@ -82,7 +95,8 @@ class PostGame():
             if self.victory: self.their_shape.moveTo(625)
             else: self.your_shape.moveTo(1920 - 625)
 
-
+        if self.frames == 100:
+            self.your_xp_bar.animating = self.their_xp_bar.animating = True
 
     def updateCursor(self, mouse_pos):
         self.cursor_rect.center = mouse_pos
@@ -96,7 +110,6 @@ class PostGame():
             if event.type == MOUSEBUTTONDOWN:
                 if self.exit_clickable.rect.collidepoint(mouse_pos):
                     self.running = False
-
 
     def createText(self, text, size, color = "white"):
         font = pygame.font.Font("backgrounds/font.ttf", size)

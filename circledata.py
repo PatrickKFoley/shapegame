@@ -1,5 +1,8 @@
 import copy
 
+# CUMULATIVE AMOUNTS (LEVEL 2 = 10-19)
+xp_amounts = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+
 colors = [
     # SPECIAL COLORS - TAKE CARE
     ["rainbow", "gradient1.png", (255, 180, 180)],

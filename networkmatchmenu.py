@@ -1,4 +1,5 @@
 import pygame, time
+import pygame.display
 from pygame.locals import *
 from game import Game
 from network import Network
@@ -554,7 +555,13 @@ class NetworkMatchMenu():
 
                     self.clock.tick(60)
 
-                postGame = PostGame(pregame.winner == player_id, your_shape, their_shape, (pregame.keeps[0] == 1 and pregame.keeps[1] == 1), self.you_names[you_selected-1], self.opponent_names[opponent_selected-1], self.screen)
+                pygame.display.flip()
+                self.screen.blit(self.background, [0,0])
+                self.screen.blit(self.loading, self.loading_rect)
+                # self.screen.blit(self.cursor, self.cursor_rect)
+                pygame.display.update()
+
+                postGame = PostGame(pregame.winner == player_id, your_shape, their_shape, (pregame.keeps[0] == 1 and pregame.keeps[1] == 1), pregame.xp_earned, self.you_names[you_selected-1], self.opponent_names[opponent_selected-1], self.screen)
                 postGame.start()
 
                 break
