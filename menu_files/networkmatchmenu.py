@@ -1,16 +1,16 @@
 import pygame, time
 import pygame.display
 from pygame.locals import *
-from game import Game
-from network import Network
-from circledata import *
-from user import User
-from shape import Shape
-from clickabletext import ClickableText
-from doublecheckbox import DoubleCheckbox
-from menucircle import MenuShape
-from arrow import Arrow
-from postgame import PostGame
+from game_files.game import Game
+from menu_files.network_pregame_files.network import Network
+from game_files.circledata import *
+from server_files.database_user import User
+from server_files.database_shape import Shape
+from screen_elements.clickabletext import ClickableText
+from screen_elements.doublecheckbox import DoubleCheckbox
+from menu_files.main_menu_files.menucircle import MenuShape
+from screen_elements.arrow import Arrow
+from menu_files.postgame import PostGame
 from threading import Thread
 
 class NetworkMatchMenu():

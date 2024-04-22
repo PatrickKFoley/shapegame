@@ -1,11 +1,11 @@
 import pygame, random, math, numpy as np
 from pygame.locals import *
-from newmenushape import NewMenuShape
-from circledata import *
-from user import User
-from shape import Shape
+from menu_files.create_shape_files.newmenushape import NewMenuShape
+from game_files.circledata import *
+from server_files.database_user import User
+from server_files.database_shape import Shape
 from threading import Thread
-from clickabletext import ClickableText
+from screen_elements.clickabletext import ClickableText
 
 class CreateShapeMenu():
     def __init__(self, screen, user, shapes, session, circle_images_full):

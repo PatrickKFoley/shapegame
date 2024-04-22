@@ -1,5 +1,5 @@
 import pygame
-from circledata import *
+from game_files.circledata import *
 
 GRAVITY = 0.1  # Acceleration due to gravity
 JUMP_FORCE = -2.5  # Initial force of the jump

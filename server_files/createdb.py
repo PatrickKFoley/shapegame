@@ -1,10 +1,9 @@
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime
-import urllib.parse
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
-from circledata import *
-from user import User
-from shape import Shape
+from game_files.circledata import *
+from server_files.database_user import User
+from server_files.database_shape import Shape
 import random, os, datetime
 
 BaseClass = declarative_base()

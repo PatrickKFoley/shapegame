@@ -1,16 +1,16 @@
 import pygame, random, math, numpy as np
 from pygame.locals import *
-from circledata import *
-from shape import Shape
-from clickabletext import ClickableText
+from game_files.circledata import *
+from server_files.database_shape import Shape
+from screen_elements.clickabletext import ClickableText
 
-from menupowerup import MenuPowerup
-from clouds import Clouds
-from powerupdisplayshape import PowerupDisplayShape
-from powerupdisplaypowerup import PowerupDisplayPowerup
-from menublacklaser import MenuBlackLaser
-from menuredlaser import MenuRedLaser
-from menuexplosion import MenuExplosion
+from menu_files.powerup_display_files.menupowerup import MenuPowerup
+from game_files.clouds import Clouds
+from menu_files.powerup_display_files.powerupdisplayshape import PowerupDisplayShape
+from menu_files.powerup_display_files.powerupdisplaypowerup import PowerupDisplayPowerup
+from menu_files.powerup_display_files.menublacklaser import MenuBlackLaser
+from menu_files.powerup_display_files.menuredlaser import MenuRedLaser
+from menu_files.powerup_display_files.menuexplosion import MenuExplosion
 
 
 class PowerupDisplayMenu():

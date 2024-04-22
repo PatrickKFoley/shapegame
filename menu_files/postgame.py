@@ -1,8 +1,8 @@
 import pygame
 from pygame.locals import *
-from clickabletext import ClickableText
-from postgameshape import PostGameShape
-from xpbar import XpBar
+from screen_elements.clickabletext import ClickableText
+from menu_files.postgame_files.postgameshape import PostGameShape
+from screen_elements.xpbar import XpBar
 
 class PostGame():
     def __init__(self, victory, your_shape, their_shape, keeps, xp_earned, you_name, their_name, screen):

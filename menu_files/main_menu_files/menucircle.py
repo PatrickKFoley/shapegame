@@ -1,7 +1,7 @@
 import pygame, datetime, pytz
-from shape import Shape
+from server_files.database_shape import Shape
 from sqlalchemy import func
-from circledata import *
+from game_files.circledata import *
 
 OFFSET = -35
 

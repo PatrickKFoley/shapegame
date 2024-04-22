@@ -1,7 +1,7 @@
 import  pygame, random, math, numpy as np
-from circlestats import CircleStats
-from clouds import Clouds
-from laser import Laser
+from game_files.circlestats import CircleStats
+from game_files.clouds import Clouds
+from game_files.laser import Laser
 
 class Circle(pygame.sprite.Sprite):
     def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = [], real = True):

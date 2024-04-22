@@ -1,6 +1,6 @@
 import pygame, random
 from pygame.locals import *
-from circledata import *
+from game_files.circledata import *
 
 class SimpleCircle(pygame.sprite.Sprite):
     def __init__(self, xy, image):

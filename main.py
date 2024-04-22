@@ -1,7 +1,7 @@
 import pygame, os
 from pygame.locals import *
-from circledata import *
-from menu import Menu
+from game_files.circledata import *
+from menu_files.menu import Menu
 
 def generateAllCircles():
     print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")

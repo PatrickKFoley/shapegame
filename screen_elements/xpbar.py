@@ -1,5 +1,5 @@
 import pygame
-from circledata import *
+from game_files.circledata import *
 
 class XpBar(pygame.sprite.Sprite):
     def __init__(self, topleft, start_xp, xp_gained):

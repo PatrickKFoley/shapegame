@@ -1,10 +1,10 @@
 import socket, pickle, random, datetime
 from _thread import *
-from pregame import Pregame
-from game import Game
-from shape import Shape
-from user import User
-from circledata import *
+from menu_files.network_pregame_files.pregame import Pregame
+from game_files.game import Game
+from server_files.database_shape import Shape
+from server_files.database_user import User
+from game_files.circledata import *
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base

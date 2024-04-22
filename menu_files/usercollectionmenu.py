@@ -1,9 +1,9 @@
 import pygame
 from pygame.locals import *
-from circledata import *
-from clickabletext import ClickableText
-from menucircle import MenuShape
-from arrow import Arrow
+from game_files.circledata import *
+from screen_elements.clickabletext import ClickableText
+from menu_files.main_menu_files.menucircle import MenuShape
+from screen_elements.arrow import Arrow
 
 class UserCollectionMenu():
     def __init__(self, screen, circle_images_full, shapes, user, session):

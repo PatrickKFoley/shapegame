@@ -1,5 +1,5 @@
 import pygame, random, math, numpy as np
-from circledata import *
+from game_files.circledata import *
 
 SHRINK_AMOUNT = 0.025
 

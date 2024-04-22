@@ -1,5 +1,5 @@
 import pygame
-from xpbar import XpBar
+from screen_elements.xpbar import XpBar
 import sys
 
 # Initialize Pygame

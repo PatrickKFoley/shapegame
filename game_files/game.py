@@ -1,12 +1,12 @@
 import pygame, random, os, numpy as np, math, time
 from pygame.locals import *
-from powerup import Powerup
-from bluelaser import BlueLaser
-from explosion import Explosion
-from clouds import Clouds
-from killfeed import Killfeed
-from circle import Circle
-from circledata import *
+from game_files.powerup import Powerup
+from game_files.bluelaser import BlueLaser
+from game_files.explosion import Explosion
+from game_files.clouds import Clouds
+from game_files.killfeed import Killfeed
+from game_files.circle import Circle
+from game_files.circledata import *
 
 class Game: 
     def __init__(self, c0, c1, username_0, username_1, screen, seed = False, real = True, god_mode = False):

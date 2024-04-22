@@ -1,10 +1,10 @@
 import pygame
 from pygame.locals import *
-from circledata import *
-from user import User
-from shape import Shape
-from clickabletext import ClickableText
-from editabletext import EditableText
+from game_files.circledata import *
+from server_files.database_user import User
+from server_files.database_shape import Shape
+from screen_elements.clickabletext import ClickableText
+from screen_elements.editabletext import EditableText
 
 class RegisterMenu():
     def __init__(self, screen, session):

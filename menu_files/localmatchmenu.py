@@ -1,10 +1,10 @@
 import pygame, random, pygame_textinput, math, numpy as np
 from pygame.locals import *
-from simplecircle import SimpleCircle
-from game import Game
-from circledata import *
-from clickabletext import ClickableText
-from arrow import Arrow
+from menu_files.main_menu_files.simplecircle import SimpleCircle
+from game_files.game import Game
+from game_files.circledata import *
+from screen_elements.clickabletext import ClickableText
+from screen_elements.arrow import Arrow
 
 class LocalMatchMenu():
     def __init__(self, screen, circle_images_full):

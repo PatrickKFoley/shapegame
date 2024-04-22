@@ -2,9 +2,9 @@ import pygame
 import sys
 import math
 import random
-from game import Game
-from shape import Shape
-from circledata import *
+from game_files.game import Game
+from server_files.database_shape import Shape
+from game_files.circledata import *
 from threading import Thread
 
 def circle():
