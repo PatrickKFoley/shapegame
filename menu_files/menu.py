@@ -1,4 +1,4 @@
-import pygame, random, math, numpy as np, asyncio
+import pygame, random, math, numpy as np, sys
 from pygame.locals import *
 from menu_files.main_menu_files.simplecircle import SimpleCircle
 from game_files.circledata import *
@@ -6,6 +6,7 @@ from server_files.database_user import User
 from server_files.database_shape import Shape
 from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
+from screen_elements.text import Text
 from menu_files.main_menu_files.menucircle import MenuShape
 from menu_files.powerupdisplaymenu import PowerupDisplayMenu
 from menu_files.localmatchmenu import LocalMatchMenu
@@ -20,63 +21,70 @@ from sqlalchemy.orm import sessionmaker
 
 class Menu():
     def __init__(self):
-        self.user = None
-        self.shapes = []
-        self.BaseClass = declarative_base()
-        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=False)
-        # self.BaseClass.metadata.create_all(bind=self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-
-        self.you_group = pygame.sprite.Group()
-        self.new_shapes_group = pygame.sprite.Group()
-
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect = self.cursor.get_rect()
-        self.cursor_rect.center = pygame.mouse.get_pos()
-        # self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
-        self.screen = pygame.display.set_mode((1920, 1080))
-        self.background = pygame.image.load("backgrounds/BG1.png")
-        self.title, self.title_rect = self.createText("shapegame", 150)
-        self.title_rect.center = (1920 / 2, 1080 / 2)
-        self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font("backgrounds/font.ttf", 80)
-        self.game_played = False
-        self.stats_surface = 0
+        # misc attributes
+        self.num_faces = len(circles)
         self.exit_clicked = False
         self.frames_since_exit_clicked = 0
 
+        # your database entries
+        self.user = None
+        self.shapes = []
+
+        # database session
+        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=False)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+        # sprite groups for your shapes (in network match), new shapes, simple circles (on main menu)
+        self.you_group = pygame.sprite.Group()
+        self.new_shapes_group = pygame.sprite.Group()
+        self.simple_circle_sprites = pygame.sprite.Group()
+
+        # load and center cursor, load background        
+        self.background = pygame.image.load("backgrounds/BG1.png")
+        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect = self.cursor.get_rect()
+        self.cursor_rect.center = pygame.mouse.get_pos()
+
+        # create pygame objects
+        # self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
+        self.screen = pygame.display.set_mode((1920, 1080))
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font("backgrounds/font.ttf", 80)
+
+        # load all sounds
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
         self.start_sound = pygame.mixer.Sound("sounds/start.wav")
         self.open_sound = pygame.mixer.Sound("sounds/open.wav")
         self.menu_music = pygame.mixer.Sound("sounds/menu.wav")
         self.close_sound = pygame.mixer.Sound("sounds/close.wav")
-
         self.open_sound.set_volume(.5)
         self.menu_music.set_volume(.5)
         self.close_sound.set_volume(.5)
-        
         self.open_sound.play()
-
         
+        # create all text elements
+        self.logged_in_as_text = self.shape_tokens_clickable = None
+        self.title_text = Text("shapegame", 150, 1920/2, 1080/2)
+        self.play_text = Text("play", 100, 3*1920/4, 750)
+        self.bad_credentials_text = Text("user not found!", 150, 1920/2, 800)
+        self.collections_text = Text("collections", 100, 1920/4, 750)
 
-        # pre-define these text elements
-        self.logged_in_as = self.logged_in_as_rect = None
-        self.shape_tokens_clickable = None
-        self.play, self.play_rect = self.createText("play", 100)
-        self.play_rect.center = [3 * 1920 / 4, 750]
-        self.try_again, self.try_again_rect = self.createText("User not found!", 150)
-        self.try_again_rect.center = [1920 / 2, 800]
-        self.collections, self.collections_rect = self.createText("collections", 100)
-        self.collections_rect.center = [1 * 1920 / 4, 750]
-        
-  
+        self.texts = []
+        self.texts.append(self.title_text)
+        self.texts.append(self.play_text)
+        self.texts.append(self.bad_credentials_text)
+        self.texts.append(self.collections_text)
+
+        # create all interactive elements
         self.network_match_clickable = ClickableText("network match", 50, 3 * 1920 / 4 - 200, 875)
         self.local_match_clickable = ClickableText("local match", 50, 3 * 1920 / 4 + 200, 875)
         self.your_shapes_clickable = ClickableText("your shapes", 50, 1 * 1920 / 4 - 250, 875)
         self.all_shapes_clickable = ClickableText("all shapes & powerups", 50, 1 * 1920 / 4 + 250, 875)
         self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
         self.register_clickable = ClickableText("register", 50, 1920 / 2, 1050)
+        self.username_editable = EditableText("Username: ", 60, 1920/2, 950)
+        self.username_editable.select()
 
         self.clickables = []
         self.clickables.append(self.network_match_clickable)
@@ -86,15 +94,13 @@ class Menu():
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.register_clickable)
 
+        # update the display
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.title, self.title_rect)
+        self.screen.blit(self.title_text.surface, self.title_text.rect)
         pygame.display.set_caption("shapegame")
         pygame.display.update()
 
-        self.num_faces = 5
-
-        self.circles = pygame.sprite.Group()
-
+        # load all shape images
         self.circle_images_full = []
         for i in range(0, 5):
             self.circle_images_full.append([])
@@ -107,264 +113,236 @@ class Menu():
             for circle in self.circle_images_full[i]:
                 self.circle_images[i].append(pygame.transform.smoothscale(circle, (200, 200)))
 
-        # # Username text input handler
-        self.username_editable = EditableText("Username: ", 60, 1920/2, 950)
-        self.username_editable.select()
+        # populate the simple circle group
+        self.addNewCircles()
 
+        # start playing menu music on loop
         self.menu_music.play(-1)
 
     def start(self):
-        # Do while loop to get user to sign in
-        try_again_flag = False
+        # run the login loop
+        self.loginLoop()
+
+        while True:
+            # draw (and update) all screen elements
+            self.drawScreenElements()
+
+            # handle any inputs
+            self.handleInputs()
+
+            # leave after 1 second of exit being clicked
+            if self.exit_clicked:
+                self.frames_since_exit_clicked += 1
+                if self.frames_since_exit_clicked == 60:
+                    break
+
+            # limits FPS to 60
+            self.clock.tick(60)
+
+    def loginLoop(self):
+        # raise flag if user enters invalid credentials
+        bad_credentials_flag = False
+        
+        # while user isn't signed in
         while self.user == None:
+
+            # get pygame events
             events = pygame.event.get()
-            keys_pressed = pygame.key.get_pressed()
             mouse_pos = pygame.mouse.get_pos()
 
+            # handle events
             for event in events:
+
+                # exit clicked
                 if event.type == MOUSEBUTTONDOWN and self.exit_clickable.rect.collidepoint(mouse_pos):
                     self.click_sound.play()
                     self.close_sound.play()
                     self.exit_clicked = True
                     pygame.mixer.Sound.fadeout(self.menu_music, 1000)
 
+                # register clicked
                 if event.type == MOUSEBUTTONDOWN and self.register_clickable.rect.collidepoint(mouse_pos):
                     self.click_sound.play()
+
+                    # user's database entries are returned from the register menu
                     self.user, self.shapes = RegisterMenu(self.screen, self.session).start()
 
-                    self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
-                    self.logged_in_as_rect.topleft = (10, 1030)
-
+                    # create and add text elements 
+                    self.logged_in_as_text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
                     self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                    self.texts.append(self.logged_in_as_text)
+                    self.clickables.append(self.shape_tokens_clickable)
 
+                # if enter key is pressed
                 if event.type == KEYDOWN and event.key == K_RETURN:
+
+                    # get username user has entered
                     username = self.username_editable.getText()
 
+                    # try to sign in
                     try:
+                        # query database for user and user's shapes
                         self.user = self.session.query(User).filter(User.username == username).one()
-                        print("USER {}".format(self.user))
-
-                        self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
-                        self.logged_in_as_rect.topleft = (10, 1030)
-
-                        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
-
                         self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
 
-                        # Load your MenuShapes (check if already exists)
-                        if len(self.you_group) == 0:
-                            counter = 1
-                            for shape in self.shapes:
-                                self.you_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
-                                counter += 1
+                        # create and add text elements
+                        self.logged_in_as_text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
+                        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                        self.texts.append(self.logged_in_as_text)
+                        self.clickables.append(self.shape_tokens_clickable)
+
+                        # load your (network match) shapes
+                        for counter, shape in enumerate(self.shapes):
+                            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
+
+                    # query found no user entries
                     except Exception as e:
-                        try_again_flag = True
-                        print(e)
+                        bad_credentials_flag = True
 
             # update clickable texts
             self.username_editable.update(events)            
 
+            # update clickable elements
             mouse_pos = pygame.mouse.get_pos()
             for clickable in self.clickables:
                 clickable.update(mouse_pos)
 
+            # draw all wanted screen elements
             pygame.display.flip()
             self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
+            self.screen.blit(self.title_text.surface, self.title_text.rect)
             self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
             self.screen.blit(self.register_clickable.surface, self.register_clickable.rect)
-            self.cursor_rect.center = pygame.mouse.get_pos()
             self.screen.blit(self.username_editable.surface, self.username_editable.rect)
+            self.cursor_rect.center = mouse_pos
             self.screen.blit(self.cursor, self.cursor_rect)
 
+            # handle exit
             if self.exit_clicked:
                 self.frames_since_exit_clicked += 1
                 if self.frames_since_exit_clicked == 60:
-                    return
+                    sys.exit()
 
-            if try_again_flag:
-                self.screen.blit(self.try_again, self.try_again_rect)
+            # show if credentials bad
+            if bad_credentials_flag:
+                self.screen.blit(self.bad_credentials_text.surface, self.bad_credentials_text.rect)
 
             self.clock.tick(60)
 
-        # --- USER NOW LOGGED IN ---
+    def drawScreenElements(self):
+        # draw + update all elements
 
-        # add to clickable texts
-        self.clickables.append(self.shape_tokens_clickable)
+        # flip the display, get mouse position
+        pygame.display.flip()
+        mouse_pos = pygame.mouse.get_pos()
 
-        running = True
-        while running:
-            # Want to have two circles spawn in from opposite sides of the screen and bounce away from each other
-            if len(self.circles) == 0:
-                self.addNewCircles()
+        # draw background
+        self.screen.blit(self.background, (0, 0))
 
-            if self.game_played:
-                if self.stats_surface != 0:
-                    self.screen.blit(self.stats_surface, (1920 / 2 - self.stats_surface.get_size()[0] / 2, 50)) 
-            else:
-                self.circles.draw(self.screen)
-            self.circles.update()
-            self.checkCollisions()
+        # update and draw simple circles
+        self.checkCollisions()
+        self.simple_circle_sprites.draw(self.screen)
+        self.simple_circle_sprites.update()
+        
+        # update and draw clickable elements
+        for clickable in self.clickables:
+            if clickable != None:
+                clickable.update(mouse_pos)
+                self.screen.blit(clickable.surface, clickable.rect)
 
-            # Draw some shit
-            mouse_pos = pygame.mouse.get_pos()
-            for clickable in self.clickables:
-                if clickable != None:
-                    clickable.update(mouse_pos)
+        # draw all text elements
+        for text in self.texts:
+            if text != None:
+                self.screen.blit(text.surface, text.rect)
 
-            pygame.display.flip()
-            self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 2 - self.title.get_size()[1] / 2))
-            self.screen.blit(self.play, self.play_rect)
-            self.screen.blit(self.network_match_clickable.surface, self.network_match_clickable.rect)
-            self.screen.blit(self.local_match_clickable.surface, self.local_match_clickable.rect)
-            self.screen.blit(self.collections, self.collections_rect)
-            self.screen.blit(self.your_shapes_clickable.surface, self.your_shapes_clickable.rect)
-            self.screen.blit(self.all_shapes_clickable.surface, self.all_shapes_clickable.rect)
-            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-            self.screen.blit(self.logged_in_as, self.logged_in_as_rect)
-            self.screen.blit(self.shape_tokens_clickable.surface, self.shape_tokens_clickable.rect)
+        # center and draw cursor
+        self.cursor_rect.center = mouse_pos
+        self.screen.blit(self.cursor, self.cursor_rect)
 
-            events = pygame.event.get()
-            mouse_pos = pygame.mouse.get_pos()
-            for event in events:
-                if event.type == MOUSEBUTTONDOWN:
-                    self.click_sound.play()
-                    if event.button == 1:
-                        redirect = "NONE"
+    def handleInputs(self):
+        # handle all inputs to the main display
 
-                        if self.network_match_clickable.rect.collidepoint(mouse_pos) and self.shapes == []:
-                            redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+        # get events, mouse position
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
 
-                            self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
-                            self.clickables.append(self.shape_tokens_clickable)
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                self.click_sound.play()
+                
+                # if left click
+                if event.button == 1:
+                    # used to "redirect" from one menu to another
+                    redirect = "NONE"
 
-                        elif self.network_match_clickable.rect.collidepoint(mouse_pos):
-                            self.session.commit()
+                    # clicked network match, but has no shapes
+                    if self.network_match_clickable.rect.collidepoint(mouse_pos) and self.shapes == []:
+                        # start shape creation menu, which might redirect
+                        redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
-                            # menu = ThreadedNetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full)
-                            # asyncio.run(menu.start())
-                            NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                        # recreate shape token clickable, incase it changed
+                        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                        self.clickables.append(self.shape_tokens_clickable)
 
-                            self.session.commit()
-                            self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
-                            self.you_group.empty()
+                    # clicked network match
+                    elif self.network_match_clickable.rect.collidepoint(mouse_pos):
+                        # get changes made to database
+                        self.session.commit()
 
-                            counter = 1
-                            for shape in self.shapes:
-                                self.you_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
-                                counter += 1
+                        # create and start network match menu
+                        NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
-                        elif self.local_match_clickable.rect.collidepoint(mouse_pos):
-                            LocalMatchMenu(self.screen, self.circle_images_full).start()
+                        # get changes made to database
+                        self.session.commit()
+                        self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
+                        
+                        # recreate network match shape collection
+                        self.you_group.empty()
+                        for counter, shape in enumerate(self.shapes):
+                            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
 
-                        elif self.all_shapes_clickable.rect.collidepoint(mouse_pos):
-                            PowerupDisplayMenu(self.screen, self.circle_images_full).start()
+                    # clicked local match
+                    elif self.local_match_clickable.rect.collidepoint(mouse_pos):
+                        LocalMatchMenu(self.screen, self.circle_images_full).start()
 
-                        elif self.shape_tokens_clickable.rect.collidepoint(mouse_pos) and self.user.shape_tokens != 0:
-                            redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                    # clicked all shapes
+                    elif self.all_shapes_clickable.rect.collidepoint(mouse_pos):
+                        PowerupDisplayMenu(self.screen, self.circle_images_full).start()
 
-                            self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
-                            self.clickables.append(self.shape_tokens_clickable)
+                    # clicked on create shapes and has shape tokens
+                    elif self.shape_tokens_clickable.rect.collidepoint(mouse_pos) and self.user.shape_tokens != 0:
+                        # start shape creation menu, which might redirect
+                        redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
-                        elif self.your_shapes_clickable.rect.collidepoint(mouse_pos) and self.shapes == []:
-                            redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                        # recreate shape token clickable, incase it changed
+                        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                        self.clickables.append(self.shape_tokens_clickable)
 
-                            self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
-                            self.clickables.append(self.shape_tokens_clickable)
+                    # clicked on collection, but has no shapes, but has shape tokens
+                    elif self.your_shapes_clickable.rect.collidepoint(mouse_pos) and self.shapes == [] and self.user.shape_tokens != 0:
+                        # start shape creation menu, which might redirect
+                        redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
-                        elif self.your_shapes_clickable.rect.collidepoint(mouse_pos):
+                        # recreate shape token clickable, incase it changed
+                        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                        self.clickables.append(self.shape_tokens_clickable)
+
+                    # clicked on collection
+                    elif self.your_shapes_clickable.rect.collidepoint(mouse_pos):
+                        UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
+
+                    # clicked exit
+                    elif self.exit_clickable.rect.collidepoint(mouse_pos):
+                        self.close_sound.play()
+                        self.exit_clicked = True
+                        pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+
+                    # check if we want to redirect to another menu
+                    if redirect != "NONE":
+
+                        # so far collections is the only redirect
+                        if redirect == "COLLECTIONS":
                             UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
-
-                        elif self.exit_clickable.rect.collidepoint(mouse_pos):
-                            self.close_sound.play()
-                            self.exit_clicked = True
-                            pygame.mixer.Sound.fadeout(self.menu_music, 1000)
-
-                        # check if we want to redirect to another menu
-
-                        if redirect != "NONE":
-                            if redirect == "COLLECTIONS":
-                                UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
-
-                if event.type == KEYDOWN:
-                    if event.key == 9:
-                        self.game_played = not self.game_played
-
-            if self.menu_music.get_num_channels() == 0:
-                self.menu_music.play(-1)
-
-            self.cursor_rect.center = pygame.mouse.get_pos()
-            self.screen.blit(self.cursor, self.cursor_rect)
-
-            if self.exit_clicked:
-                self.frames_since_exit_clicked += 1
-                if self.frames_since_exit_clicked == 60:
-                    running = False
-
-            # limits FPS to 60
-            self.clock.tick(60)
-            # print(self.clock.get_fps())
-
-    # HELPERS
-
-    def createText(self, text, size, color = "white"):
-        font = pygame.font.Font("backgrounds/font.ttf", size)
-        
-
-        if type(text) == type("string"):
-            text_surface = font.render(text, True, color)
-            text_rect = text_surface.get_rect()
-
-            return text_surface, text_rect
-        
-        elif type(text) == type(["array"]):
-            text_surfaces = []
-            for element in text:
-                text_surfaces.append(font.render(element, True, color))
-
-            max_line_length = max(surface.get_size()[0] for surface in text_surfaces)
-            line_height = text_surfaces[0].get_size()[1]
-
-            surface = pygame.Surface((max_line_length, (len(text_surfaces) + 1) * line_height), pygame.SRCALPHA, 32)
-
-            for i, text_surface in enumerate(text_surfaces):
-                surface.blit(text_surface, [max_line_length/2 - text_surface.get_size()[0]/2, line_height * (i+1)])
-
-            return surface, surface.get_rect()
-        
-    def createShape(self, owner_id = -1):
-        # decrement number of shape tokens
-        if owner_id != -1:
-            self.session.query(User).filter(User.id == self.user.id).update({'shape_tokens': User.shape_tokens -1})
-            self.session.commit()
-
-        face_id = random.randint(0, 4)
-        color_id = random.randint(0, len(colors)-1)
-
-        base = circles_unchanged[face_id]
-
-        density = base["density"]
-        velocity = base["velocity"] + random.randint(-3, 3)
-        radius_min = base["radius_min"] + random.randint(-3, 3)
-        radius_max = base["radius_max"] + random.randint(-3, 3)
-        health = base["health"] + random.randint(-100, 100)
-        dmg_multiplier = round(base["dmg_multiplier"] + round((random.randint(-10, 10) / 10), 2), 2)
-        luck = round(base["luck"] + round((random.randint(-10, 10) / 10), 2), 2)
-        team_size = base["team_size"] + random.randint(-3, 3)
-
-        if owner_id != -1:
-            try:
-                shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
-                self.session.add(shape)
-                self.session.commit()
-                return shape
-            except:
-                self.session.rollback()
-                return False
-        else:
-            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
-            return shape
 
     # SHAPE FUNCTIONS
 
@@ -379,67 +357,67 @@ class Menu():
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((1 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((1 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((2 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((2 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((3 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((3 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((4 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((4 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((5 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((5 * 1920 / 5, 150), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((1 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((1 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((2 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((2 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((3 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((3 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((4 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((4 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
         self.face_id = random.randint(0, self.num_faces - 1)
         self.color_id = random.randint(0, len(self.new_circle_images[self.face_id])-1)
-        self.circles.add(SimpleCircle((5 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
+        self.simple_circle_sprites.add(SimpleCircle((5 * 1920 / 5, 300), self.new_circle_images[self.face_id][self.color_id]))
         for element in self.new_circle_images:
             element.pop(self.color_id)
 
     def checkCollisions(self):
-        for c1 in self.circles.sprites():
-            for c2 in self.circles.sprites():
+        for c1 in self.simple_circle_sprites.sprites():
+            for c2 in self.simple_circle_sprites.sprites():
                 if c1 == c2:
                     continue
 
