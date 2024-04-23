@@ -1,9 +1,9 @@
-import pygame, random, math, numpy as np, sys
-
 from pygame.locals import *
 from pygame.sprite import *
 from pygame.mixer import *
 from pygame import *
+
+import pygame, random, math, numpy as np, sys
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session

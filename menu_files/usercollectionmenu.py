@@ -1,13 +1,20 @@
 import pygame
 from pygame.locals import *
-from game_files.circledata import *
+from pygame.sprite import *
+from pygame.mixer import *
+from pygame import *
+
+from sqlalchemy.orm import Session
 from screen_elements.clickabletext import ClickableText
-from screen_elements.text import Text
-from menu_files.main_menu_files.menucircle import MenuShape
 from screen_elements.arrow import Arrow
+from screen_elements.text import Text
+from server_files.database_user import User
+from server_files.database_shape import Shape
+from menu_files.main_menu_files.menucircle import MenuShape
+from game_files.circledata import *
 
 class UserCollectionMenu():
-    def __init__(self, screen, circle_images_full, shapes, user, session):
+    def __init__(self, screen: Surface, circle_images_full: list[list[Surface]], shapes: list[Shape], user: User, session: Session):
         # parameters passed from menu
         self.screen = screen
         self.circle_images_full = circle_images_full
@@ -19,32 +26,32 @@ class UserCollectionMenu():
         self.clock = pygame.time.Clock()
 
         # sprite group for your shape collection
-        self.collection_group = pygame.sprite.Group()
+        self.collection_group: Group = pygame.sprite.Group()
 
         # load and center cursor, load background
-        self.background = pygame.image.load("backgrounds/BG1.png")
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect = self.cursor.get_rect()
+        self.background: Surface = pygame.image.load("backgrounds/BG1.png")
+        self.cursor: Surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect: Rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # load sounds
-        self.click_sound = pygame.mixer.Sound("sounds/click.wav")
+        self.click_sound: Sound = Sound("sounds/click.wav")
 
         # create text elements
-        self.title_text = Text("shapegame", 150, 1920/2, 1080/7)
-        self.logged_in_as_text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
-        self.loading_shapes_text = Text("loading your shapes", 100, 1920/2, 1080/2)
+        self.title_text: Text = Text("shapegame", 150, 1920/2, 1080/7)
+        self.logged_in_as_text: Text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
+        self.loading_shapes_text: Text = Text("loading your shapes", 100, 1920/2, 1080/2)
 
-        self.texts = []
+        self.texts: list[Text] = []
         self.texts.append(self.title_text)
         self.texts.append(self.logged_in_as_text)
 
         # create clickable elements
-        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
-        self.right = Arrow(1920/2 + 50, 700-25, "->")
-        self.left = Arrow(1920/2 - 50, 700-25, "<-")
+        self.exit_clickable: ClickableText = ClickableText("back", 50, 1870, 1045)
+        self.right: Arrow = Arrow(1920/2 + 50, 700-25, "->")
+        self.left: Arrow = Arrow(1920/2 - 50, 700-25, "<-")
 
-        self.clickables = []
+        self.clickables: list[ClickableText | Arrow] = []
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.right)
         self.clickables.append(self.left)
@@ -65,7 +72,7 @@ class UserCollectionMenu():
         # load your shape collection
         for counter, shape in enumerate(self.shapes):
             # create shape sprite
-            shape = MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes), "COLLECTIONS", False, self.session)
+            shape: MenuShape = MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes), "COLLECTIONS", False, self.session)
             self.collection_group.add(shape)
 
             # select this sprite if it is the selected sprite
