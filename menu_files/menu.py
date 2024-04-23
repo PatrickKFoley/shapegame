@@ -246,13 +246,13 @@ class Menu():
         
         # update and draw clickable elements
         for clickable in self.clickables:
-            if clickable != None:
+            if clickable != None and clickable != self.register_clickable:
                 clickable.update(mouse_pos)
                 self.screen.blit(clickable.surface, clickable.rect)
 
         # draw all text elements
         for text in self.texts:
-            if text != None:
+            if text != None and text != self.bad_credentials_text:
                 self.screen.blit(text.surface, text.rect)
 
         # center and draw cursor
@@ -281,6 +281,7 @@ class Menu():
                         redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
+                        self.clickables.remove(self.shape_tokens_clickable)
                         self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
                         self.clickables.append(self.shape_tokens_clickable)
 
@@ -315,6 +316,7 @@ class Menu():
                         redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
+                        self.clickables.remove(self.shape_tokens_clickable)
                         self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
                         self.clickables.append(self.shape_tokens_clickable)
 
@@ -324,6 +326,7 @@ class Menu():
                         redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
+                        self.clickables.remove(self.shape_tokens_clickable)
                         self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
                         self.clickables.append(self.shape_tokens_clickable)
 

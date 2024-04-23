@@ -6,40 +6,49 @@ from server_files.database_user import User
 from server_files.database_shape import Shape
 from threading import Thread
 from screen_elements.clickabletext import ClickableText
+from screen_elements.text import Text
+
+from shared_functions import *
 
 class CreateShapeMenu():
     def __init__(self, screen, user, shapes, session, circle_images_full):
-
-        self.network = None
+        # parameters from Menu
         self.user = user
         self.shapes = shapes
         self.screen = screen
         self.session = session
+        self.circle_images_full = circle_images_full
 
-        self.new_shapes_group = pygame.sprite.Group()
-
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect = self.cursor.get_rect()
-        self.cursor_rect.center = pygame.mouse.get_pos()
-        self.background = pygame.image.load("backgrounds/BG1.png")
-        self.title, x = self.createText("shapegame", 150)
-        self.title_rect = self.title.get_rect()
-        self.title_rect.center = (1920 / 2, 1080 / 2)
+        # create pygame objects
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font("backgrounds/font.ttf", 80)
 
- 
-        self.exit_clicked = False
+        # pygame sprite group for new shapes
+        self.new_shapes_group = pygame.sprite.Group()
 
+        # load and center cursor, load background
+        self.background = pygame.image.load("backgrounds/BG1.png")
+        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect = self.cursor.get_rect()
+        self.cursor_rect.center = pygame.mouse.get_pos()
 
+        # load sounds
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
         self.close_sound = pygame.mixer.Sound("sounds/close.wav")
         self.close_sound.set_volume(.5)
+        
+        # create all text elements
+        self.shape_tokens_remaining_text = None
+        self.title_text = Text("shapegame", 150, 1920/2, 1080/2)
+        self.create_shape_text = Text("create a new shape!", 150, 1920/2, 90)
+        self.logged_in_as_text = Text("logged in as: " + self.user.username, 35, 1900, 10, "topright")
 
-        self.create_shape, self.create_shape_rect = self.createText("create a new shape!", 150)
-        self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
-        self.logged_in_as_rect.topright = (1900, 10)
-        self.create_shape_rect.center = [1920/2, 90]
+        self.texts = []
+        self.texts.append(self.title_text)
+        self.texts.append(self.create_shape_text)
+        self.texts.append(self.logged_in_as_text)
+
+        # create all clickable elements
         self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
         self.go_to_collections_clickable = ClickableText("go to collections", 40, 450, 1045)
         self.create_clickable = ClickableText("create!", 50, 1920/2, 1000)
@@ -49,175 +58,122 @@ class CreateShapeMenu():
         self.clickables.append(self.go_to_collections_clickable)
         self.clickables.append(self.create_clickable)
 
+        # update the display
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.title, self.title_rect)
+        self.screen.blit(self.title_text.surface, self.title_text.rect)
         pygame.display.update()
 
-
-        self.circle_images_full = circle_images_full
-        self.circle_images_larger = []
+        # misc stuff
+        self.newest_stats_surface = None
 
     def start(self):
-        newest_stats = None
-        shape_tokens_remaining, shape_tokens_remaining_rect = self.createText("shape tokens: " + str(self.user.shape_tokens), 35)
-        shape_tokens_remaining_rect.topleft = [10, 1030]
+        self.shape_tokens_remaining_text = Text("shape tokens: " + str(self.user.shape_tokens), 35, 10, 1030, "topleft")
+        self.texts.append(self.shape_tokens_remaining_text)
 
         while True:
-            events = pygame.event.get()
-            mouse_pos = pygame.mouse.get_pos()
+            # handle all inputs, which might return a redirect
+            redirect = self.handleInputs()
+            if redirect != None: return redirect
 
-            # handle inputs
-            for event in events:
-                if event.type == MOUSEBUTTONDOWN: 
-                    self.click_sound.play()
+            # draw all screen elements
+            self.drawScreenElements()
 
-                    # deselect all new shapes
-                    for shape in self.new_shapes_group:
-                        shape.deselect()
-
-                    # if we click on a shape we want to see that shape's stats
-                    for shape in self.new_shapes_group:
-                        if shape.rect.collidepoint(mouse_pos):
-                            newest_stats = shape.stats_surface
-                            shape.select()
-
-                    # if we are exiting
-                    if self.exit_clickable.rect.collidepoint(mouse_pos):
-                        self.exit_clicked = True
-
-                    elif self.go_to_collections_clickable.rect.collidepoint(mouse_pos):
-                        return "COLLECTIONS"
-
-                    elif self.create_clickable.rect.collidepoint(mouse_pos) and self.user.shape_tokens != 0:
-                        # create new shape, add to db
-                        new_shape = self.createShape(self.user.id)
-                        new_menu_shape = NewMenuShape(new_shape, self.circle_images_full[new_shape.face_id][new_shape.color_id])
-                        newest_stats = new_menu_shape.stats_surface
-
-                        # rewrite number of tokens remaining
-                        shape_tokens_remaining, shape_tokens_remaining_rect = self.createText("shape tokens: " + str(self.user.shape_tokens), 35)
-                        shape_tokens_remaining_rect.topleft = [10, 1030]
-                        
-                        # add to user's collection group
-                        self.shapes.append(new_shape)
-                        self.new_shapes_group.add(new_menu_shape)
-
-            self.screen.blit(self.background, (0, 0))
-            self.new_shapes_group.draw(self.screen)
-            # draw things
-            
-            self.new_shapes_group.update()
-            self.checkShapeCollisions(self.new_shapes_group)
-
-            if newest_stats != None:
-                self.screen.blit(newest_stats, [-50, 640])
-            
-            
-            self.screen.blit(self.create_shape, self.create_shape_rect)
-            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-            self.screen.blit(self.go_to_collections_clickable.surface, self.go_to_collections_clickable.rect)
-            self.screen.blit(shape_tokens_remaining, shape_tokens_remaining_rect)
-            self.screen.blit(self.logged_in_as, self.logged_in_as_rect)
-
-            if self.user.shape_tokens != 0:
-                self.screen.blit(self.create_clickable.surface, self.create_clickable.rect)
-
-            self.cursor_rect.center = mouse_pos
-            self.screen.blit(self.cursor, self.cursor_rect)
-
-
-            # update any on screen elements
-            self.exit_clickable.update(mouse_pos)
-            self.create_clickable.update(mouse_pos)
-            self.go_to_collections_clickable.update(mouse_pos)
-
-            pygame.display.flip()
-
-            # exit
-            if self.exit_clicked:
-                # delete all new shapes
-                self.new_shapes_group.empty()
-
-                return "NONE"
-                
+            # tick clock
             self.clock.tick(60)
 
-    # HELPERS
+    # start helpers
 
-    def createText(self, text, size, color = "white"):
-        font = pygame.font.Font("backgrounds/font.ttf", size)
+    def handleInputs(self):
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+
+        # handle inputs
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN: 
+                self.click_sound.play()
+
+                # deselect all new shapes
+                for shape in self.new_shapes_group:
+                    shape.deselect()
+
+                # if we click on a shape we want to see that shape's stats
+                for shape in self.new_shapes_group:
+                    if shape.rect.collidepoint(mouse_pos):
+                        self.newest_stats_surface = shape.stats_surface
+                        shape.select()
+
+                # if we are exiting
+                if self.exit_clickable.rect.collidepoint(mouse_pos):
+                    self.new_shapes_group.empty()
+                    return "NONE"
+
+                # if collections redirect is clicked
+                elif self.go_to_collections_clickable.rect.collidepoint(mouse_pos):
+                    return "COLLECTIONS"
+
+                elif self.create_clickable.rect.collidepoint(mouse_pos) and self.user.shape_tokens != 0:
+                    # create new shape, add to db
+                    new_shape = createShape(self.user.id, self.session, self.user.username)
+                    new_menu_shape = NewMenuShape(new_shape, self.circle_images_full[new_shape.face_id][new_shape.color_id])
+                    self.newest_stats_surface = new_menu_shape.stats_surface
+
+                    # rewrite number of tokens remaining
+                    self.texts.remove(self.shape_tokens_remaining_text)
+                    self.shape_tokens_remaining_text = Text("shape tokens: " + str(self.user.shape_tokens), 35, 10, 1030, "topleft")
+                    self.texts.append(self.shape_tokens_remaining_text)
+                    
+                    # add to user's collection group
+                    self.shapes.append(new_shape)
+                    self.new_shapes_group.add(new_menu_shape)
+
+        return None
+
+    def drawScreenElements(self):
+        # draw + update all elements
+
+        # flip the display, get mouse position
+        pygame.display.flip()
+        mouse_pos = pygame.mouse.get_pos()
+
+        # draw the background
+        self.screen.blit(self.background, (0, 0))
         
+        # draw and update new shapes
+        self.checkShapeCollisions(self.new_shapes_group)
+        self.new_shapes_group.update()
+        self.new_shapes_group.draw(self.screen)
 
-        if type(text) == type("string"):
-            text_surface = font.render(text, True, color)
-            text_rect = text_surface.get_rect()
+        # if there are stats to show
+        if self.newest_stats_surface != None:
+            self.screen.blit(self.newest_stats_surface, [-50, 640])
 
-            return text_surface, text_rect
-        
-        elif type(text) == type(["array"]):
-            text_surfaces = []
-            for element in text:
-                text_surfaces.append(font.render(element, True, color))
+        # update and draw clickable elements
+        for clickable in self.clickables:
 
-            max_line_length = max(surface.get_size()[0] for surface in text_surfaces)
-            line_height = text_surfaces[0].get_size()[1]
+            # only want the create clickable to be shown if user has shape tokens
+            if clickable == self.create_clickable:
+                if self.user.shape_tokens > 0:
+                   self.screen.blit(clickable.surface, clickable.rect)
 
-            surface = pygame.Surface((max_line_length, (len(text_surfaces) + 1) * line_height), pygame.SRCALPHA, 32)
+            # otherwise, show all clickables
+            elif clickable != None:
+                clickable.update(mouse_pos)
+                self.screen.blit(clickable.surface, clickable.rect)
 
-            for i, text_surface in enumerate(text_surfaces):
-                surface.blit(text_surface, [max_line_length/2 - text_surface.get_size()[0]/2, line_height * (i+1)])
+        # draw all text elements
+        for text in self.texts:
+            if text != None and text != self.title_text:
+                self.screen.blit(text.surface, text.rect)
 
-            return surface, surface.get_rect()
+        # if the user has shape tokens to spend
+        if self.user.shape_tokens != 0:
+            self.screen.blit(self.create_clickable.surface, self.create_clickable.rect)
 
-    # FUNCTIONS
+        # center and draw cursor
+        self.cursor_rect.center = mouse_pos
+        self.screen.blit(self.cursor, self.cursor_rect)
 
-    def commitShape(self, shape):
-        self.session.query(User).filter(User.id == self.user.id).update({'shape_tokens': User.shape_tokens -1})
-        self.session.add(shape)
-        self.session.commit()
-
-    def createShape(self, owner_id = -1):
-        # decrement number of shape tokens
-        face_id = random.randint(0, 4)
-        color_id = random.randint(0, len(colors)-1)
-
-        base = circles_unchanged[face_id]
-
-        density = base["density"]
-        velocity = base["velocity"] + random.randint(0, 3)
-        radius_min = base["radius_min"] + random.randint(-3, 3)
-        radius_max = base["radius_max"] + random.randint(-3, 3)
-        health = base["health"] + random.randint(-100, 100)
-        dmg_multiplier = round(base["dmg_multiplier"] + (random.randint(-10, 10) / 10), 2)
-        luck = round(base["luck"] + (random.randint(-10, 10) / 10), 2)
-        team_size = base["team_size"] + random.randint(-3, 3)
-        name = names[random.randint(0, len(names)-1)]
-        title = titles[0]
-
-        # DON'T LET RAD_MIN > RAD_MAX
-        while radius_min >= radius_max:
-            radius_min = base["radius_min"] + random.randint(-3, 3)
-            radius_max = base["radius_max"] + random.randint(-3, 3)
-
-        # DON'T LET DMGX == 0
-        while dmg_multiplier == 0.0:
-            dmg_multiplier = round(base["dmg_multiplier"] + (random.randint(-10, 10) / 10), 2)
-
-        if owner_id != -1:
-            try:
-                shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, self.user.username, name, title)
-                
-                thread = Thread(target=self.commitShape(shape))
-                thread.start()
-                # thread.join()
-
-                return shape
-            except:
-                self.session.rollback()
-                return False
-        else:
-            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, "no one", name, title)
-            return shape
+    # shape related functions
 
     def checkShapeCollisions(self, group, damage = False):
         for s1 in group.sprites():
