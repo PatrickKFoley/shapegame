@@ -1,5 +1,11 @@
-import pygame, random, math, numpy as np
 from pygame.locals import *
+from pygame.sprite import *
+from pygame.mixer import *
+from pygame import *
+
+import pygame, random, math, numpy as np
+
+from sqlalchemy.orm import Session
 from menu_files.create_shape_files.newmenushape import NewMenuShape
 from game_files.circledata import *
 from server_files.database_user import User
@@ -11,7 +17,7 @@ from screen_elements.text import Text
 from shared_functions import *
 
 class CreateShapeMenu():
-    def __init__(self, screen, user, shapes, session, circle_images_full):
+    def __init__(self, screen: Surface, user: User, shapes: list[Shape], session: Session, circle_images_full: list[list[Surface]]):
         # parameters from Menu
         self.user = user
         self.shapes = shapes
@@ -24,7 +30,7 @@ class CreateShapeMenu():
         self.font = pygame.font.Font("backgrounds/font.ttf", 80)
 
         # pygame sprite group for new shapes
-        self.new_shapes_group = pygame.sprite.Group()
+        self.new_shapes_group = Group()
 
         # load and center cursor, load background
         self.background = pygame.image.load("backgrounds/BG1.png")
@@ -33,17 +39,17 @@ class CreateShapeMenu():
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # load sounds
-        self.click_sound = pygame.mixer.Sound("sounds/click.wav")
-        self.close_sound = pygame.mixer.Sound("sounds/close.wav")
+        self.click_sound = Sound("sounds/click.wav")
+        self.close_sound = Sound("sounds/close.wav")
         self.close_sound.set_volume(.5)
         
         # create all text elements
-        self.shape_tokens_remaining_text = None
+        self.shape_tokens_remaining_text: Text | None = None
         self.title_text = Text("shapegame", 150, 1920/2, 1080/2)
         self.create_shape_text = Text("create a new shape!", 150, 1920/2, 90)
         self.logged_in_as_text = Text("logged in as: " + self.user.username, 35, 1900, 10, "topright")
 
-        self.texts = []
+        self.texts: list[Text | None] = []
         self.texts.append(self.title_text)
         self.texts.append(self.create_shape_text)
         self.texts.append(self.logged_in_as_text)
@@ -53,7 +59,7 @@ class CreateShapeMenu():
         self.go_to_collections_clickable = ClickableText("go to collections", 40, 450, 1045)
         self.create_clickable = ClickableText("create!", 50, 1920/2, 1000)
 
-        self.clickables = []
+        self.clickables: list[ClickableText] = []
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.go_to_collections_clickable)
         self.clickables.append(self.create_clickable)
@@ -64,7 +70,7 @@ class CreateShapeMenu():
         pygame.display.update()
 
         # misc stuff
-        self.newest_stats_surface = None
+        self.newest_stats_surface: Surface | None = None
 
     def start(self):
         self.shape_tokens_remaining_text = Text("shape tokens: " + str(self.user.shape_tokens), 35, 10, 1030, "topleft")
@@ -125,8 +131,6 @@ class CreateShapeMenu():
                     # add to user's collection group
                     self.shapes.append(new_shape)
                     self.new_shapes_group.add(new_menu_shape)
-
-        return None
 
     def drawScreenElements(self):
         # draw + update all elements

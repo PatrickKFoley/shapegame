@@ -26,9 +26,9 @@ from game_files.circledata import *
 class Menu():
     def __init__(self):
         # misc attributes
-        self.num_faces: int = len(circles)
-        self.exit_clicked: bool = False
-        self.frames_since_exit_clicked: int = 0
+        self.num_faces = len(circles)
+        self.exit_clicked = False
+        self.frames_since_exit_clicked = 0
 
         # your database entries
         self.user: User | None = None
@@ -37,31 +37,31 @@ class Menu():
         # database session
         self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=False)
         SessionMaker = sessionmaker(bind=self.engine)
-        self.session: Session = SessionMaker()
+        self.session = SessionMaker()
 
         # sprite groups for your shapes (in network match), new shapes, simple circles (on main menu)
-        self.you_group: Group = Group()
-        self.new_shapes_group: Group = Group()
-        self.simple_circle_sprites: Group = Group()
+        self.you_group = Group()
+        self.new_shapes_group = Group()
+        self.simple_circle_sprites = Group()
 
         # load and center cursor, load background        
-        self.background: Surface = pygame.image.load("backgrounds/BG1.png")
-        self.cursor: Surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect: Rect = self.cursor.get_rect()
+        self.background = pygame.image.load("backgrounds/BG1.png")
+        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # create pygame objects
         # self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
-        self.screen: Surface = pygame.display.set_mode((1920, 1080))
+        self.screen = pygame.display.set_mode((1920, 1080))
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font("backgrounds/font.ttf", 80)
 
         # load all sounds
-        self.click_sound: Sound = Sound("sounds/click.wav")
-        self.start_sound: Sound = Sound("sounds/start.wav")
-        self.open_sound: Sound = Sound("sounds/open.wav")
-        self.menu_music: Sound = Sound("sounds/menu.wav")
-        self.close_sound: Sound = Sound("sounds/close.wav")
+        self.click_sound = Sound("sounds/click.wav")
+        self.start_sound = Sound("sounds/start.wav")
+        self.open_sound = Sound("sounds/open.wav")
+        self.menu_music = Sound("sounds/menu.wav")
+        self.close_sound = Sound("sounds/close.wav")
         self.open_sound.set_volume(.5)
         self.menu_music.set_volume(.5)
         self.close_sound.set_volume(.5)
@@ -70,10 +70,10 @@ class Menu():
         # create all text elements
         self.logged_in_as_text: Text | None = None
         self.shape_tokens_clickable: Text | None = None
-        self.title_text: Text = Text("shapegame", 150, 1920/2, 1080/2)
-        self.play_text: Text = Text("play", 100, 3*1920/4, 750)
-        self.bad_credentials_text: Text = Text("user not found!", 150, 1920/2, 800)
-        self.collections_text: Text = Text("collections", 100, 1920/4, 750)
+        self.title_text = Text("shapegame", 150, 1920/2, 1080/2)
+        self.play_text = Text("play", 100, 3*1920/4, 750)
+        self.bad_credentials_text = Text("user not found!", 150, 1920/2, 800)
+        self.collections_text = Text("collections", 100, 1920/4, 750)
 
         self.texts: list[Text] = []
         self.texts.append(self.title_text)
@@ -82,13 +82,13 @@ class Menu():
         self.texts.append(self.collections_text)
 
         # create all interactive elements
-        self.network_match_clickable: ClickableText = ClickableText("network match", 50, 3 * 1920 / 4 - 200, 875)
-        self.local_match_clickable: ClickableText = ClickableText("local match", 50, 3 * 1920 / 4 + 200, 875)
-        self.your_shapes_clickable: ClickableText = ClickableText("your shapes", 50, 1 * 1920 / 4 - 250, 875)
-        self.all_shapes_clickable: ClickableText = ClickableText("all shapes & powerups", 50, 1 * 1920 / 4 + 250, 875)
-        self.exit_clickable: ClickableText = ClickableText("exit", 50, 1870, 1045)
-        self.register_clickable: ClickableText = ClickableText("register", 50, 1920 / 2, 1050)
-        self.username_editable: ClickableText = EditableText("Username: ", 60, 1920/2, 950)
+        self.network_match_clickable = ClickableText("network match", 50, 3 * 1920 / 4 - 200, 875)
+        self.local_match_clickable = ClickableText("local match", 50, 3 * 1920 / 4 + 200, 875)
+        self.your_shapes_clickable = ClickableText("your shapes", 50, 1 * 1920 / 4 - 250, 875)
+        self.all_shapes_clickable = ClickableText("all shapes & powerups", 50, 1 * 1920 / 4 + 250, 875)
+        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
+        self.register_clickable = ClickableText("register", 50, 1920 / 2, 1050)
+        self.username_editable = EditableText("Username: ", 60, 1920/2, 950)
         self.username_editable.select()
 
         self.clickables: list[ClickableText] = []
@@ -170,11 +170,13 @@ class Menu():
                     self.click_sound.play()
 
                     # user's database entries are returned from the register menu
-                    self.user, self.shapes = RegisterMenu(self.screen, self.session).start()
+                    registerMenu = RegisterMenu(self.screen, self.session)
+                    self.user, self.shapes = registerMenu.start()
+                    del registerMenu
 
                     # create and add text elements 
-                    self.logged_in_as_text: Text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
-                    self.shape_tokens_clickable: ClickableText = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                    self.logged_in_as_text= Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
+                    self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
                     self.texts.append(self.logged_in_as_text)
                     self.clickables.append(self.shape_tokens_clickable)
 

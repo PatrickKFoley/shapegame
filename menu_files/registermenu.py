@@ -1,5 +1,11 @@
 import pygame
 from pygame.locals import *
+from pygame.sprite import *
+from pygame.mixer import *
+from pygame import *
+
+from sqlalchemy.orm import Session
+
 from game_files.circledata import *
 from server_files.database_user import User
 from server_files.database_shape import Shape
@@ -8,7 +14,7 @@ from screen_elements.editabletext import EditableText
 from screen_elements.text import Text
 
 class RegisterMenu():
-    def __init__(self, screen, session):
+    def __init__(self, screen: Surface, session: Session):
         # parameters from menu
         self.screen = screen
         self.session = session
@@ -17,17 +23,17 @@ class RegisterMenu():
         self.clock = pygame.time.Clock()
 
         # load and center cursor, load background
-        self.background = pygame.image.load("backgrounds/BG1.png")
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect = self.cursor.get_rect()
+        self.background: Surface = pygame.image.load("backgrounds/BG1.png")
+        self.cursor: Surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect: Rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # load sounds
-        self.click_sound = pygame.mixer.Sound("sounds/click.wav")
-        self.start_sound = pygame.mixer.Sound("sounds/start.wav")
-        self.open_sound = pygame.mixer.Sound("sounds/open.wav")
-        self.menu_music = pygame.mixer.Sound("sounds/menu.wav")
-        self.close_sound = pygame.mixer.Sound("sounds/close.wav")
+        self.click_sound = Sound("sounds/click.wav")
+        self.start_sound = Sound("sounds/start.wav")
+        self.open_sound = Sound("sounds/open.wav")
+        self.menu_music = Sound("sounds/menu.wav")
+        self.close_sound = Sound("sounds/close.wav")
         self.open_sound.set_volume(.5)
         self.menu_music.set_volume(.5)
         self.close_sound.set_volume(.5)
@@ -38,7 +44,8 @@ class RegisterMenu():
         self.short_password_text = Text("Password too short!", 50, 1920/2, 975)
         self.username_taken_text = Text("Username taken!", 50, 1920/2, 975)
 
-        self.texts = []
+
+        self.texts: list[Text] = []
         self.texts.append(self.title_text)
         self.texts.append(self.bad_password_text)
         self.texts.append(self.short_password_text)
@@ -48,7 +55,7 @@ class RegisterMenu():
         self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
         self.register_clickable = ClickableText("register", 50, 1920 / 2, 1050)
 
-        self.clickables = []
+        self.clickables: list[ClickableText] = []
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.register_clickable)
 
@@ -57,7 +64,7 @@ class RegisterMenu():
         self.register_password_editable = EditableText("Password: ", 60, 1920/2, 800)
         self.register_password_confirm_editable = EditableText("Confirm password: ", 60, 1920/2, 900)
 
-        self.editable_texts = []
+        self.editable_texts: list[EditableText] = []
         self.editable_texts.append(self.register_username_editable)
         self.editable_texts.append(self.register_password_editable)
         self.editable_texts.append(self.register_password_confirm_editable)
@@ -148,16 +155,15 @@ class RegisterMenu():
 
                     # if no flags raised, user can register
                     if (not self.bad_password_flag and not self.username_taken_flag and not self.short_password_flag):
-                        user = self.createUser(self.register_username_editable.getText())
+                        user: User | None = self.createUser(self.register_username_editable.getText())
 
-                        if user == False:
+                        if user is None:
                             # TODO issue creating user
                             continue
 
-                        shapes = self.session.query(Shape).filter(Shape.owner_id == int(user.id)).all()
+                        shapes: list[Shape] = self.session.query(Shape).filter(Shape.owner_id == int(user.id)).all()
                         return user, shapes
                     
-        return None
 
     def drawScreenElements(self, events):
         # draw + update all elements
@@ -199,4 +205,3 @@ class RegisterMenu():
             return user
         except:
             self.session.rollback()
-            return False
