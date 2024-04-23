@@ -15,7 +15,6 @@ class RegisterMenu():
 
         # create pygame objects
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font("backgrounds/font.ttf", 80)
 
         # load and center cursor, load background
         self.background = pygame.image.load("backgrounds/BG1.png")
@@ -95,6 +94,8 @@ class RegisterMenu():
                 return
                 
             self.clock.tick(60)
+
+    # start helpers
 
     def handleInputs(self, events):
         mouse_pos = pygame.mouse.get_pos()
@@ -188,7 +189,7 @@ class RegisterMenu():
         self.cursor_rect.center = mouse_pos
         self.screen.blit(self.cursor, self.cursor_rect)
 
-    # HELPERS
+    # additional functions
 
     def createUser(self, username):
         try:
