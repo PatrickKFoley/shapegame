@@ -110,7 +110,7 @@ class CreateShapeMenu():
             self.checkShapeCollisions(self.new_shapes_group)
 
             if newest_stats != None:
-                self.screen.blit(newest_stats, [-50, 700])
+                self.screen.blit(newest_stats, [-50, 640])
             
             
             self.screen.blit(self.create_shape, self.create_shape_rect)
@@ -191,6 +191,8 @@ class CreateShapeMenu():
         dmg_multiplier = round(base["dmg_multiplier"] + (random.randint(-10, 10) / 10), 2)
         luck = round(base["luck"] + (random.randint(-10, 10) / 10), 2)
         team_size = base["team_size"] + random.randint(-3, 3)
+        name = names[random.randint(0, len(names)-1)]
+        title = titles[0]
 
         # DON'T LET RAD_MIN > RAD_MAX
         while radius_min >= radius_max:
@@ -203,7 +205,7 @@ class CreateShapeMenu():
 
         if owner_id != -1:
             try:
-                shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, self.user.username)
+                shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, self.user.username, name, title)
                 
                 thread = Thread(target=self.commitShape(shape))
                 thread.start()
@@ -214,7 +216,7 @@ class CreateShapeMenu():
                 self.session.rollback()
                 return False
         else:
-            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, "no one")
+            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, "no one", name, title)
             return shape
 
     def checkShapeCollisions(self, group, damage = False):

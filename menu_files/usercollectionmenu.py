@@ -21,7 +21,7 @@ class UserCollectionMenu():
         self.background = pygame.image.load("backgrounds/BG1.png")
         self.title, x = self.createText("shapegame", 150)
         self.title_rect = self.title.get_rect()
-        self.title_rect.center = (1920 / 2, 1080 / 2)
+        self.title_rect.center = (1920 / 2, (1080 / 2)-25)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font("backgrounds/font.ttf", 80)
         self.stats_surface = 0
@@ -35,8 +35,8 @@ class UserCollectionMenu():
         self.logged_in_as, self.logged_in_as_rect = self.createText("logged in as: " + self.user.username, 35)
         self.logged_in_as_rect.topleft = (10, 1030)
 
-        self.right = Arrow(1920/2 + 50, 700, "->")
-        self.left = Arrow(1920/2 - 50, 700, "<-")
+        self.right = Arrow(1920/2 + 50, 700-25, "->")
+        self.left = Arrow(1920/2 - 50, 700-25, "<-")
 
         self.clickables = []
         self.clickables.append(self.exit_clickable)

@@ -9,7 +9,6 @@ class MenuShape(pygame.sprite.Sprite):
     def __init__(self, id, shape, image_full, num_shapes, mode = "PLAYER", selected = False, session = False):
         self.id = id
         super().__init__()
-        # self.image_full =  pygame.image.load("circles/{}/{}/0.png".format(shape.face_id, colors[shape.color_id][0]))
         self.image_full = image_full
         self.num_shapes = min(num_shapes + 1, 6)
         self.x = id  * 1920 / self.num_shapes
@@ -17,11 +16,11 @@ class MenuShape(pygame.sprite.Sprite):
         self.session = session
 
         if mode == "COLLECTIONS":
-            self.y = 500
+            self.y = 500 - 25
         elif mode == "OPPONENT":
-            self.y = 300  - 35
+            self.y = 300  - 35 -25
         else:
-            self.y = 600  - 35
+            self.y = 600  - 35 -25
 
         self.next_x = self.x
 
@@ -32,11 +31,11 @@ class MenuShape(pygame.sprite.Sprite):
         self.stats_surface_rect = self.stats_surface.get_rect()
 
         if mode == "COLLECTIONS":
-            self.stats_surface_rect.center = [1920 / 2 - 35, 1000]
+            self.stats_surface_rect.center = [1920 / 2 - 35, 1000 -50]
         elif mode == "OPPONENT":
-            self.stats_surface_rect.center = [1920 / 2 + 480, 1050 + OFFSET]
+            self.stats_surface_rect.center = [1920 / 2 + 480, 1050 + OFFSET - 45]
         else:
-            self.stats_surface_rect.center = [1920 / 2 - 600, 1050 + OFFSET]
+            self.stats_surface_rect.center = [1920 / 2 - 600, 1050 + OFFSET - 45]
 
         if mode == "COLLECTIONS":
             self.small_r = 180
@@ -67,24 +66,32 @@ class MenuShape(pygame.sprite.Sprite):
             font_size = 40
             width = 1000
 
-        big_font_size = 60
+        big_font_size = 40
+        title_font_size = offset = 75
 
 
 
         surface = pygame.Surface((width, 500), pygame.SRCALPHA, 32)
-        # background = pygame.transform.smoothscale(pygame.image.load("backgrounds/transparent_background.png"), (width, 500))
-        # surface.blit(background, (0, 0))
         font = pygame.font.Font("backgrounds/font.ttf", font_size)
         font_big = pygame.font.Font("backgrounds/font.ttf", big_font_size)
+        font_title = pygame.font.Font("backgrounds/font.ttf", title_font_size)
+
+        title_surface = font_title.render("{} {}".format(self.shape.title, self.shape.name), 1, colors[self.shape.color_id][2])
+        title_rect = title_surface.get_rect()
+        title_rect.topleft = (width/2 + 30 - title_surface.get_size()[0]/2, 0)
+
+        if self.mode == "PLAYER" or self.mode == "OPPONENT":
+            title_rect.topleft = (width/2 + 50 - title_surface.get_size()[0]/2, 0)
 
         level_surface = font_big.render("level: " + str(self.shape.level), 1, "white")
         level_rect = level_surface.get_rect()
-        level_rect.topright = (297, 0)
+        level_rect.topright = (297, 0 + offset)
 
         win_surface = font_big.render("wins: " + str(self.shape.num_wins), 1, "white")
         win_rect = win_surface.get_rect()
-        win_rect.topright = (500, 0)
+        win_rect.topright = (500, 0 + offset)
 
+        surface.blit(title_surface, title_rect)
         surface.blit(level_surface, level_rect)
         surface.blit(win_surface, win_rect)
 
@@ -109,7 +116,7 @@ class MenuShape(pygame.sprite.Sprite):
             bonus_rect = bonus_surface.get_rect()
 
             if keys_for_rects[i] != "radius_min":
-                bonus_rect.topright = (500, line * font_size + big_font_size)
+                bonus_rect.topright = (500, line * font_size + big_font_size + offset)
                 surface.blit(bonus_surface, bonus_rect)
                 line += 1
             
@@ -119,13 +126,13 @@ class MenuShape(pygame.sprite.Sprite):
         for value in values:
             key_text = font.render(keys[i], 1, "white")
             key_text_rect = key_text.get_rect()
-            key_text_rect.topright = (250, i * font_size + big_font_size)
+            key_text_rect.topright = (250, i * font_size + big_font_size + offset)
 
             surface.blit(key_text, key_text_rect)
 
             value_text = font.render(value, 1, "white")
             value_text_rect = value_text.get_rect()
-            value_text_rect.topleft = (270, i * font_size + big_font_size)
+            value_text_rect.topleft = (270, i * font_size + big_font_size + offset)
 
             surface.blit(value_text, value_text_rect)
             i += 1
@@ -148,11 +155,11 @@ class MenuShape(pygame.sprite.Sprite):
 
             time_owned_str = "time owned:"
             time_owned_surface, time_owned_rect = self.createText(time_owned_str, font_size)
-            time_owned_rect.topright = (250, i * font_size + big_font_size)
+            time_owned_rect.topright = (250, i * font_size + big_font_size + offset)
 
             date_str = "{}d, {}h, {}m".format(days, hours, minutes)
             date_surface, date_rect = self.createText(date_str, font_size)
-            date_rect.topleft = (270, i * font_size + big_font_size)
+            date_rect.topleft = (270, i * font_size + big_font_size + offset)
 
             surface.blit(time_owned_surface, time_owned_rect)
             surface.blit(date_surface, date_rect)
@@ -171,23 +178,23 @@ class MenuShape(pygame.sprite.Sprite):
 
         obtained_on_str = ["obtained on: ", "{}".format(obtained_on_datetime.strftime("%m/%d/%Y, %H:%M"))]
         created_on_surface, created_on_rect = self.createText(obtained_on_str, font_size - 5)
-        surface.blit(created_on_surface, [750 - created_on_surface.get_size()[0]/2, -25])
+        surface.blit(created_on_surface, [750 - created_on_surface.get_size()[0]/2, -25 + offset])
 
         created_on_str = ["created on: ", "{}".format(created_on_datetime.strftime("%m/%d/%Y, %H:%M"))]
         created_surface, created_rect = self.createText(created_on_str, font_size - 5)
-        surface.blit(created_surface, [750 - created_surface.get_size()[0]/2, 45])
+        surface.blit(created_surface, [750 - created_surface.get_size()[0]/2, 45 + offset])
 
         num_owners_str = "number of owners: {}".format(self.shape.num_owners)
         num_owners_surface, num_owners_rect = self.createText(num_owners_str, font_size - 5)
-        surface.blit(num_owners_surface, [750 - num_owners_surface.get_size()[0]/2, 160])
+        surface.blit(num_owners_surface, [750 - num_owners_surface.get_size()[0]/2, 160 + offset])
 
         created_by_str = "created by: {}".format(self.shape.created_by)
         created_by_surface, created_by_rect = self.createText(created_by_str, font_size - 5)
-        surface.blit(created_by_surface, [750 - created_by_surface.get_size()[0]/2, 205])
+        surface.blit(created_by_surface, [750 - created_by_surface.get_size()[0]/2, 205 + offset])
 
         rarity_str = "your shape is 1 of {}".format(count)
         rarity_surface, rarity_rect = self.createText(rarity_str, font_size - 5)
-        surface.blit(rarity_surface, [750 - rarity_surface.get_size()[0]/2, 250])
+        surface.blit(rarity_surface, [750 - rarity_surface.get_size()[0]/2, 250 + offset])
 
         return surface
 

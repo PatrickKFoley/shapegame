@@ -31,7 +31,11 @@ class Shape(BaseClass):
     obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
     created_by = Column("created_by", String)
 
-    def __init__(self, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, creator_username):
+    name = Column("name", String)
+    title = Column("title", String)
+
+
+    def __init__(self, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, creator_username, name, title):
         self.owner_id = owner_id
         self.face_id = face_id
         self.color_id = color_id
@@ -44,6 +48,8 @@ class Shape(BaseClass):
         self.luck = luck
         self.team_size = team_size
         self.created_by = creator_username
+        self.name = name
+        self.title = title
     
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"

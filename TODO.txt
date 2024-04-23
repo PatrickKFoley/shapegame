@@ -31,3 +31,7 @@ QOL/EXTRA
     - about screen
     - tutorial/mechanic screen
     - powerup screen
+
+SMALL
+    - move "shared functions" to a separate file
+        - create shape, create text...

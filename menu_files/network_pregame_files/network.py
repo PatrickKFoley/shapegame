@@ -1,5 +1,6 @@
 import socket
 import pickle, sys, random
+from menu_files.network_pregame_files.pregame import Pregame
 from threading import Thread
 
 class Network:
@@ -59,8 +60,8 @@ class Network:
 
             response = pickle.loads(self.client.recv(4096))
             self.pregame = response
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     def getPregame(self):
         if not self.thread.is_alive():
@@ -68,6 +69,5 @@ class Network:
             self.thread = Thread(target=self.updatePregame)
 
             self.thread.start()
-            # self.thread.join()
 
         return self.pregame

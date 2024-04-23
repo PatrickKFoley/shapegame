@@ -39,19 +39,28 @@ class NewMenuShape(pygame.sprite.Sprite):
 
     def createStatsSurface(self):
         font_size = 40
-        big_font_size = 60
+        big_font_size = 50
+        title_font_size = offset = 75
 
         surface = pygame.Surface((500, 500), pygame.SRCALPHA, 32)
         font = pygame.font.Font("backgrounds/font.ttf", font_size)
         font_big = pygame.font.Font("backgrounds/font.ttf", big_font_size)
+        font_title = pygame.font.Font("backgrounds/font.ttf", title_font_size)
+
+        title_surface = font_title.render("{} {}".format(self.shape.title, self.shape.name), 1, colors[self.shape.color_id][2])
+        title_rect = title_surface.get_rect()
+        title_rect.topleft = (300 - title_surface.get_size()[0]/2, 0)
+
 
         level_surface = font_big.render("level: " + str(self.shape.level), 1, "white")
         level_rect = level_surface.get_rect()
-        level_rect.topright = (297, 0)
+        level_rect.topright = (297, 0 + offset)
 
         win_surface = font_big.render("wins: " + str(self.shape.num_wins), 1, "white")
         win_rect = win_surface.get_rect()
-        win_rect.topright = (500, 0)
+        win_rect.topright = (500, 0 + offset)
+
+        surface.blit(title_surface, title_rect)
 
         surface.blit(level_surface, level_rect)
         surface.blit(win_surface, win_rect)
@@ -77,7 +86,7 @@ class NewMenuShape(pygame.sprite.Sprite):
             bonus_rect = bonus_surface.get_rect()
 
             if keys_for_rects[i] != "radius_min":
-                bonus_rect.topright = (500, line * font_size + big_font_size)
+                bonus_rect.topright = (500, line * font_size + big_font_size + offset)
                 surface.blit(bonus_surface, bonus_rect)
                 line += 1
             
@@ -87,13 +96,13 @@ class NewMenuShape(pygame.sprite.Sprite):
         for value in values:
             key_text = font.render(keys[i], 1, "white")
             key_text_rect = key_text.get_rect()
-            key_text_rect.topright = (250, i * font_size + big_font_size)
+            key_text_rect.topright = (250, i * font_size + big_font_size + offset)
 
             surface.blit(key_text, key_text_rect)
 
             value_text = font.render(value, 1, "white")
             value_text_rect = value_text.get_rect()
-            value_text_rect.topleft = (270, i * font_size + big_font_size)
+            value_text_rect.topleft = (270, i * font_size + big_font_size + offset)
 
             surface.blit(value_text, value_text_rect)
             i += 1
