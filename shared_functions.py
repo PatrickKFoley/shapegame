@@ -4,8 +4,7 @@ from server_files.database_shape import Shape
 from server_files.database_user import User
 
 def createText(text, size, color = "white"):
-    font = pygame.font.Font("backgrounds/font.ttf", size)
-    
+    font = pygame.font.Font("backgrounds/font.ttf", size) 
 
     if type(text) == type("string"):
         text_surface = font.render(text, True, color)
