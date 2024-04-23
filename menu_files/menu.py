@@ -1,92 +1,97 @@
 import pygame, random, math, numpy as np, sys
+
 from pygame.locals import *
-from menu_files.main_menu_files.simplecircle import SimpleCircle
-from game_files.circledata import *
-from server_files.database_user import User
-from server_files.database_shape import Shape
+from pygame.sprite import *
+from pygame.mixer import *
+from pygame import *
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+
 from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
 from screen_elements.text import Text
+from server_files.database_user import User
+from server_files.database_shape import Shape
 from menu_files.main_menu_files.menucircle import MenuShape
+from menu_files.main_menu_files.simplecircle import SimpleCircle
 from menu_files.powerupdisplaymenu import PowerupDisplayMenu
 from menu_files.localmatchmenu import LocalMatchMenu
 from menu_files.usercollectionmenu import UserCollectionMenu
 from menu_files.createshapemenu import CreateShapeMenu
 from menu_files.networkmatchmenu import NetworkMatchMenu
 from menu_files.registermenu import RegisterMenu
-
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from game_files.circledata import *
 
 class Menu():
     def __init__(self):
         # misc attributes
-        self.num_faces = len(circles)
-        self.exit_clicked = False
-        self.frames_since_exit_clicked = 0
+        self.num_faces: int = len(circles)
+        self.exit_clicked: bool = False
+        self.frames_since_exit_clicked: int = 0
 
         # your database entries
-        self.user = None
-        self.shapes = []
+        self.user: User | None = None
+        self.shapes: list[Shape] = []
 
         # database session
         self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=False)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        SessionMaker = sessionmaker(bind=self.engine)
+        self.session: Session = SessionMaker()
 
         # sprite groups for your shapes (in network match), new shapes, simple circles (on main menu)
-        self.you_group = pygame.sprite.Group()
-        self.new_shapes_group = pygame.sprite.Group()
-        self.simple_circle_sprites = pygame.sprite.Group()
+        self.you_group: Group = Group()
+        self.new_shapes_group: Group = Group()
+        self.simple_circle_sprites: Group = Group()
 
         # load and center cursor, load background        
-        self.background = pygame.image.load("backgrounds/BG1.png")
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect = self.cursor.get_rect()
+        self.background: Surface = pygame.image.load("backgrounds/BG1.png")
+        self.cursor: Surface = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect: Rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # create pygame objects
         # self.screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
-        self.screen = pygame.display.set_mode((1920, 1080))
+        self.screen: Surface = pygame.display.set_mode((1920, 1080))
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font("backgrounds/font.ttf", 80)
 
         # load all sounds
-        self.click_sound = pygame.mixer.Sound("sounds/click.wav")
-        self.start_sound = pygame.mixer.Sound("sounds/start.wav")
-        self.open_sound = pygame.mixer.Sound("sounds/open.wav")
-        self.menu_music = pygame.mixer.Sound("sounds/menu.wav")
-        self.close_sound = pygame.mixer.Sound("sounds/close.wav")
+        self.click_sound: Sound = Sound("sounds/click.wav")
+        self.start_sound: Sound = Sound("sounds/start.wav")
+        self.open_sound: Sound = Sound("sounds/open.wav")
+        self.menu_music: Sound = Sound("sounds/menu.wav")
+        self.close_sound: Sound = Sound("sounds/close.wav")
         self.open_sound.set_volume(.5)
         self.menu_music.set_volume(.5)
         self.close_sound.set_volume(.5)
         self.open_sound.play()
         
         # create all text elements
-        self.logged_in_as_text = self.shape_tokens_clickable = None
-        self.title_text = Text("shapegame", 150, 1920/2, 1080/2)
-        self.play_text = Text("play", 100, 3*1920/4, 750)
-        self.bad_credentials_text = Text("user not found!", 150, 1920/2, 800)
-        self.collections_text = Text("collections", 100, 1920/4, 750)
+        self.logged_in_as_text: Text | None = None
+        self.shape_tokens_clickable: Text | None = None
+        self.title_text: Text = Text("shapegame", 150, 1920/2, 1080/2)
+        self.play_text: Text = Text("play", 100, 3*1920/4, 750)
+        self.bad_credentials_text: Text = Text("user not found!", 150, 1920/2, 800)
+        self.collections_text: Text = Text("collections", 100, 1920/4, 750)
 
-        self.texts = []
+        self.texts: list[Text] = []
         self.texts.append(self.title_text)
         self.texts.append(self.play_text)
         self.texts.append(self.bad_credentials_text)
         self.texts.append(self.collections_text)
 
         # create all interactive elements
-        self.network_match_clickable = ClickableText("network match", 50, 3 * 1920 / 4 - 200, 875)
-        self.local_match_clickable = ClickableText("local match", 50, 3 * 1920 / 4 + 200, 875)
-        self.your_shapes_clickable = ClickableText("your shapes", 50, 1 * 1920 / 4 - 250, 875)
-        self.all_shapes_clickable = ClickableText("all shapes & powerups", 50, 1 * 1920 / 4 + 250, 875)
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
-        self.register_clickable = ClickableText("register", 50, 1920 / 2, 1050)
-        self.username_editable = EditableText("Username: ", 60, 1920/2, 950)
+        self.network_match_clickable: ClickableText = ClickableText("network match", 50, 3 * 1920 / 4 - 200, 875)
+        self.local_match_clickable: ClickableText = ClickableText("local match", 50, 3 * 1920 / 4 + 200, 875)
+        self.your_shapes_clickable: ClickableText = ClickableText("your shapes", 50, 1 * 1920 / 4 - 250, 875)
+        self.all_shapes_clickable: ClickableText = ClickableText("all shapes & powerups", 50, 1 * 1920 / 4 + 250, 875)
+        self.exit_clickable: ClickableText = ClickableText("exit", 50, 1870, 1045)
+        self.register_clickable: ClickableText = ClickableText("register", 50, 1920 / 2, 1050)
+        self.username_editable: ClickableText = EditableText("Username: ", 60, 1920/2, 950)
         self.username_editable.select()
 
-        self.clickables = []
+        self.clickables: list[ClickableText] = []
         self.clickables.append(self.network_match_clickable)
         self.clickables.append(self.local_match_clickable)
         self.clickables.append(self.your_shapes_clickable)
@@ -101,13 +106,13 @@ class Menu():
         pygame.display.update()
 
         # load all shape images
-        self.circle_images_full = []
+        self.circle_images_full: list[list[Surface]] = []
         for i in range(0, 5):
             self.circle_images_full.append([])
             for color in colors:
                 self.circle_images_full[i].append(pygame.image.load("circles/{}/{}/0.png".format(i, color[0])))
 
-        self.circle_images = []
+        self.circle_images: list[list[Surface]] = []
         for i in range(0, 5):
             self.circle_images.append([])
             for circle in self.circle_images_full[i]:
@@ -168,8 +173,8 @@ class Menu():
                     self.user, self.shapes = RegisterMenu(self.screen, self.session).start()
 
                     # create and add text elements 
-                    self.logged_in_as_text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
-                    self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                    self.logged_in_as_text: Text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
+                    self.shape_tokens_clickable: ClickableText = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
                     self.texts.append(self.logged_in_as_text)
                     self.clickables.append(self.shape_tokens_clickable)
 
