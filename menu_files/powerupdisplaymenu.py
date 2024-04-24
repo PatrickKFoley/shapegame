@@ -1,8 +1,11 @@
+from pygame import Surface
 import pygame, random, math, numpy as np
 from pygame.locals import *
+from pygame.mixer import Sound
 from game_files.circledata import *
 from server_files.database_shape import Shape
 from screen_elements.clickabletext import ClickableText
+from screen_elements.text import Text
 
 from menu_files.powerup_display_files.menupowerup import MenuPowerup
 from game_files.clouds import Clouds
@@ -11,36 +14,80 @@ from menu_files.powerup_display_files.powerupdisplaypowerup import PowerupDispla
 from menu_files.powerup_display_files.menublacklaser import MenuBlackLaser
 from menu_files.powerup_display_files.menuredlaser import MenuRedLaser
 from menu_files.powerup_display_files.menuexplosion import MenuExplosion
+from shared_functions import *
 
 
 class PowerupDisplayMenu():
-    def __init__(self, screen, circle_images_full):
+    def __init__(self, screen: Surface, circle_images_full: list[list[Surface]]):
+        # required parameters from menu
         self.screen = screen
+        self.circle_images_full = circle_images_full
 
+        # create text elements
+        self.powerup_text: Text | None = None
+        self.title_text = Text("shapegame", 150, 1920/2, 1080/10)
+        self.loading_text = Text("loading playground", 150, 1920/2, 1080/2)
+        self.add_shape_clickable = ClickableText("add shape!", 50, 140, 1045)
+        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
+
+        self.clickables: list[Clickable] = []
+        self.clickables.append(self.exit_clickable)
+        self.clickables.append(self.add_shape_clickable)
+
+        # load background, create and center cursor
+        self.background = pygame.image.load("backgrounds/BG1.png")
+        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
+        self.cursor_rect = self.cursor.get_rect()
+        self.cursor_rect.center = pygame.mouse.get_pos()
+
+        # update display
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.loading_text.surface, self.loading_text.rect)
+        pygame.display.update()
+
+        # pygame requirements
+        self.clock = pygame.time.Clock()
+        self.selected_powerup_changed = False
+        self.exit_clicked = False
+
+        # Sprite groups for shapes, powerups and animations
+        self.hud_powerup_group = pygame.sprite.Group()
         self.powerup_display_shape_group = pygame.sprite.Group()
         self.powerup_display_powerup_group = pygame.sprite.Group()
         self.powerup_display_laser_group = pygame.sprite.Group()
         self.powerup_display_explosion_group = pygame.sprite.Group()
         self.powerup_display_clouds_group = pygame.sprite.Group()
+        
+        # this will make updating the groups easier
+        self.groups: list[Group] = [
+            self.hud_powerup_group,
+            self.powerup_display_shape_group,
+            self.powerup_display_powerup_group,
+            self.powerup_display_laser_group,
+            self.powerup_display_explosion_group,
+            self.powerup_display_clouds_group
+        ]
 
-        self.black_laser = pygame.transform.smoothscale(pygame.image.load("powerups/blue_laser.png"), (40, 40))
-        self.red_laser = pygame.transform.smoothscale(pygame.image.load("powerups/laser.png"), (40, 40))
-        self.explosion_images = []
-        self.cloud_images = []
+        # create containers for "animations" and powerups
+        self.explosion_images: list[Surface] = []
+        self.cloud_images: list[Surface] = []
+        self.powerup_images_hud: list[Surface]= []
 
-        # Explosion
+        # load explosion images
         for i in range(1, 8):
             image = pygame.image.load("smoke/explosion{}.png".format(i))
             self.explosion_images.append(image)
 
-            # Smoke
+        # load smoke images
         for i in range(1, 6):
             image = pygame.image.load("smoke/smoke{}.png".format(i))
             image = pygame.transform.smoothscale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
             self.cloud_images.append(image)
 
-        self.powerup_images_hud = []
-        self.powerup_info = [
+        # info required for powerups (from game)
+        self.powerup_names = ["bomb", "cross", "health", "laser", "blue_laser", "muscle", "mushroom", "skull", "speed", "star"]
+
+        self.powerup_paths = [
             ["powerups/skull.png",   0],
             ["powerups/cross.png",   1],
             ["powerups/star.png",    2],
@@ -52,49 +99,57 @@ class PowerupDisplayMenu():
             ["powerups/blue_laser.png", 8],
             ["powerups/mushroom.png", 9],
         ]
+        
+        self.powerup_blurbs = {
+            "": "",
+            "bomb": ["a short moment after collection, a bomb will damage the shapes around it.", "if this explosion kills another shape, the collecting shape will be resurrected!"],
+            "cross": ["if a shape with a red cross kills another shape, it will revive a teammate!"],
+            "health": ["if a shape with a green cross deals damage, it will heal itself!", "the amount healed is half the shape's maximum health, up to full health."],
+            "laser": ["if a shape with a red laser deals damage, it will shoot a laser forward!", "the laser deals 25 damage, hitting each enemy shape at most once."],
+            "blue_laser": ["if a shape with a black laser deals damage, it will shoot 8 lasers out in a circle!", "the laser deals 10 damage to each enemy shape hit"],
+            "muscle": ["when a muscle is collected, the wielder's next hit will deal 3x damage!", "this effect is lost after the next successful hit."],
+            "mushroom": ["when a mushroom is collected, the wielder will grow in size!", "this causes the shape to deal more damage, as its momentum is increased."],
+            "skull": ["a skull is an instant kill!", "it guarantees that the wielding shape will win its next collision, and kill the opponent."],
+            "speed": ["picking up a speed bonus will increase the shapes speed!", "this causes the shape to deal more damage, as its momentum is increased."],
+            "star": ["picking up a star increases the luck of the wielder!", "this makes the wielder more likely to win their next collision.", "this effect is lost after the next unsuccessful hit."]
+        }
 
-        for powerup in self.powerup_info:
+        # create text blurb for display
+        self.selected_powerup_name = ""
+        self.powerup_text = Text(self.powerup_blurbs[self.selected_powerup_name], 40, 1920/2, 400)
+
+        # populate the hud powerup group
+        for id, name in enumerate(self.powerup_names):
+            self.hud_powerup_group.add(MenuPowerup(name, id))
+
+        # load powerup images
+        for powerup in self.powerup_paths:
             image = pygame.image.load(powerup[0])
-            self.powerup_images_hud.append(pygame.transform.smoothscale(image, (20, 20))) 
+            self.powerup_images_hud.append(pygame.transform.smoothscale(image, (20, 20)))
 
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png"), (12, 12))
-        self.cursor_rect = self.cursor.get_rect()
-        self.cursor_rect.center = pygame.mouse.get_pos()
-        self.background = pygame.image.load("backgrounds/BG1.png")
-        self.title, self.title_rect = self.createText("shapegame", 150)
-        self.title_rect.center = (1920 / 2, 1080 / 2)
+        # load laser images
+        self.black_laser = pygame.transform.smoothscale(pygame.image.load("powerups/blue_laser.png"), (40, 40))
+        self.red_laser = pygame.transform.smoothscale(pygame.image.load("powerups/laser.png"), (40, 40))
 
-        self.loading, self.loading_rect = self.createText("loading playground", 150)
-        self.loading_rect.center = (1920 / 2, 1080 / 2)
-
-        self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font("backgrounds/font.ttf", 80)
-
-        self.exit_clicked = False
-
+        # load all Sounds
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
         self.start_sound = pygame.mixer.Sound("sounds/start.wav")
         self.open_sound = pygame.mixer.Sound("sounds/open.wav")
         self.menu_music = pygame.mixer.Sound("sounds/menu.wav")
         self.close_sound = pygame.mixer.Sound("sounds/close.wav")
 
-        self.open_sound.set_volume(.5)
-        self.menu_music.set_volume(.5)
-        self.close_sound.set_volume(.5)
-
-        # Sounds
-        self.death_sounds = []
+        self.death_sounds: list[Sound] = []
         self.death_sounds.append(pygame.mixer.Sound("sounds/death/1.wav"))
         self.death_sounds.append(pygame.mixer.Sound("sounds/death/2.wav"))
         self.death_sounds.append(pygame.mixer.Sound("sounds/death/3.wav"))
         self.death_sounds.append(pygame.mixer.Sound("sounds/death/4.wav"))
 
-        self.collision_sounds = []
+        self.collision_sounds: list[Sound] = []
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink1.wav"))
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/clink2.wav"))
         self.collision_sounds.append(pygame.mixer.Sound("sounds/collisions/thud2.wav"))
 
-        self.game_sounds = []
+        self.game_sounds: list[Sound] = []
         self.game_sounds.append(pygame.mixer.Sound("sounds/game/1.wav"))
 
         self.choir_sound = pygame.mixer.Sound("sounds/choir.wav")
@@ -113,6 +168,10 @@ class PowerupDisplayMenu():
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
         self.close_sound = pygame.mixer.Sound("sounds/close.wav")
 
+        # lower volume of certain sounds
+        self.open_sound.set_volume(.5)
+        self.menu_music.set_volume(.5)
+        self.close_sound.set_volume(.5)
         self.choir_sound.set_volume(.25)
         self.explosion_sound.set_volume(.1)
         self.fuse_sound.set_volume(.05)
@@ -130,94 +189,13 @@ class PowerupDisplayMenu():
         for sound in self.death_sounds:
             sound.set_volume(.5)
 
-        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
-
-        self.clickables = []
-        self.clickables.append(self.exit_clickable)
-
-        self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.loading, self.loading_rect)
-        pygame.display.set_caption("shapegame")
-        pygame.display.update()
-
-        self.circle_images_full = circle_images_full
-
     def start(self):
-        # make collection of all of the powerups 
-        powerups_group = pygame.sprite.Group()
-        powerup_names = ["bomb", "cross", "health", "laser", "blue_laser", "muscle", "mushroom", "skull", "speed", "star"]
-        add_shape_clickable = ClickableText("add shape!", 50, 140, 1045)
-
-        for id, name in enumerate(powerup_names):
-            powerups_group.add(MenuPowerup(name, id))
-
-        name = ""
-
         while True:
-            events = pygame.event.get()
-            mouse_pos = pygame.mouse.get_pos()
-            selected_powerup_changed = False
+            self.selected_powerup_changed = False
 
-            for event in events:
-                if event.type == MOUSEBUTTONDOWN:
-                    self.playSound(self.click_sound)
-
-                    # determine if a new powerup is to be selected
-                    for powerup in powerups_group:
-                        if powerup.rect.collidepoint(mouse_pos):
-                            name = powerup.getName()
-                            selected_powerup_changed = True
-                            continue
-                    
-                    if selected_powerup_changed:
-                        for powerup in powerups_group:
-                            if powerup.getName() == name: 
-                                powerup.select()
-                                self.preparePowerupDisplay(name)
-
-                            else: powerup.deselect()
-
-                    elif add_shape_clickable.rect.collidepoint(mouse_pos):
-                        self.addPowerupDisplayShape()
-
-                    # if we are exiting
-                    elif self.exit_clickable.rect.collidepoint(mouse_pos):
-                        self.exit_clicked = True
-
-                    else:
-                        self.addPowerupDisplayPowerup(name, mouse_pos)
-                    
-
-            # update any on screen elements
-            self.exit_clickable.update(mouse_pos)
-            add_shape_clickable.update(mouse_pos)
-
-            # draw stuff
-            pygame.display.flip()
-            self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 1080 / 10 - self.title.get_size()[1] / 2))
-            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-            self.screen.blit(add_shape_clickable.surface, add_shape_clickable.rect)
-            if name != "": self.screen.blit(self.powerup_info, self.powerup_info_rect)
-
-            powerups_group.draw(self.screen)
-            powerups_group.update()
-            self.powerup_display_shape_group.draw(self.screen)
-            self.powerup_display_shape_group.update()
-            self.powerup_display_powerup_group.draw(self.screen)
-            self.powerup_display_powerup_group.update()
-            self.powerup_display_laser_group.draw(self.screen)
-            self.powerup_display_laser_group.update()
-            self.powerup_display_explosion_group.draw(self.screen)
-            self.powerup_display_explosion_group.update()
-            self.powerup_display_clouds_group.draw(self.screen)
-            self.powerup_display_clouds_group.update()
-            self.cursor_rect.center = mouse_pos
-            self.screen.blit(self.cursor, self.cursor_rect)
-
-            self.checkShapeCollisions()
-            self.checkPowerupCollect()
-
+            self.handleInputs()
+            self.updateAndDraw()
+                
             # exit
             if self.exit_clicked:
                 self.powerup_display_shape_group.empty()
@@ -226,77 +204,81 @@ class PowerupDisplayMenu():
             
             self.clock.tick(60)
 
-    # ALL REQUIRED FUNCTIONS FROM MENU
+    def handleInputs(self):
+        # get events and mouse position
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
 
-    def createText(self, text, size, color = "white"):
-        font = pygame.font.Font("backgrounds/font.ttf", size)
+        # loop through all events
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                self.playSound(self.click_sound)
+
+                # determine if a new powerup is to be selected
+                for powerup in self.hud_powerup_group:
+                    if powerup.rect.collidepoint(mouse_pos):
+                        self.selected_powerup_name = powerup.getName()
+                        self.selected_powerup_changed = True
+                        continue
+                
+                # alter the displayed text, select the correct powerup
+                if self.selected_powerup_changed:
+                    for powerup in self.hud_powerup_group:
+                        if powerup.getName() == self.selected_powerup_name: 
+                            powerup.select()
+                            self.powerup_text = Text(self.powerup_blurbs[self.selected_powerup_name], 40, 1920/2, 400)
+
+                        else: powerup.deselect()
+
+                # if the add shape button is clicked
+                elif self.add_shape_clickable.rect.collidepoint(mouse_pos):
+                    self.addPowerupDisplayShape()
+
+                # if we are exiting
+                elif self.exit_clickable.rect.collidepoint(mouse_pos):
+                    self.exit_clicked = True
+
+                # else, add a powerup
+                else:
+                    self.addPowerupDisplayPowerup(self.selected_powerup_name, mouse_pos)
+
+    def updateAndDraw(self):
+        # update and draw all on screen elements
+
+        # get mouse position
+        mouse_pos = pygame.mouse.get_pos()
         
+        # flip display and draw background elements
+        pygame.display.flip()
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.title_text.surface, self.title_text.rect)
+        if self.selected_powerup_name != "": self.screen.blit(self.powerup_text.surface, self.powerup_text.rect)
 
-        if type(text) == type("string"):
-            text_surface = font.render(text, True, color)
-            text_rect = text_surface.get_rect()
+        # update and draw any on screen elements
+        for clickable in self.clickables:
+            clickable.update(mouse_pos)
+            self.screen.blit(clickable.surface, clickable.rect)
 
-            return text_surface, text_rect
-        
-        elif type(text) == type(["array"]):
-            text_surfaces = []
-            for element in text:
-                text_surfaces.append(font.render(element, True, color))
+        # update and draw all groups
+        for group in self.groups:
+            group.update()
+            group.draw(self.screen)
 
-            max_line_length = max(surface.get_size()[0] for surface in text_surfaces)
-            line_height = text_surfaces[0].get_size()[1]
+        # center and draw cursor
+        self.cursor_rect.center = mouse_pos
+        self.screen.blit(self.cursor, self.cursor_rect)
 
-            surface = pygame.Surface((max_line_length, (len(text_surfaces) + 1) * line_height), pygame.SRCALPHA, 32)
-
-            for i, text_surface in enumerate(text_surfaces):
-                surface.blit(text_surface, [max_line_length/2 - text_surface.get_size()[0]/2, line_height * (i+1)])
-
-            return surface, surface.get_rect()
-
-    def createShape(self):
-        # decrement number of shape tokens
-
-        face_id = random.randint(0, 4)
-        color_id = random.randint(0, len(colors)-1)
-
-        base = circles_unchanged[face_id]
-
-        density = base["density"]
-        velocity = base["velocity"] + random.randint(-3, 3)
-        radius_min = base["radius_min"] + random.randint(-3, 3)
-        radius_max = base["radius_max"] + random.randint(-3, 3)
-        health = base["health"] + random.randint(-100, 100)
-        dmg_multiplier = round(base["dmg_multiplier"] + round((random.randint(-10, 10) / 10), 2), 2)
-        luck = round(base["luck"] + round((random.randint(-10, 10) / 10), 2), 2)
-        team_size = base["team_size"] + random.randint(-3, 3)
-
-        shape = Shape(-1, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, "no one")
-        return shape
+        # check for collisions between powerups and shapes
+        self.checkShapeCollisions()
+        self.checkPowerupCollect()
 
     # ALL POWERUP DISPLAY HELPERS
-
-    def preparePowerupDisplay(self, name):
-        powerup_info = {
-            "bomb": ["a short moment after collection, a bomb will damage the shapes around it.", "if this explosion kills another shape, the collecting shape will be resurrected!"],
-            "cross": ["if a shape with a red cross kills another shape, it will revive a teammate!"],
-            "health": ["if a shape with a green cross deals damage, it will heal itself!", "the amount healed is half the shape's maximum health, up to full health."],
-            "laser": ["if a shape with a red laser deals damage, it will shoot a laser forward!", "the laser deals 25 damage, hitting each enemy shape at most once."],
-            "blue_laser": ["if a shape with a black laser deals damage, it will shoot 8 lasers out in a circle!", "the laser deals 10 damage to each enemy shape hit"],
-            "muscle": ["when a muscle is collected, the wielder's next hit will deal 3x damage!", "this effect is lost after the next successful hit."],
-            "mushroom": ["when a mushroom is collected, the wielder will grow in size!", "this causes the shape to deal more damage, as its momentum is increased."],
-            "skull": ["a skull is an instant kill!", "it guarantees that the wielding shape will win its next collision, and kill the opponent."],
-            "speed": ["picking up a speed bonus will increase the shapes speed!", "this causes the shape to deal more damage, as its momentum is increased."],
-            "star": ["picking up a star increases the luck of the wielder!", "this makes the wielder more likely to win their next collision.", "this effect is lost after the next unsuccessful hit."]
-        }
-
-        self.powerup_info, self.powerup_info_rect = self.createText(powerup_info[name], 40)
-        self.powerup_info_rect.center = [1920/2, 400]
 
     def addPowerupDisplayShape(self, model_shape = False):
         self.playSound(self.pop_sound)
 
         if model_shape == False:
-            shape = self.createShape()
+            shape = createShape()
             image = self.circle_images_full[shape.face_id][shape.color_id]
 
             spawn_angle = random.randint(0, 180)
@@ -319,8 +301,8 @@ class PowerupDisplayMenu():
             self.powerup_display_shape_group.add(menu_shape)
             self.powerup_display_clouds_group.add(Clouds(menu_shape.x, menu_shape.y, self.cloud_images, self.screen, menu_shape))
 
-    def addPowerupDisplayPowerup(self, name, mouse_pos):
-        if name == "": return
+    def addPowerupDisplayPowerup(self, selected_powerup_name, mouse_pos):
+        if selected_powerup_name == "": return
 
         self.playSound(self.pop_sound)
 
@@ -337,7 +319,7 @@ class PowerupDisplayMenu():
             "mushroom": 9
         }
 
-        self.powerup_display_powerup_group.add(PowerupDisplayPowerup(name, name_to_id[name], mouse_pos))
+        self.powerup_display_powerup_group.add(PowerupDisplayPowerup(selected_powerup_name, name_to_id[selected_powerup_name], mouse_pos))
 
     def checkPowerupCollect(self):
         for shape in self.powerup_display_shape_group:
