@@ -1,8 +1,10 @@
 import pygame
 from pygame.locals import *
-from screen_elements.clickabletext import ClickableText
+
 from menu_files.postgame_files.postgameshape import PostGameShape
+from screen_elements.clickabletext import ClickableText
 from screen_elements.xpbar import XpBar
+
 
 class PostGame():
     def __init__(self, victory, your_shape, their_shape, keeps, xp_earned, you_name, their_name, screen):
@@ -12,8 +14,8 @@ class PostGame():
         self.keeps = keeps
         self.your_username = you_name
         self.their_username = their_name
-        self.your_username[1].center = [450, 725]
-        self.their_username[1].center = [1920 - 450, 725]
+        self.your_username.rect.center = [450, 725]
+        self.their_username.rect.center = [1920 - 450, 725]
         self.screen = screen
 
         self.your_shape = PostGameShape(self.your_shape_data, True, victory, keeps)
@@ -82,8 +84,8 @@ class PostGame():
         self.screen.blit(self.title, self.title_rect)
         self.screen.blit(self.top_text, self.top_text_rect)
         self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-        self.screen.blit(self.your_username[0], self.your_username[1])
-        self.screen.blit(self.their_username[0], self.their_username[1])
+        self.screen.blit(self.your_username.surface, self.your_username.rect)
+        self.screen.blit(self.their_username.surface, self.their_username.rect)
         self.shapes_group.draw(self.screen)
         self.xp_bar_group.draw(self.screen)
         self.screen.blit(self.cursor, self.cursor_rect)
@@ -91,7 +93,6 @@ class PostGame():
     def animateElements(self):
         # move the transferred shape to the appropriate side
         if self.frames == 100 and self.keeps:
-            
             if self.victory: self.their_shape.moveTo(625)
             else: self.your_shape.moveTo(1920 - 625)
 

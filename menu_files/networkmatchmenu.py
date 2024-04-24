@@ -1,7 +1,7 @@
 import pygame, time
 import pygame.display
 from pygame.locals import *
-from pygame import surface
+from pygame import Surface
 
 from game_files.game import Game
 from menu_files.network_pregame_files.network import Network
@@ -10,13 +10,12 @@ from server_files.database_user import User
 from server_files.database_shape import Shape
 from screen_elements.clickabletext import ClickableText
 from screen_elements.doublecheckbox import DoubleCheckbox
+from screen_elements.text import Text
 from menu_files.main_menu_files.menucircle import MenuShape
 from screen_elements.arrow import Arrow
 from menu_files.postgame import PostGame
-from threading import Thread
-
 class NetworkMatchMenu():
-    def __init__(self, screen: surface, user: User, shapes: list[Shape], session, circle_images_full: list[list[Surface]]):
+    def __init__(self, screen: Surface, user: User, shapes: list[Shape], session, circle_images_full: list[list[Surface]]):
         # parameters from menu
         self.screen = screen
         self.user = user
@@ -41,7 +40,7 @@ class NetworkMatchMenu():
 
         # create screen elements
         self.title_text = Text("shapegame", 150, 1920/2, 1080/10)
-        self.logged_in_as_text = Text("logged in as: " + self.user.username, 35, 1900, 10)
+        self.logged_in_as_text = Text("logged in as: " + self.user.username, 35, 1900, 10, "topright")
         self.bad_server_text = Text("server not found", 150, 1920/2, 1080/2)
         self.searching_text = Text("searching for opponent...", 150, 1920/2, 1080/2)
         self.match_found_text = Text("match found!", 150, 1920/2, 1080/2)
@@ -102,7 +101,7 @@ class NetworkMatchMenu():
             frames = 0
             while frames <= 120:
                 self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.server_not_found, self.server_not_found_rect)
+                self.screen.blit(self.bad_server_text.surface, self.bad_server_text.rect)
                 pygame.display.update()
 
 
@@ -117,7 +116,7 @@ class NetworkMatchMenu():
         # Send your user_id to the server
         self.network.send("USER_" + str(self.user.id) + ".")
 
-        # Determine the index of shape you have selected
+        # Determine the index of shape you have selected to start
         self.idx_selected_you = 0
         if len(self.shapes) >= 5:
             self.idx_selected_you = 3
@@ -130,438 +129,313 @@ class NetworkMatchMenu():
         else:
             self.idx_selected_you = 1
 
+        # Above index for opponent
+        self.idx_selected_opponent = -1
+
+        # tell the server what shape you have selected
         self.network.send("SELECTED_" + str(self.idx_selected_you) + ".")
+        self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
         time.sleep(1)
 
+    # menu loop
     def start(self):
         # return if server wasn't found
         if not self.server_found: return
     
-        self.awaitOpponent()
+        # wait for an opponent to connect to the server (quick return on kill signal)
+        redirect = self.awaitOpponent()
+        if redirect == "KILL": return
 
-        # other things
-        frames = 0
-        self.connecting_flag = True
-        running = True
-        ready = False
+        # display to the user that a match has been found for a moment
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.match_found_text.surface, self.match_found_text.rect)
+        pygame.display.update()
+        time.sleep(0.5)
 
-        # MAIN LOOP ---------------------------------------------
-        self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
-
-
-        while running:
-            self.clock.tick(60)
-
-            mouse_pos = pygame.mouse.get_pos()
-            for clickable in self.clickables:
-                clickable.update(mouse_pos)
-            
-            try:
-                self.pregame = self.network.getPregame()
-
-                while not self.pregame.ready:
-                    pygame.display.flip()
-                    self.screen.blit(self.background, (0, 0))
-                    self.screen.blit(self.searching_text.surface, self.searching_text.rect)
-                    self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-
-                    self.cursor_rect.center = pygame.mouse.get_pos()
-                    self.screen.blit(self.cursor, self.cursor_rect)
-
-                    for event in pygame.event.get():
-                        if event.type == MOUSEBUTTONDOWN:
-                            if self.exit_clickable.rect.collidepoint(mouse_pos):
-                                self.network.send("KILL.")
-                                return
-
-
-                    self.pregame = self.network.getPregame()
-                    self.clock.tick(60)
-            except:
-                running = False
-
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.opponent_disconnected_text.surface, self.opponent_disconnected_text.rect)
-                pygame.display.update()
-
-                self.opponent_group.empty()
-                for shape in self.you_group.sprites():
-                    shape.goHome()
-                    shape.disable()
-
-                time.sleep(0.5)
-                break
-
-            # print(repr(self.pregame))
-
-            # check if opponent clicked ready
-            if self.pregame.players_ready[self.pid_opponent] != self.ready_checkbox.opp_checked:
-                self.ready_checkbox.oppToggle()
-
-            # check if opponent clicked keeps
-            if self.pregame.keeps[self.pid_opponent] != self.checkbox.opp_checked:
-                self.checkbox.oppToggle()
-
-            # check if opponent left
-            if self.pregame.kill[self.pid_opponent]:
-                running = False
-
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.opponent_disconnected_text.surface, self.opponent_disconnected_text.rect)
-                pygame.display.update()
-
-                self.opponent_group.empty()
-                for shape in self.you_group.sprites():
-                    shape.goHome()
-                    shape.disable()
-
-                time.sleep(0.5)
-                break
-
-            if self.connecting_flag:
-                self.connecting_flag = False
-
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.match_found_text.surface, self.match_found_text.rect)
-                pygame.display.update()
-                time.sleep(0.5)
-
-            for event in pygame.event.get():
-                if event.type == MOUSEBUTTONDOWN:
-                    mouse_pos = pygame.mouse.get_pos()
-                    # print(mouse_pos)
-                    self.click_sound.play()
-
-                    if self.exit_clickable.rect.collidepoint(mouse_pos):
-                        self.exit_clicked = True
-
-                    elif self.checkbox.rect.collidepoint(mouse_pos):
-                        self.checkbox.toggle()
-                        self.network.send("KEEPS_" + str(self.checkbox.getValue()) + ".")
-
-                    elif self.ready_checkbox.rect.collidepoint(mouse_pos):
-                        self.ready_checkbox.toggle()
-                        self.network.readyUp(str(self.ready_checkbox.getValue()))
-
-                    elif self.right.rect.collidepoint(mouse_pos) or self.left.rect.collidepoint(mouse_pos):
-                        if self.left.rect.collidepoint(mouse_pos):
-                            # Check if selected shape in bounds
-                            if self.idx_selected_you != 1:
-                                self.idx_selected_you -= 1
-
-                                if len(self.shapes) >= 6:
-                                    for shape in self.you_group.sprites():
-                                        shape.moveRight()
-
-                        elif self.right.rect.collidepoint(mouse_pos):
-                            if self.idx_selected_you != len(self.shapes):
-                                self.idx_selected_you += 1
-                                
-                                if len(self.shapes) >= 6:
-                                    for shape in self.you_group.sprites():
-                                        shape.moveLeft()
-
-                        self.network.send("SELECTED_" + str(self.idx_selected_you) + ".")
-                        self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
-
-                        counter = 0
-                        for shape in self.you_group.sprites():
-                            counter += 1
-                            if counter == self.idx_selected_you:
-                                shape.select()
-                            else:
-                                shape.disable()
-
-            # self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id + "."))
-
-            # Check if your record of the opponent selected shape matches with server
-            if opponent_selected != self.pregame.users_selected[self.pid_opponent]:
-                if opponent_selected < self.pregame.users_selected[self.pid_opponent]:
-                    opponent_selected += 1
-
-                    if len(self.shapes_opponent) >= 6:
-                        for opponent_shape in self.opponent_group.sprites():
-                            opponent_shape.moveLeft()
-
-                else:
-                    opponent_selected -= 1
-
-                    if len(self.shapes_opponent) >= 6:
-                        for opponent_shape in self.opponent_group.sprites():
-                                opponent_shape.moveRight()
-
-                counter = 0
-                for shape in self.opponent_group.sprites():
-                    counter += 1
-                    if counter == opponent_selected:
-                        shape.select()
-                    else:
-                        shape.disable()
-   
-            self.screen.blit(self.background, (0, 0))
-
-            self.you_group.draw(self.screen)
-            self.you_group.update(self.screen)
-
-            self.opponent_group.draw(self.screen)
-            self.opponent_group.update(self.screen)
-
-            self.screen.blit(self.title, (1920 / 2 - self.title.get_size()[0] / 2, 50 - 35-25))  
-            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-            self.screen.blit(self.checkbox.surface, self.checkbox.rect)
-            self.screen.blit(self.ready_checkbox.surface, self.ready_checkbox.rect)
-            # self.screen.blit(left_surface, left_rect)
-            # self.screen.blit(right_surface, right_rect)
-            self.screen.blit(self.right.surface, self.right.rect)
-            self.screen.blit(self.left.surface, self.left.rect)
-            # self.screen.blit(you_username_surface, you_username_rect)
-            # self.screen.blit(opponent_username_surface, opponent_username_rect)
-            self.screen.blit(self.you_names[self.idx_selected_you-1][0], self.you_names[self.idx_selected_you-1][1])
-            self.screen.blit(self.opponent_names[opponent_selected-1][0], self.opponent_names[opponent_selected-1][1])
-            self.screen.blit(self.logged_in_as_text.surface, self.logged_in_as_text.rect)
-
-            # if self.pregame.keeps[opponent]: self.screen.blit(self.checked, self.checked_rect)
-            # else: self.screen.blit(self.unchecked, self.unchecked_rect)
-
-            self.cursor_rect.center = mouse_pos
-            self.screen.blit(self.cursor, self.cursor_rect)
-
-            # if not ready: self.screen.blit(self.ready_q, self.ready_q_rect)
-            # else: self.screen.blit(self.ready_e, self.ready_e_rect)
-
-            pygame.display.flip()
-            
-            if self.exit_clicked:
-                self.network.send("KILL.")
-
-                self.opponent_group.empty()
-                for shape in self.you_group.sprites():
-                    shape.goHome()
-                    shape.disable()
-
-                break
-            
-            # self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id + "."))
-
+        while True:
+            # update pregame object
             self.pregame = self.network.getPregame()
 
-            # check if opponent left
-            if self.pregame.kill[self.pid_opponent]:
-                running = False
+            # handle inputs from user and opponent (quick return on kill signal)
+            redirect = self.handleInputs()
+            if redirect == "KILL": break
+            
+            # update and draw all screen elements
+            self.updateAndDraw()
+            
+            # possibly unnecessary update pregame object
+            self.pregame = self.network.getPregame()
 
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.opponent_disconnected_text.surface, self.opponent_disconnected_text.rect)
-                pygame.display.update()
-
-                self.opponent_group.empty()
-                for shape in self.you_group.sprites():
-                    shape.goHome()
-                    shape.disable()
-
-                time.sleep(0.5)
-                break
-
+            # if the pregame seed is populated, start the game
             if self.pregame.seed != False:
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.loading_text.surface, self.loading_text.rect)
-                pygame.display.update()
-
-                self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
-
-
-                # print(self.idx_selected_you, opponent_selected)
-
-                your_circle = {}
-                your_shape = self.shapes[self.idx_selected_you -1]
-                their_circle = {}
-                their_shape = self.shapes_opponent[opponent_selected -1]
-
-                your_circle["circle_id"] = 0
-                your_circle["face_id"] = your_shape.face_id
-                your_circle["color"] = colors[your_shape.color_id]
-                your_circle["density"] = your_shape.density
-                your_circle["velocity"] = your_shape.velocity
-                your_circle["radius_min"] = your_shape.radius_min
-                your_circle["radius_max"] = your_shape.radius_max
-                your_circle["health"] = your_shape.health
-                your_circle["dmg_multiplier"] = your_shape.dmg_multiplier
-                your_circle["luck"] = your_shape.luck
-                your_circle["team_size"] = your_shape.team_size
-
-                their_circle["circle_id"] = 0
-                their_circle["face_id"] = their_shape.face_id
-                their_circle["color"] = colors[their_shape.color_id]
-                their_circle["density"] = their_shape.density
-                their_circle["velocity"] = their_shape.velocity
-                their_circle["radius_min"] = their_shape.radius_min
-                their_circle["radius_max"] = their_shape.radius_max
-                their_circle["health"] = their_shape.health
-                their_circle["dmg_multiplier"] = their_shape.dmg_multiplier
-                their_circle["luck"] = their_shape.luck
-                their_circle["team_size"] = their_shape.team_size
-            
-                
-                real = True
-                print("Playing game with seed: {}".format(self.pregame.seed))
-                self.start_sound.play()
-                pygame.mixer.Sound.fadeout(self.menu_music, 1000)
-
-                if self.pid == 0:
-                    your_circle["group_id"] = 0
-                    their_circle["group_id"] = 1
-
-                    game = Game(your_circle, their_circle, self.user.username, opponent_user.username, self.screen, self.pregame.seed, real)
-                    fake_game = Game(your_circle, their_circle, "", "", None, self.pregame.seed, False)
-
-
-                else:
-                    your_circle["group_id"] = 1
-                    their_circle["group_id"] = 0
-
-                    game = Game(their_circle, your_circle, opponent_user.username, self.user.username, self.screen, self.pregame.seed, real)
-                    fake_game = Game(their_circle, your_circle, "", "", None, self.pregame.seed, False)
-
-                # self.getWinner(fake_game)
-                game.play_game()
-                # self.network.receive()
-                self.pregame = self.network.getPregame()
-
-                while self.pregame.winner == None:
-                    self.pregame = self.network.getPregame()
-
-                    mouse_pos = pygame.mouse.get_pos()
-                    self.cursor_rect.center = mouse_pos
-
-                    pygame.display.flip()
-                    self.screen.blit(self.background, [0,0])
-                    self.screen.blit(self.awaiting_text.surface, self.awaiting_text.rect)
-                    self.screen.blit(self.cursor, self.cursor_rect)
-
-                    self.clock.tick(60)
-
-                pygame.display.flip()
-                self.screen.blit(self.background, [0,0])
-                self.screen.blit(self.loading_text.surface, self.loading_text.rect)
-                # self.screen.blit(self.cursor, self.cursor_rect)
-                pygame.display.update()
-
-                postGame = PostGame(self.pregame.winner == self.pid, your_shape, their_shape, (self.pregame.keeps[0] == 1 and self.pregame.keeps[1] == 1), self.pregame.xp_earned, self.you_names[self.idx_selected_you-1], self.opponent_names[opponent_selected-1], self.screen)
-                postGame.start()
-
+                self.startGame()
                 break
-            
+                
+            # if exit was clicked
+            if self.exit_clicked:
+                self.network.send("KILL.")
+                break
+
+            self.clock.tick(60)
+
+    # loop while waiting for an opponent
+    def awaitOpponent(self):
+        # while no opponent is connected
+        while self.pregame == None or self.pregame.user_ids[self.pid_opponent] == -1 or self.pregame.users_selected[self.pid_opponent] == -1:
+            pygame.display.flip()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.searching_text.surface, self.searching_text.rect)
+            self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
             self.cursor_rect.center = pygame.mouse.get_pos()
             self.screen.blit(self.cursor, self.cursor_rect)
-            frames += 1    
 
-        # print("RUN")
-        for shape in self.you_group.sprites():
-            shape.goHome()
-            shape.disable()
+            for event in pygame.event.get():
+                if event.type == MOUSEBUTTONDOWN and self.exit_clickable.rect.collidepoint(pygame.mouse.get_pos()):
+                    self.network.send("KILL.")
+                    return "KILL"
 
-    def awaitOpponent(self):
-            while self.pregame == None or self.pregame.user_ids[self.pid_opponent] == -1:
-                pygame.display.flip()
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.searching_text.surface, self.searching_text.rect)
-                self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
-                self.cursor_rect.center = pygame.mouse.get_pos()
-                self.screen.blit(self.cursor, self.cursor_rect)
+            self.pregame = self.network.getPregame()
+            self.clock.tick(60)
 
-                for event in pygame.event.get():
-                    if event.type == MOUSEBUTTONDOWN and self.exit_clickable.rect.collidepoint(pygame.mouse.get_pos()):
-                        self.network.send("KILL.")
-                        return
+        # query for opponent user and shapes
+        self.shapes_opponent = self.session.query(Shape).filter(Shape.owner_id == int(self.pregame.user_ids[self.pid_opponent])).all()
+        self.user_opponent = self.session.query(User).filter(User.id == int(self.pregame.user_ids[self.pid_opponent])).one()
 
-                self.pregame = self.network.getPregame()
-                self.clock.tick(60)
+        # Build opponent shapes + username tags for each player
+        for counter, shape in enumerate(self.shapes_opponent):
+            self.opponent_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes_opponent), "OPPONENT"))
+            self.opponent_names.append(Text(self.user_opponent.username, 100, 1515, 685, "center", colors[shape.color_id][2]))
 
-            # -- Load opponent --
-            self.shapes_opponent = self.session.query(Shape).filter(Shape.owner_id == int(self.pregame.user_ids[self.pid_opponent])).all()
-            self.user_opponent = self.session.query(User).filter(User.id == int(self.pregame.user_ids[self.pid_opponent])).one()
-            self.opponent_group.empty()
-            text_surface, text_rect = self.createText("loading your shapes", 100)
-            text_rect.center = [1920 / 2, 1080 / 2]
+        for shape in self.shapes:
+            self.you_names.append(Text(self.user.username, 100, 420, 685, "center", colors[shape.color_id][2]))
+
+        # Determine opponents selected shape
+        if len(self.shapes_opponent) >= 5:
+            self.idx_selected_opponent = 3
+        elif len(self.shapes_opponent) == 4:
+            self.idx_selected_opponent = 3
+        elif len(self.shapes_opponent) == 3:
+            self.idx_selected_opponent = 2
+        elif len(self.shapes_opponent) == 2:
+            self.idx_selected_opponent = 2
+        else:
+            self.idx_selected_opponent = 1
+
+        # select the appropriate shape for you and user
+        for counter, shape in enumerate(self.opponent_group):
+            if counter+1 == self.idx_selected_opponent:
+                shape.select()
+            else:
+                shape.disable()
+
+        for counter, shape in enumerate(self.you_group):
+            if counter+1 == self.idx_selected_you:
+                shape.select()
+            else:
+                shape.disable()
+
+        self.connecting_flag = True
+
+    # update and draw all screen elements
+    def updateAndDraw(self):
+        pygame.display.flip()
+        self.screen.blit(self.background, (0, 0))
+
+        self.you_group.update(self.screen)
+        self.you_group.draw(self.screen)
+        self.opponent_group.update(self.screen)
+        self.opponent_group.draw(self.screen)
+
+        self.screen.blit(self.title_text.surface, (1920 / 2 - self.title_text.surface.get_size()[0] / 2, 50 - 35-25))  
+        self.screen.blit(self.exit_clickable.surface, self.exit_clickable.rect)
+        self.screen.blit(self.checkbox.surface, self.checkbox.rect)
+        self.screen.blit(self.ready_checkbox.surface, self.ready_checkbox.rect)
+        self.screen.blit(self.right.surface, self.right.rect)
+        self.screen.blit(self.left.surface, self.left.rect)
+        self.screen.blit(self.logged_in_as_text.surface, self.logged_in_as_text.rect)
+        self.screen.blit(self.you_names[self.idx_selected_you-1].surface, self.you_names[self.idx_selected_you-1].rect)
+        self.screen.blit(self.opponent_names[self.idx_selected_opponent-1].surface, self.opponent_names[self.idx_selected_opponent-1].rect)
+
+        self.cursor_rect.center = pygame.mouse.get_pos()
+        self.screen.blit(self.cursor, self.cursor_rect)
+
+    # handle all inputs from the user
+    def handleInputs(self):
+        for event in pygame.event.get():
+            if event.type == MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                self.click_sound.play()
+
+                if self.exit_clickable.rect.collidepoint(mouse_pos):
+                    self.exit_clicked = True
+
+                elif self.checkbox.rect.collidepoint(mouse_pos):
+                    self.checkbox.toggle()
+                    self.network.send("KEEPS_" + str(self.checkbox.getValue()) + ".")
+
+                elif self.ready_checkbox.rect.collidepoint(mouse_pos):
+                    self.ready_checkbox.toggle()
+                    self.network.readyUp(str(self.ready_checkbox.getValue()))
+
+                elif self.right.rect.collidepoint(mouse_pos) or self.left.rect.collidepoint(mouse_pos):
+                    if self.left.rect.collidepoint(mouse_pos):
+                        # Check if selected shape in bounds
+                        if self.idx_selected_you != 1:
+                            self.idx_selected_you -= 1
+
+                            if len(self.shapes) >= 6:
+                                for shape in self.you_group.sprites():
+                                    shape.moveRight()
+
+                    elif self.right.rect.collidepoint(mouse_pos):
+                        if self.idx_selected_you != len(self.shapes):
+                            self.idx_selected_you += 1
+                            
+                            if len(self.shapes) >= 6:
+                                for shape in self.you_group.sprites():
+                                    shape.moveLeft()
+
+                    self.network.send("SELECTED_" + str(self.idx_selected_you) + ".")
+                    self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
+
+                    counter = 0
+                    for shape in self.you_group.sprites():
+                        counter += 1
+                        if counter == self.idx_selected_you:
+                            shape.select()
+                        else:
+                            shape.disable()
+
+        # return in case opponent sent kill signal
+        return self.handleOpponentInputs()
+
+    # handle all inputs (changes to pregame) by user
+    def handleOpponentInputs(self):
+        # check if opponent clicked ready
+        if self.pregame.players_ready[self.pid_opponent] != self.ready_checkbox.opp_checked:
+            self.ready_checkbox.oppToggle()
+
+        # check if opponent clicked keeps
+        if self.pregame.keeps[self.pid_opponent] != self.checkbox.opp_checked:
+            self.checkbox.oppToggle()
+
+        # check if opponent left
+        if self.pregame.kill[self.pid_opponent]:
+
             self.screen.blit(self.background, (0, 0))
-            self.screen.blit(text_surface, text_rect)
+            self.screen.blit(self.opponent_disconnected_text.surface, self.opponent_disconnected_text.rect)
             pygame.display.update()
 
-            # Build opponent shapes + username tags for each player
-            counter = 1
-            for shape in self.shapes_opponent:
-                self.opponent_group.add(MenuShape(counter, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes_opponent), "OPPONENT"))
-                
-                opponent_username_surface, opponent_username_rect = self.createText(opponent_user.username, 100, colors[shape.color_id][2])
-                opponent_username_rect.center = [1515, 750 - 35- 30]
+            time.sleep(0.5)
+            return "KILL"
+        
+        # Check if your record of the opponent selected shape matches with server
+        if self.idx_selected_opponent != self.pregame.users_selected[self.pid_opponent]:
+            if self.idx_selected_opponent < self.pregame.users_selected[self.pid_opponent]:
+                self.idx_selected_opponent += 1
 
-                self.opponent_names.append([opponent_username_surface, opponent_username_rect])
+                if len(self.shapes_opponent) >= 6:
+                    for opponent_shape in self.opponent_group.sprites():
+                        opponent_shape.moveLeft()
 
-                counter += 1
-
-            for shape in self.shapes:
-                you_username_surface, you_username_rect = self.createText(self.user.username, 100, colors[shape.color_id][2])
-                you_username_rect.center = [420, 750 - 35 -30]
-
-                self.you_names.append([you_username_surface, you_username_rect])
-
-
-            # Determine opponents selected shape
-            opponent_selected = 0
-            if len(self.shapes_opponent) >= 5:
-                opponent_selected = 3
-            elif len(self.shapes_opponent) == 4:
-                opponent_selected = 3
-            elif len(self.shapes_opponent) == 3:
-                opponent_selected = 2
-            elif len(self.shapes_opponent) == 2:
-                opponent_selected = 2
             else:
-                opponent_selected = 1
+                self.idx_selected_opponent -= 1
 
-            counter = 0
-            for shape in self.opponent_group.sprites():
-                counter += 1
-                if counter == opponent_selected:
+                if len(self.shapes_opponent) >= 6:
+                    for opponent_shape in self.opponent_group.sprites():
+                            opponent_shape.moveRight()
+
+            for counter, shape in enumerate(self.opponent_group):
+                if (counter + 1) == self.idx_selected_opponent:
                     shape.select()
                 else:
                     shape.disable()
 
-            counter = 0
-            for shape in self.you_group.sprites():
-                counter += 1
-                if counter == self.idx_selected_you:
-                    shape.select()
-                else:
-                    shape.disable()
+    # create Game and PostGame
+    def startGame(self):
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.loading_text.surface, self.loading_text.rect)
+        pygame.display.update()
 
-    # HELPERS
+        # (possibly unnecessary) send your shape id one last time just in case
+        self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
 
-    def getWinner(self, fake_game):
-        self.winner = fake_game.play_game()
-        print("FAKE GAME DONE")
+        # THIS IS TRASH - Game should just take database shape objects
+        # task for a different day though
+        your_circle = {}
+        your_shape = self.shapes[self.idx_selected_you -1]
+        their_circle = {}
+        their_shape = self.shapes_opponent[self.idx_selected_opponent -1]
 
+        your_circle["circle_id"] = 0
+        your_circle["face_id"] = your_shape.face_id
+        your_circle["color"] = colors[your_shape.color_id]
+        your_circle["density"] = your_shape.density
+        your_circle["velocity"] = your_shape.velocity
+        your_circle["radius_min"] = your_shape.radius_min
+        your_circle["radius_max"] = your_shape.radius_max
+        your_circle["health"] = your_shape.health
+        your_circle["dmg_multiplier"] = your_shape.dmg_multiplier
+        your_circle["luck"] = your_shape.luck
+        your_circle["team_size"] = your_shape.team_size
 
-    def createText(self, text, size, color = "white"):
-        font = pygame.font.Font("backgrounds/font.ttf", size)
+        their_circle["circle_id"] = 0
+        their_circle["face_id"] = their_shape.face_id
+        their_circle["color"] = colors[their_shape.color_id]
+        their_circle["density"] = their_shape.density
+        their_circle["velocity"] = their_shape.velocity
+        their_circle["radius_min"] = their_shape.radius_min
+        their_circle["radius_max"] = their_shape.radius_max
+        their_circle["health"] = their_shape.health
+        their_circle["dmg_multiplier"] = their_shape.dmg_multiplier
+        their_circle["luck"] = their_shape.luck
+        their_circle["team_size"] = their_shape.team_size
+    
+        self.start_sound.play()
+        pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+
+        # group ids and parameter order depends on which user you are
+        if self.pid == 0:
+            your_circle["group_id"] = 0
+            their_circle["group_id"] = 1
+
+            game = Game(your_circle, their_circle, self.user.username, self.user_opponent.username, self.screen, self.pregame.seed)
+
+        else:
+            your_circle["group_id"] = 1
+            their_circle["group_id"] = 0
+
+            game = Game(their_circle, your_circle, self.user_opponent.username, self.user.username, self.screen, self.pregame.seed)
         
+        # play the game
+        game.play_game()
+        del game
 
-        if type(text) == type("string"):
-            text_surface = font.render(text, True, color)
-            text_rect = text_surface.get_rect()
+        # if the server has not determined a winner yet
+        while self.pregame.winner == None:
+            # update pregame object
+            self.pregame = self.network.getPregame()
 
-            return text_surface, text_rect
-        
-        elif type(text) == type(["array"]):
-            text_surfaces = []
-            for element in text:
-                text_surfaces.append(font.render(element, True, color))
+            # check to see if exit clicked
+            for event in pygame.event.get():
+                if event.type == MOUSEBUTTONDOWN:
+                    self.click_sound.play()
 
-            max_line_length = max(surface.get_size()[0] for surface in text_surfaces)
-            line_height = text_surfaces[0].get_size()[1]
+                    if self.exit_clickable.rect.collidepoint(mouse_pos): return
 
-            surface = pygame.Surface((max_line_length, (len(text_surfaces) + 1) * line_height), pygame.SRCALPHA, 32)
+            # update mouse position
+            mouse_pos = pygame.mouse.get_pos()
+            self.cursor_rect.center = mouse_pos
 
-            for i, text_surface in enumerate(text_surfaces):
-                surface.blit(text_surface, [max_line_length/2 - text_surface.get_size()[0]/2, line_height * (i+1)])
+            # draw elements to the screen
+            pygame.display.flip()
+            self.screen.blit(self.background, [0,0])
+            self.screen.blit(self.awaiting_text.surface, self.awaiting_text.rect)
+            self.screen.blit(self.cursor, self.cursor_rect)
 
-            return surface, surface.get_rect()
+            self.clock.tick(60)
+
+        # create and start the post-game menu
+        postGame = PostGame(self.pregame.winner == self.pid, your_shape, their_shape, (self.pregame.keeps[0] == 1 and self.pregame.keeps[1] == 1), self.pregame.xp_earned, self.you_names[self.idx_selected_you-1], self.opponent_names[self.idx_selected_opponent-1], self.screen)
+        postGame.start()
+        del postGame

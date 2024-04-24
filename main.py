@@ -4,7 +4,6 @@ from game_files.circledata import *
 from menu_files.menu import Menu
 
 def generateAllCircles():
-    print("GENERATING ALL CIRCLES - THIS WILL TAKE A MOMENT ON FIRST RUN\n")
     for color in colors:
         for id in range(0, 5):
             if os.path.isdir("circles/{}/{}".format(id, color[0])):
@@ -54,8 +53,6 @@ def generateAllCircles():
                         pygame.image.save(image, "circles/{}/{}/{}.png".format(id, color[0], face))
 
 def main():
-    generateAllCircles()
-
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.mouse.set_visible(False)
@@ -63,4 +60,5 @@ def main():
     Menu().start()
     pygame.quit()
 
+# generateAllCircles()
 main()
