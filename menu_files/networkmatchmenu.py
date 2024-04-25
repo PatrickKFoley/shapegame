@@ -3,8 +3,9 @@ import pygame.display
 from pygame.locals import *
 from pygame import Surface
 
-from game_files.game import Game
+
 from menu_files.network_pregame_files.network import Network
+from game_files.game import Game
 from game_files.circledata import *
 from server_files.database_user import User
 from server_files.database_shape import Shape
@@ -14,6 +15,7 @@ from screen_elements.text import Text
 from menu_files.main_menu_files.menucircle import MenuShape
 from screen_elements.arrow import Arrow
 from menu_files.postgame import PostGame
+
 class NetworkMatchMenu():
     def __init__(self, screen: Surface, user: User, shapes: list[Shape], session, circle_images_full: list[list[Surface]]):
         # parameters from menu
@@ -25,7 +27,7 @@ class NetworkMatchMenu():
 
         # new required parameters
         self.network = Network()
-        self.pid = self.network.getPlayer()
+        self.pid = self.network.pid
         self.pregame = self.network.getPregame()
         self.clock = pygame.time.Clock()
         self.winner = None

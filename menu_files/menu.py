@@ -6,7 +6,7 @@ from pygame import *
 import pygame, random, math, numpy as np, sys
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 
 from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
@@ -298,7 +298,9 @@ class Menu():
                         self.session.commit()
 
                         # create and start network match menu
-                        NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                        networkMatch = NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full)
+                        networkMatch.start()
+                        del networkMatch
 
                         # get changes made to database
                         self.session.commit()

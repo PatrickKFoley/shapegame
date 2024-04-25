@@ -58,28 +58,31 @@ class PostGame():
         pygame.display.update()
 
         while self.running:
-            # ---- DISPLAY UPDATES ----
 
-            pygame.display.flip()
-
-            mouse_pos = pygame.mouse.get_pos()
-            events = pygame.event.get()
-
-            self.handleInputs(events, mouse_pos)
-            self.updateClickables(mouse_pos)
-            self.updateCursor(mouse_pos)
-            self.shapes_group.update()
-            self.xp_bar_group.update()
-
+            self.handleInputs()
+            self.updateAndDraw()
             self.animateElements()
-            self.drawElements()
 
             self.clock.tick(60)
             self.frames += 1
 
     # HELPERS
 
-    def drawElements(self):
+    def updateAndDraw(self):
+        # update
+        mouse_pos = pygame.mouse.get_pos()
+
+        for clickable in self.clickables:
+            clickable.update(mouse_pos)
+
+        self.shapes_group.update()
+        self.xp_bar_group.update()
+
+        self.cursor_rect.center = mouse_pos
+
+        pygame.display.flip()
+
+        # draw
         self.screen.blit(self.background, [0, 0])
         self.screen.blit(self.title, self.title_rect)
         self.screen.blit(self.top_text, self.top_text_rect)
@@ -99,14 +102,11 @@ class PostGame():
         if self.frames == 100:
             self.your_xp_bar.animating = self.their_xp_bar.animating = True
 
-    def updateCursor(self, mouse_pos):
-        self.cursor_rect.center = mouse_pos
 
-    def updateClickables(self, mouse_pos):
-        for clickable in self.clickables:
-            clickable.update(mouse_pos)
+    def handleInputs(self):
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
 
-    def handleInputs(self, events, mouse_pos):
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if self.exit_clickable.rect.collidepoint(mouse_pos):
@@ -115,7 +115,6 @@ class PostGame():
     def createText(self, text, size, color = "white"):
         font = pygame.font.Font("backgrounds/font.ttf", size)
         
-
         if type(text) == type("string"):
             text_surface = font.render(text, True, color)
             text_rect = text_surface.get_rect()
