@@ -142,8 +142,14 @@ def handleClient(conn, player, pregames, game_id):
                         # print("USER IDS: {}".format(pregame.user_ids))
                         # print("SHAPE IDS: {}".format(pregame.shape_ids))
 
-                        player0_id = session.query(User).filter(User.id == int(pregame.user_ids[0])).first().id
-                        player1_id = session.query(User).filter(User.id == int(pregame.user_ids[1])).first().id
+                        player0 = session.query(User).filter(User.id == int(pregame.user_ids[0])).first()
+                        player1 = session.query(User).filter(User.id == int(pregame.user_ids[1])).first()
+
+                        player0_id = player0.id
+                        player0_username = player0.username
+
+                        player1_id = player1.id
+                        player1_username = player1.username
 
                         shape0 = session.query(Shape).filter(Shape.id == int(pregame.shape_ids[0])).first()
                         shape1 = session.query(Shape).filter(Shape.id == int(pregame.shape_ids[1])).first()
@@ -179,11 +185,15 @@ def handleClient(conn, player, pregames, game_id):
                         # PLACEHOLDER
                         pregame.xp_earned = random.randint(5, 20)
 
-                        print("----------- ABOUT TO SIMULATE GAME -----------")
+                        print(f'About to simulate game with id: {game_id}')
 
                         pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
 
-                        print("------ GAME FINISHED: {} -----".format(pregame.winner))
+                        winner_username = player0_username
+                        if pregame.winner == 1:
+                            winner_username = player1_username
+
+                        print(f'Game finished, winner: {winner_username}')
                         game_played = True
 
                         conn.sendall(pickle.dumps(pregame))
@@ -252,8 +262,6 @@ def handleClient(conn, player, pregames, game_id):
             break
     
     print("Lost connection! {}".format(player))
-
-    # id_count -= 1
 
     if pregames == pool_pregames:
         pool_id_count -= 1
