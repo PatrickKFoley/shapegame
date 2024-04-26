@@ -312,7 +312,7 @@ while True:
         # check if a pregame has already been made for you and opponent
         game_id = -1
 
-        for index, (key, pregame) in enumerate(p2p_pregames):
+        for index, (key, pregame) in enumerate(p2p_pregames.items()):
             print(index, key, pregame)
             if client_username in pregame.usernames and opponent_username in pregame.usernames:
                 game_id = index
