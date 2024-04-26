@@ -319,6 +319,7 @@ while True:
         if game_id == -1:
             pid = 0
             p2p_id_count += 1
+            print(f'p2p_id_count = {p2p_id_count}')
             game_id = (p2p_id_count - 1) // 2
             
             print(f'Creating new game for {client_username} and {opponent_username}')
