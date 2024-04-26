@@ -28,7 +28,7 @@ socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     socket.bind(("", 5555))
 except Exception as e:
-    print(f'Error binding socket')
+    print(f'Error binding socket {e}')
 
 socket.listen()
 print("Waiting for connection...")
