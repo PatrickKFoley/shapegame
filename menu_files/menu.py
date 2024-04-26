@@ -89,6 +89,7 @@ class Menu():
         self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
         self.register_clickable = ClickableText("register", 50, 1920 / 2, 1050)
         self.username_editable = EditableText("Username: ", 60, 1920/2, 950)
+        self.connect_to_player_editable = EditableText("Connect to user: ", 30, 0, 0, "topleft")
         self.username_editable.select()
 
         self.clickables: list[ClickableText] = []
@@ -129,11 +130,13 @@ class Menu():
         self.loginLoop()
 
         while True:
+            events = pygame.event.get()
+
             # draw (and update) all screen elements
-            self.drawScreenElements()
+            self.drawScreenElements(events)
 
             # handle any inputs
-            self.handleInputs()
+            self.handleInputs(events)
 
             # leave after 1 second of exit being clicked
             if self.exit_clicked:
@@ -236,7 +239,7 @@ class Menu():
 
             self.clock.tick(60)
 
-    def drawScreenElements(self):
+    def drawScreenElements(self, events):
         # draw + update all elements
 
         # flip the display, get mouse position
@@ -257,6 +260,10 @@ class Menu():
                 clickable.update(mouse_pos)
                 self.screen.blit(clickable.surface, clickable.rect)
 
+        # TEMPORARY draw connect to user
+        self.connect_to_player_editable.update(events)
+        self.screen.blit(self.connect_to_player_editable.surface, self.connect_to_player_editable.rect)
+
         # draw all text elements
         for text in self.texts:
             if text != None and text != self.bad_credentials_text:
@@ -266,11 +273,10 @@ class Menu():
         self.cursor_rect.center = mouse_pos
         self.screen.blit(self.cursor, self.cursor_rect)
 
-    def handleInputs(self):
+    def handleInputs(self, events):
         # handle all inputs to the main display
 
         # get events, mouse position
-        events = pygame.event.get()
         mouse_pos = pygame.mouse.get_pos()
 
         for event in events:
@@ -279,6 +285,9 @@ class Menu():
                 
                 # if left click
                 if event.button == 1:
+                    # turn off editable text
+                    self.connect_to_player_editable.deselect()
+
                     # used to "redirect" from one menu to another
                     redirect = "NONE"
 
@@ -349,12 +358,36 @@ class Menu():
                         self.exit_clicked = True
                         pygame.mixer.Sound.fadeout(self.menu_music, 1000)
 
+                    # connect to user editable clicked
+                    elif self.connect_to_player_editable.rect.collidepoint(mouse_pos):
+                        self.connect_to_player_editable.select()
+
                     # check if we want to redirect to another menu
                     if redirect != "NONE":
 
                         # so far collections is the only redirect
                         if redirect == "COLLECTIONS":
                             UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
+
+            elif event.type == KEYDOWN and event.key == K_RETURN and self.connect_to_player_editable.selected:
+                client_method = "P2P." + self.connect_to_player_editable.getText() + "." + self.user.username + "."
+
+                # get changes made to database
+                self.session.commit()
+
+                # create and start network match menu
+                networkMatch = NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full, client_method)
+                networkMatch.start()
+                del networkMatch
+
+                # get changes made to database
+                self.session.commit()
+                self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
+                
+                # recreate network match shape collection
+                self.you_group.empty()
+                for counter, shape in enumerate(self.shapes):
+                    self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
 
     # SHAPE FUNCTIONS
 

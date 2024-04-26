@@ -17,7 +17,7 @@ from screen_elements.arrow import Arrow
 from menu_files.postgame import PostGame
 
 class NetworkMatchMenu():
-    def __init__(self, screen: Surface, user: User, shapes: list[Shape], session, circle_images_full: list[list[Surface]]):
+    def __init__(self, screen: Surface, user: User, shapes: list[Shape], session, circle_images_full: list[list[Surface]], method = "STANDARD."):
         # parameters from menu
         self.screen = screen
         self.user = user
@@ -26,7 +26,7 @@ class NetworkMatchMenu():
         self.circle_images_full = circle_images_full
 
         # new required parameters
-        self.network = Network()
+        self.network = Network(method)
         self.pid = self.network.pid
         self.pregame = self.network.getPregame()
         self.clock = pygame.time.Clock()
@@ -57,7 +57,7 @@ class NetworkMatchMenu():
         self.right = Arrow(1920/2 + 50, 800-25, "->")
         self.left = Arrow(1920/2 - 50, 800-25, "<-")
 
-        self.clickables = []
+        self.clickables: list[ClickableText] = []
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.right)
         self.clickables.append(self.left)
@@ -78,8 +78,8 @@ class NetworkMatchMenu():
         self.opponent_group = pygame.sprite.Group()
 
         # your and your opponents name rendered in the color of all your/their shapes
-        self.you_names = []
-        self.opponent_names = []
+        self.you_names: list[Surface] = []
+        self.opponent_names: list[Surface] = []
 
         # create your menu shapes
         for counter, shape in enumerate(self.shapes):
@@ -111,7 +111,7 @@ class NetworkMatchMenu():
                 self.clock.tick(60)
             return
 
-        # determine which player you are (essentially the order you entered matchmaking)
+        # determine which player your opponent is
         if self.pid == 0: self.pid_opponent = 1
         else: self.pid_opponent = 0
 

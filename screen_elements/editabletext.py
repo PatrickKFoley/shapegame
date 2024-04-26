@@ -3,11 +3,12 @@ import pygame, pygame_textinput
 SHRINK_AMOUNT = 0.25
 
 class EditableText:
-    def __init__(self, text, size, x, y):
+    def __init__(self, text, size, x, y, alignment = "center"):
         self.x = x
         self.y = y
         self.text = text
         self.size = size
+        self.alignment = alignment 
         self.selected = False
         self.growing = False
         self.shrinking = False
@@ -24,7 +25,7 @@ class EditableText:
 
         self.surface = pygame.transform.smoothscale(self.input.surface, (self.input.surface.get_size()[0] - 10, self.input.surface.get_size()[1] - 10))
         self.rect = self.surface.get_rect()
-        self.rect.center = [x, y]
+        self.align()
 
 
         self.width, self.height = self.surface.get_size()
@@ -45,7 +46,7 @@ class EditableText:
                 self.manager.cursor_pos = len(self.text)
 
             self.rect = self.input.surface.get_rect()
-            self.rect.center = [self.x, self.y]
+            self.align()
 
             self.surface = self.input.surface
 
@@ -82,7 +83,7 @@ class EditableText:
         self.surface = pygame.transform.smoothscale(self.input.surface, (w, h))
         
         self.rect = self.surface.get_rect()
-        self.rect.center = [self.x, self.y]
+        self.align()
 
 
     def select(self):
@@ -106,9 +107,18 @@ class EditableText:
         self.input.cursor_color = "white"
 
         self.rect = self.input.surface.get_rect()
-        self.rect.center = [self.x, self.y]
+        self.align()
 
         self.surface = self.input.surface
 
+    def align(self):
+        if self.alignment == "center":
+            self.rect.center = [self.x, self.y]
+        
+        elif self.alignment == "topleft":
+            self.rect.topleft = [self.x, self.y]
+
+        elif self.alignment == "topright":
+            self.rect.topright = [self.x, self.y]
 
 

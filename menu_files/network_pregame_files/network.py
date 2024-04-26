@@ -4,7 +4,11 @@ from menu_files.network_pregame_files.pregame import Pregame
 from threading import Thread
 
 class Network:
-    def __init__(self):
+    def __init__(self, method):
+        # "method" used for connecting to another player
+        # "STANDARD." for normal matchmaking pool, "P2P.MY_USERNAME.THEIR_USERNAME." for trying to connect with another user
+        self.method = method
+
         # client used for socket operations (send/receive data)
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -26,6 +30,13 @@ class Network:
         try:
             self.client.connect(self.addr)
 
+            # server makes the first communication, no need to store this
+            self.client.recv(2048).decode()
+
+            # send the server your method, used by server to determine your pregame object
+            self.client.send(str.encode(self.method))
+
+            # next response is your pid
             return self.client.recv(2048).decode()
         
         except Exception as exception:
@@ -61,7 +72,7 @@ class Network:
             self.pregame = pickle.loads(self.client.recv(4096))
 
         except Exception as exception:
-            print(f'Error sending ready state to server: {exception}')
+            print(f'Error updating pregame object from server: {exception}')
 
     # ensure that the pregame updater thread is alive, return the pregame object
     def getPregame(self):

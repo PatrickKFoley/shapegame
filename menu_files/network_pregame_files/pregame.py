@@ -3,6 +3,9 @@ class Pregame:
         self.id = id
         self.ready = False
 
+        # used for connecting players in p2p matchmaking only
+        self.usernames = ["", ""]
+
         self.players_ready = [False, False]
 
         self.users_selected = [-1, -1]
