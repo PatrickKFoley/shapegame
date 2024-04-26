@@ -72,7 +72,10 @@ class Network:
             self.pregame = pickle.loads(self.client.recv(4096))
 
         except Exception as exception:
-            print(f'Error updating pregame object from server: {exception}')
+            # this exception is thrown after the server closes the connection to the client
+            # if no one sent a kill signal to the server, this was an actual error
+            if True not in self.pregame.kill:
+                print(f'Error updating pregame object from server: {exception}')
 
     # ensure that the pregame updater thread is alive, return the pregame object
     def getPregame(self):

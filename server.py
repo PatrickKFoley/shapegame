@@ -282,10 +282,9 @@ while True:
         client_method = conn.recv(4096).decode()
         # print(client_method)
     except Exception:
-        print(f'Error getting inital client communication')
+        print(f'Error getting initial client communication')
         break
 
-    print(f'while starting, p2p pregames: {p2p_pregames}')
 
     if client_method == "STANDARD.":
         pool_id_count += 1
@@ -313,7 +312,6 @@ while True:
         game_id = -1
 
         for index, (key, pregame) in enumerate(p2p_pregames.items()):
-            print(index, key, pregame)
             if client_username in pregame.usernames and opponent_username in pregame.usernames:
                 game_id = index
                 p2p_pregames[game_id].ready = True
@@ -331,9 +329,6 @@ while True:
             new_pregame.usernames = [client_username, opponent_username]
             p2p_pregames[game_id] = new_pregame
 
-            print(p2p_pregames[game_id])
-
-        print(f'thread starting, p2p pregames: {p2p_pregames}')
         start_new_thread(handleClient, (conn, pid, p2p_pregames, game_id))
 
         
