@@ -298,6 +298,8 @@ while True:
         start_new_thread(handleClient, (conn, player, pool_pregames, game_id))
 
     elif "P2P" in client_method:
+        p2p_id_count += 1
+
         # get usernames from the method
         client_username = client_method.split(".")[1]
         opponent_username = client_method.split(".")[2]
@@ -311,21 +313,17 @@ while True:
         for index, (key, pregame) in enumerate(p2p_pregames.items()):
             if client_username in pregame.usernames and opponent_username in pregame.usernames:
                 game_id = index
-                print(f'readying pregame with game_id {game_id}')
                 p2p_pregames[game_id].ready = True
                 # continue
 
         # if pregame doesn't exist, make one
         if game_id == -1:
             pid = 0
-            p2p_id_count += 1
-            print(f'p2p_id_count = {p2p_id_count}')
             game_id = (p2p_id_count - 1) // 2
             
             print(f'Creating new game for {client_username} and {opponent_username}')
 
             new_pregame = Pregame(game_id)
-            print(f'creating pregame with game_id {game_id}')
             new_pregame.usernames = [client_username, opponent_username]
             p2p_pregames[game_id] = new_pregame
 
