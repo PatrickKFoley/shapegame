@@ -89,10 +89,7 @@ def handleClient(conn, player, pregames, game_id):
     shape0 = None
     shape1 = None
 
-    reply = None
     game_played = False
-    killed = False
-    killed_counter = 0
 
     while True:
         try:
@@ -314,6 +311,7 @@ while True:
         for index, (key, pregame) in enumerate(p2p_pregames.items()):
             if client_username in pregame.usernames and opponent_username in pregame.usernames:
                 game_id = index
+                print(f'readying pregame with game_id {game_id}')
                 p2p_pregames[game_id].ready = True
                 # continue
 
@@ -326,6 +324,7 @@ while True:
             print(f'Creating new game for {client_username} and {opponent_username}')
 
             new_pregame = Pregame(game_id)
+            print(f'creating pregame with game_id {game_id}')
             new_pregame.usernames = [client_username, opponent_username]
             p2p_pregames[game_id] = new_pregame
 
