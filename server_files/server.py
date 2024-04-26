@@ -21,20 +21,21 @@ server = ""
 port = 5555
 seeds = []
 for i in range(1000): seeds.append(random.randint(1, 99999999999))
-games_played = 0
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    socket.bind((server, port))
-except:
-    pass
+    socket.bind(("", 5555))
+except Exception as e:
+    print(f'Error binding socket')
 
 socket.listen()
 print("Waiting for connection...")
 
-pregames = {}
-id_count = 0
+pool_pregames = {}
+p2p_pregames = {}
+pool_id_count = 0
+p2p_id_count = 0
 
 def processData(data):
     parts = data.split('.')
@@ -73,12 +74,12 @@ def processData(data):
     
     return user, selected, shape, keeps, ready, kill, get
 
-
-
-def threaded_client(conn, player, game_id):
+def handleClient(conn, player, pregames, game_id):
     session = SessionMaker()
 
-    global id_count
+    global pool_id_count
+    global p2p_id_count
+
     conn.send(str.encode(str(player)))
 
     player0_id = None
@@ -90,8 +91,8 @@ def threaded_client(conn, player, game_id):
     game_played = False
     killed = False
     killed_counter = 0
-    while True:
 
+    while True:
         try:
             data = conn.recv(4096).decode()
         except Exception as err:
@@ -176,6 +177,9 @@ def threaded_client(conn, player, game_id):
                         game_shape1["luck"] = shape1.luck
                         game_shape1["team_size"] = shape1.team_size
 
+                        # PLACEHOLDER
+                        pregame.xp_earned = random.randint(5, 20)
+
                         print("----------- ABOUT TO SIMULATE GAME -----------")
 
                         pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
@@ -197,8 +201,26 @@ def threaded_client(conn, player, game_id):
                                 shape0.num_owners += 1
                                 shape0.obtained_on = datetime.datetime.utcnow()
 
-                        if pregame.winner == 0: shape0.num_wins += 1
-                        else: shape1.num_wins += 1
+                        
+
+                        if pregame.winner == 0: 
+                            shape0.num_wins += 1
+                            shape0.xp += pregame.xp_earned
+                            shape1.num_losses += 1
+
+                            for i, amount in enumerate(xp_amounts):
+                                if shape0.xp >= amount:
+                                    shape0.level = i + 1
+                        
+                        else: 
+                            shape1.num_wins += 1
+                            shape1.xp += pregame.xp_earned
+                            shape0.num_losses += 1
+
+                            for i, amount in enumerate(xp_amounts):
+                                if shape1.xp >= amount:
+                                    shape1.level = i + 1
+
                         session.commit()
 
                         del pregames[game_id]
@@ -232,7 +254,12 @@ def threaded_client(conn, player, game_id):
     
     print("Lost connection! {}".format(player))
 
-    id_count -= 1
+    # id_count -= 1
+
+    if pregames == pool_pregames:
+        pool_id_count -= 1
+    else:
+        p2p_id_count -= 1
     conn.close()
 
     if player == 0:
@@ -246,15 +273,63 @@ while True:
     conn, addr = socket.accept()
     print("Connected to: ", addr)
 
-    id_count += 1
-    player = 0
-    game_id = (id_count - 1) // 2
+    # server has to send first communication before client can send their method
+    conn.send(str.encode(str("Server is ready")))
 
-    if id_count % 2 == 1:
-        pregames[game_id] = Pregame(game_id)
-        print("Creating a new game...")
-    else:
-        pregames[game_id].ready = True
-        player = 1
+    try:
+        client_method = conn.recv(4096).decode()
+        # print(client_method)
+    except Exception:
+        print(f'Error getting inital client communication')
+        break
 
-    start_new_thread(threaded_client, (conn, player, game_id))
+    if client_method == "STANDARD.":
+        pool_id_count += 1
+        player = 0
+        game_id = (pool_id_count - 1) // 2
+
+        if pool_id_count % 2 == 1:
+            pool_pregames[game_id] = Pregame(game_id)
+            print("Creating a new game...")
+        else:
+            pool_pregames[game_id].ready = True
+            player = 1
+
+        start_new_thread(handleClient, (conn, player, pool_pregames, game_id))
+
+    elif "P2P" in client_method:
+        # get usernames from the method
+        client_username = client_method.split(".")[1]
+        opponent_username = client_method.split(".")[2]
+
+        # pid changes if you are the client making the pregame
+        pid = 1
+
+        # check if a pregame has already been made for you and opponent
+        game_id = -1
+
+        for index, pregame in enumerate(p2p_pregames):
+            print(index, pregame)
+            if client_username in pregame.usernames and opponent_username in pregame.usernames:
+                game_id = index
+                p2p_pregames[game_id].ready = True
+                # continue
+
+        # if pregame doesn't exist, make one
+        if game_id == -1:
+            pid = 0
+            p2p_id_count += 1
+            game_id = (p2p_id_count - 1) // 2
+            
+            print(f'Creating new game for {client_username} and {opponent_username}')
+
+            new_pregame = Pregame(game_id)
+            new_pregame.usernames = [client_username, opponent_username]
+            p2p_pregames[game_id] = new_pregame
+
+            print(p2p_pregames[game_id])
+
+        start_new_thread(handleClient, (conn, pid, p2p_pregames, game_id))
+
+        
+
