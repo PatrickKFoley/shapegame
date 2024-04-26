@@ -312,8 +312,8 @@ while True:
         # check if a pregame has already been made for you and opponent
         game_id = -1
 
-        for index, pregame in enumerate(p2p_pregames):
-            print(index, pregame)
+        for index, (key, pregame) in enumerate(p2p_pregames):
+            print(index, key, pregame)
             if client_username in pregame.usernames and opponent_username in pregame.usernames:
                 game_id = index
                 p2p_pregames[game_id].ready = True
