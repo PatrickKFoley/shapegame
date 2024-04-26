@@ -29,6 +29,7 @@ try:
     socket.bind(("", 5555))
 except Exception as e:
     print(f'Error binding socket {e}')
+    raise SystemExit
 
 socket.listen()
 print("Waiting for connection...")
@@ -284,6 +285,8 @@ while True:
         print(f'Error getting inital client communication')
         break
 
+    print(f'while starting, p2p pregames: {p2p_pregames}')
+
     if client_method == "STANDARD.":
         pool_id_count += 1
         player = 0
@@ -330,6 +333,7 @@ while True:
 
             print(p2p_pregames[game_id])
 
+        print(f'thread starting, p2p pregames: {p2p_pregames}')
         start_new_thread(handleClient, (conn, pid, p2p_pregames, game_id))
 
         
