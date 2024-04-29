@@ -285,7 +285,6 @@ while True:
 
     try:
         client_method = conn.recv(4096).decode()
-        # print(client_method)
     except Exception:
         print(f'Error getting initial client communication')
         break
@@ -322,7 +321,7 @@ while True:
             if client_username in pregame.usernames and opponent_username in pregame.usernames:
                 game_id = index
                 p2p_pregames[game_id].ready = True
-                # continue
+                break
 
         # if pregame doesn't exist, make one
         if game_id == -1:

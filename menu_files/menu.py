@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
+from screen_elements.friendswindow import FriendsWindow
 from screen_elements.text import Text
 from server_files.database_user import User
 from server_files.database_shape import Shape
@@ -99,6 +100,9 @@ class Menu():
         self.clickables.append(self.all_shapes_clickable)
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.register_clickable)
+
+        # predefine the friend window (will be created once user has signed in)
+        self.friends_window: FriendsWindow | None = None
 
         # update the display
         self.screen.blit(self.background, (0, 0))
@@ -201,6 +205,9 @@ class Menu():
                         self.texts.append(self.logged_in_as_text)
                         self.clickables.append(self.shape_tokens_clickable)
 
+                        # create friends window
+                        self.friends_window = FriendsWindow()
+
                         # load your (network match) shapes
                         for counter, shape in enumerate(self.shapes):
                             self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
@@ -268,6 +275,11 @@ class Menu():
         for text in self.texts:
             if text != None and text != self.bad_credentials_text:
                 self.screen.blit(text.surface, text.rect)
+
+        # update and draw friends window
+        if self.friends_window != None:
+            self.friends_window.update()
+            self.screen.blit(self.friends_window.surface, self.friends_window.rect)
 
         # center and draw cursor
         self.cursor_rect.center = mouse_pos
@@ -368,6 +380,9 @@ class Menu():
                         # so far collections is the only redirect
                         if redirect == "COLLECTIONS":
                             UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
+
+            elif event.type == KEYDOWN and event.key == K_TAB:
+                self.friends_window.toggle()
 
             elif event.type == KEYDOWN and event.key == K_RETURN and self.connect_to_player_editable.selected:
                 client_method = "P2P." + self.connect_to_player_editable.getText() + "." + self.user.username + "."

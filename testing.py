@@ -6,6 +6,7 @@ from game_files.game import Game
 from server_files.database_shape import Shape
 from game_files.circledata import *
 from threading import Thread
+from screen_elements.friendswindow import FriendsWindow
 
 def circle():
     pygame.init()
@@ -145,8 +146,32 @@ def thread():
 
     print("DONE")
 
+def friends():
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    friends_window = FriendsWindow()
 
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_TAB:
+                    friends_window.toggle()
 
+        friends_window.update()
+        screen.blit(friends_window.surface, friends_window.rect)
+
+        # Update the display
+        pygame.display.flip()
+        
+
+    # Quit Pygame
+    pygame.quit()
+    sys.exit()
+
+friends()
 
 # while True:
 #     simulate()
