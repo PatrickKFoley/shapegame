@@ -15,6 +15,7 @@ friends_ass = Table(
     Column("user2_id", ForeignKey("users.id"), primary_key=True)
 )
 
+@Registry.mapped
 class User(BaseClass):
     __tablename__ = "users"
 
@@ -31,6 +32,7 @@ class User(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.username}"
 
+@Registry.mapped
 class Shape(BaseClass):
     __tablename__ = "shapes"
 
