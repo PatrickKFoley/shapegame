@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
+connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
 
 BaseClass = declarative_base()
 engine = create_engine(connection_string, echo=False)

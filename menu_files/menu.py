@@ -35,7 +35,7 @@ class Menu():
         self.shapes: list[Shape] = []
 
         # database session
-        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame-server-2024/shapegame.db", echo=False)
+        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame/shapegame/database.db", echo=False)
         SessionMaker = sessionmaker(bind=self.engine)
         self.session = SessionMaker()
 
@@ -196,20 +196,6 @@ class Menu():
                     try:
                         # query database for user and user's shapes
                         self.user = self.session.query(User).filter(User.username == username).one()
-                        self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
-
-                        # create and add text elements
-                        self.logged_in_as_text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
-                        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
-                        self.texts.append(self.logged_in_as_text)
-                        self.clickables.append(self.shape_tokens_clickable)
-
-                        # create friends window
-                        self.friends_window = FriendsWindow()
-
-                        # load your (network match) shapes
-                        for counter, shape in enumerate(self.shapes):
-                            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
 
                     # query found no user entries
                     except Exception as e:
@@ -245,7 +231,22 @@ class Menu():
 
             self.clock.tick(60)
 
-        print(self.user)
+        # user has signed in, create and add text elements
+        self.logged_in_as_text = Text("logged in as: {}".format(self.user.username), 35, 10, 1030, "topleft")
+        self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+        self.texts.append(self.logged_in_as_text)
+        self.clickables.append(self.shape_tokens_clickable)
+
+        # create friends window
+        self.friends_window = FriendsWindow()
+
+        # load your (network match) shapes
+        
+        self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
+
+        for counter, shape in enumerate(self.shapes):
+            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
+
 
     def drawScreenElements(self, events):
         # draw + update all elements
