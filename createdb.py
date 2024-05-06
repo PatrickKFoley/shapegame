@@ -6,6 +6,8 @@ from server_files.database_shape import Shape
 import random, os, datetime
 
 BaseClass = declarative_base()
+Registry = registry()
+Registry.configure()
 
 friends_ass = Table(
     "friends",
