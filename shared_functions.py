@@ -1,7 +1,6 @@
 import pygame, random
 from game_files.circledata import *
-from server_files.database_shape import Shape
-from server_files.database_user import User
+from server_files.database_classes import User, Shape
 
 def createText(text, size, color = "white"):
     font = pygame.font.Font("backgrounds/font.ttf", size) 
@@ -63,8 +62,9 @@ def createShape(owner_id = -1, session = None, username = "no one"):
             session.commit()
 
             return shape
-        except:
+        except Exception as e:
             session.rollback()
+            print(e)
             return False
     else:
         shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)

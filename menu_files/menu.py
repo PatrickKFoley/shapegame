@@ -12,8 +12,7 @@ from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
 from screen_elements.friendswindow import FriendsWindow
 from screen_elements.text import Text
-from server_files.database_user import User
-from server_files.database_shape import Shape
+from server_files.database_classes import User, Shape
 from menu_files.main_menu_files.menucircle import MenuShape
 from menu_files.main_menu_files.simplecircle import SimpleCircle
 from menu_files.powerupdisplaymenu import PowerupDisplayMenu
@@ -245,6 +244,8 @@ class Menu():
                 self.screen.blit(self.bad_credentials_text.surface, self.bad_credentials_text.rect)
 
             self.clock.tick(60)
+
+        print(self.user)
 
     def drawScreenElements(self, events):
         # draw + update all elements

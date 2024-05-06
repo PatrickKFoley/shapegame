@@ -7,8 +7,7 @@ from pygame import Surface
 from menu_files.network_pregame_files.network import Network
 from game_files.game import Game
 from game_files.circledata import *
-from server_files.database_user import User
-from server_files.database_shape import Shape
+from server_files.database_classes import User, Shape
 from screen_elements.clickabletext import ClickableText
 from screen_elements.doublecheckbox import DoubleCheckbox
 from screen_elements.text import Text

@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 from screen_elements.clickabletext import ClickableText
 from screen_elements.arrow import Arrow
 from screen_elements.text import Text
-from server_files.database_user import User
-from server_files.database_shape import Shape
+from server_files.database_classes import User, Shape
 from menu_files.main_menu_files.menucircle import MenuShape
 from game_files.circledata import *
 

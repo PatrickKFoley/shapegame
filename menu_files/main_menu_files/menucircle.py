@@ -1,5 +1,5 @@
 import pygame, datetime, pytz
-from server_files.database_shape import Shape
+from server_files.database_classes import Shape
 from sqlalchemy import func
 from game_files.circledata import *
 

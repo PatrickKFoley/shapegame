@@ -3,7 +3,7 @@ import pygame, random, math, numpy as np
 from pygame.locals import *
 from pygame.mixer import Sound
 from game_files.circledata import *
-from server_files.database_shape import Shape
+from server_files.database_classes import Shape
 from screen_elements.clickabletext import ClickableText
 from screen_elements.text import Text
 
@@ -30,7 +30,7 @@ class PowerupDisplayMenu():
         self.add_shape_clickable = ClickableText("add shape!", 50, 140, 1045)
         self.exit_clickable = ClickableText("back", 50, 1870, 1045)
 
-        self.clickables: list[Clickable] = []
+        self.clickables: list[ClickableText] = []
         self.clickables.append(self.exit_clickable)
         self.clickables.append(self.add_shape_clickable)
 
@@ -59,7 +59,7 @@ class PowerupDisplayMenu():
         self.powerup_display_clouds_group = pygame.sprite.Group()
         
         # this will make updating the groups easier
-        self.groups: list[Group] = [
+        self.groups: list[pygame.sprite.Group] = [
             self.hud_powerup_group,
             self.powerup_display_shape_group,
             self.powerup_display_powerup_group,

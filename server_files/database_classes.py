@@ -1,20 +1,10 @@
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, CHAR, Float, DateTime
 from typing import List
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry
-from server_files.database_classes import User, Shape
-import random, os, datetime
+import datetime
 
 BaseClass = declarative_base()
-Registry = registry()
-Registry.configure()
-
-# friends_ass = Table(
-#     "friends",
-#     BaseClass.metadata,
-#     Column("user1_id", ForeignKey("users.id"), primary_key=True),
-#     Column("user2_id", ForeignKey("users.id"), primary_key=True)
-# )
 
 class User(BaseClass):
     __tablename__ = "users"
@@ -31,7 +21,7 @@ class User(BaseClass):
 
     def __repr__(self):
         return f"({self.id}) {self.username}"
-
+    
 class Shape(BaseClass):
     __tablename__ = "shapes"
 
@@ -76,29 +66,6 @@ class Shape(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
-connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
-engine = create_engine(connection_string, echo=True)
-# BaseClass.metadata.drop_all(bind=engine)
-# BaseClass.metadata.create_all(bind=engine)
-
-# if not database_exists(engine.url):
-#     create_database(engine.url)
-
-
-Session = sessionmaker(bind=engine)
-session = Session()
-
-
-session.query(Shape).delete()
-session.query(User).delete()
-
-try:
-    user_1 = User("a")
-    user_2 = User("b")
     
-    session.add(user_1)
-    session.add(user_2)
-    session.commit()
-except Exception as e:
-    session.rollback()
-    print(e)
+# engine = create_engine("sqlite:///shapegame.db", echo=True)
+# BaseClass.metadata.create_all(bind=engine)
