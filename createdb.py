@@ -77,7 +77,7 @@ class Shape(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
-connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database"
+connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
 engine = create_engine(connection_string, echo=True)
 # BaseClass.metadata.drop_all(bind=engine)
 # BaseClass.metadata.create_all(bind=engine)
