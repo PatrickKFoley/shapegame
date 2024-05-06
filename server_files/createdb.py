@@ -1,6 +1,7 @@
 from typing import List
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship, mapped_column, Mapped
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Mapped
+from sqlalchemy.orm import mapped_column
 from game_files.circledata import *
 from server_files.database_user import User
 from server_files.database_shape import Shape
