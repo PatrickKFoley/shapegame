@@ -1,7 +1,6 @@
 from typing import List
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
 from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry
-from game_files.circledata import *
 from server_files.database_user import User
 from server_files.database_shape import Shape
 import random, os, datetime
@@ -77,25 +76,6 @@ class Shape(BaseClass):
     
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
-
-
-def createShape(owner_id):
-    face_id = random.randint(0, 4)
-    color_id = random.randint(0, len(colors)-1)
-
-    base = circles_unchanged[face_id]
-
-    density = base["density"]
-    velocity = base["velocity"] + random.randint(-3, 3)
-    radius_min = base["radius_min"] + random.randint(-3, 3)
-    radius_max = base["radius_max"] + random.randint(-3, 3)
-    health = base["health"] + random.randint(-100, 100)
-    dmg_multiplier = base["dmg_multiplier"] + round((random.randint(-10, 10) / 10), 2)
-    luck = base["luck"] + round((random.randint(-10, 10) / 10), 2)
-    team_size = base["team_size"] + random.randint(-3, 3)
-
-    return Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size)
-
 
 connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
 engine = create_engine(connection_string, echo=True)
