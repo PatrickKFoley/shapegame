@@ -55,7 +55,8 @@ def createShape(owner_id = -1, session = None, username = "no one"):
 
     if owner_id != -1:
         try:
-            shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)
+            owner = session.query(User).filter(User.id == owner_id).one()
+            shape = Shape(owner_id, owner, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)
             
             session.query(User).filter(User.id == owner_id).update({'shape_tokens': User.shape_tokens -1})
             session.add(shape)
@@ -67,5 +68,5 @@ def createShape(owner_id = -1, session = None, username = "no one"):
             print(e)
             return False
     else:
-        shape = Shape(owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)
+        shape = Shape(owner_id, None, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)
         return shape
