@@ -6,12 +6,11 @@ import random, os, datetime
 
 BaseClass = declarative_base()
 
-# friends_ass = Table(
-#     "friends",
-#     BaseClass.metadata,
-#     Column("user1_id", ForeignKey("users.id"), primary_key=True),
-#     Column("user2_id", ForeignKey("users.id"), primary_key=True)
-# )
+friends = Table(
+    "friends", BaseClass.metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("friend_id", Integer, ForeignKey("users.id"), primary_key=True)
+)
 
 class User(BaseClass):
     __tablename__ = "users"
@@ -21,7 +20,10 @@ class User(BaseClass):
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
     shapes: Mapped[List["Shape"]] = relationship(back_populates="owner", cascade="all, delete")
-    # friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="user")
+    friends: Mapped[List["User"]] = relationship("User", secondary=friends,
+                                                 primaryjoin=id==friends.c.user_id,
+                                                 secondaryjoin=id==friends.c.friend_id,
+                                                 backref="friend_of")
 
     def __init__(self, username):
         self.username = username
