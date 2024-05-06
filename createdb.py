@@ -120,14 +120,17 @@ if __name__ == "__main__":
     try:
         user_1 = User("a")
         user_2 = User("b")
+        user_3 = User("c")
+        user_4 = User("d")
         
         session.add(user_1)
         session.add(user_2)
+        session.add(user_3)
+        session.add(user_4)
         user_1.friends.append(user_2)
+        user_1.friends.append(user_3)
 
         session.commit()
-        print(user_1.friends)
-        print(user_2.friends)
     except Exception as e:
         session.rollback()
         print(e)
