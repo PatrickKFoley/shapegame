@@ -21,7 +21,7 @@ class User(BaseClass):
     username = Column("username", String, unique=True, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
-    shapes: Mapped[List["Shape"]] = relationship("shapes", back_populates="user")
+    shapes: Mapped[List["Shape"]] = relationship("Shapes", back_populates="user")
     friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="users")
 
     def __init__(self, username):
