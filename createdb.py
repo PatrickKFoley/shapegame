@@ -80,10 +80,10 @@ class Shape(BaseClass):
 connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
 engine = create_engine(connection_string, echo=True)
 # BaseClass.metadata.drop_all(bind=engine)
-BaseClass.metadata.create_all(bind=engine)
+# BaseClass.metadata.create_all(bind=engine)
 
-if not database_exists(engine.url):
-    create_database(engine.url)
+# if not database_exists(engine.url):
+#     create_database(engine.url)
 
 
 Session = sessionmaker(bind=engine)
