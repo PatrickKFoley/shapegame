@@ -201,11 +201,13 @@ def handleClient(conn, player, pregames, game_id):
                         if pregame.keeps[0] == 1 and pregame.keeps[1] == 1:
                             if pregame.winner == 0: 
                                 shape1.owner_id = player0_id
+                                shape1.owner = player0
                                 shape1.num_owners += 1
                                 shape1.obtained_on = datetime.datetime.utcnow()
                             
                             else: 
                                 shape0.owner_id = player1_id
+                                shape0.owner = player1
                                 shape0.num_owners += 1
                                 shape0.obtained_on = datetime.datetime.utcnow()
 
