@@ -83,19 +83,19 @@ class Shape(BaseClass):
 
 connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
 engine = create_engine(connection_string, echo=True)
-
-Session = sessionmaker(bind=engine)
-session = Session()
-
-session.query(Shape).delete()
-session.query(User).delete()
-
 BaseClass.metadata.drop_all(bind=engine)
 BaseClass.metadata.create_all(bind=engine)
 
 if not database_exists(engine.url):
     create_database(engine.url)
 
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+
+session.query(Shape).delete()
+session.query(User).delete()
 
 try:
     user_1 = User("a")
