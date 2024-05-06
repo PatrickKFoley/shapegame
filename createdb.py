@@ -9,12 +9,12 @@ BaseClass = declarative_base()
 Registry = registry()
 Registry.configure()
 
-friends_ass = Table(
-    "friends",
-    BaseClass.metadata,
-    Column("user1_id", ForeignKey("users.id"), primary_key=True),
-    Column("user2_id", ForeignKey("users.id"), primary_key=True)
-)
+# friends_ass = Table(
+#     "friends",
+#     BaseClass.metadata,
+#     Column("user1_id", ForeignKey("users.id"), primary_key=True),
+#     Column("user2_id", ForeignKey("users.id"), primary_key=True)
+# )
 
 class User(BaseClass):
     __tablename__ = "users"
@@ -24,7 +24,7 @@ class User(BaseClass):
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
     shapes: Mapped[List["Shape"]] = relationship(back_populates="user")
-    friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="user")
+    # friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="user")
 
     def __init__(self, username):
         self.username = username
