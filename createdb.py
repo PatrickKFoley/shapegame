@@ -21,7 +21,7 @@ class User(BaseClass):
     username = Column("username", String, unique=True, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
-    shapes: Mapped[List["Shape"]] = relationship("Shapes", back_populates="user")
+    shapes: Mapped[List["Shape"]] = relationship(back_populates="user")
     friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="users")
 
     def __init__(self, username):
@@ -35,7 +35,7 @@ class Shape(BaseClass):
 
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
-    owner: Mapped["User"] = relationship("user", back_populates="shapes")
+    owner: Mapped["User"] = relationship(back_populates="shapes")
 
     created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow())
     obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
