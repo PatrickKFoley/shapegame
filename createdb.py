@@ -18,13 +18,13 @@ Registry.configure()
 # )
 
 class User(BaseClass):
-    __tablename__ = "users"
+    __tablename__ = "user_table"
 
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     username = Column("username", String, unique=True, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
-    shapes: Mapped[List["Shape"]] = relationship(back_populates="HUH", cascade="all, delete")
+    shapes: Mapped[List["Shape"]] = relationship(back_populates="user", cascade="all, delete")
     # friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="user")
 
     def __init__(self, username):
@@ -34,7 +34,7 @@ class User(BaseClass):
         return f"({self.id}) {self.username}"
 
 class Shape(BaseClass):
-    __tablename__ = "shapes"
+    __tablename__ = "shape_table"
 
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
