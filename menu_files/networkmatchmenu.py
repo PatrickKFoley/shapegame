@@ -16,11 +16,10 @@ from screen_elements.arrow import Arrow
 from menu_files.postgame import PostGame
 
 class NetworkMatchMenu():
-    def __init__(self, screen: Surface, user: User, shapes: list[Shape], session, circle_images_full: list[list[Surface]], method = "STANDARD."):
+    def __init__(self, screen: Surface, user: User, session, circle_images_full: list[list[Surface]], method = "STANDARD."):
         # parameters from menu
         self.screen = screen
         self.user = user
-        self.shapes = shapes
         self.session = session
         self.circle_images_full = circle_images_full
 
@@ -81,8 +80,8 @@ class NetworkMatchMenu():
         self.opponent_names: list[Surface] = []
 
         # create your menu shapes
-        for counter, shape in enumerate(self.shapes):
-            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
+        for counter, shape in enumerate(self.user.shapes):
+            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes)))
 
         # load sounds
         self.click_sound = pygame.mixer.Sound("sounds/click.wav")
@@ -119,13 +118,13 @@ class NetworkMatchMenu():
 
         # Determine the index of shape you have selected to start
         self.idx_selected_you = 0
-        if len(self.shapes) >= 5:
+        if len(self.user.shapes) >= 5:
             self.idx_selected_you = 3
-        elif len(self.shapes) == 4:
+        elif len(self.user.shapes) == 4:
             self.idx_selected_you = 3
-        elif len(self.shapes) == 3:
+        elif len(self.user.shapes) == 3:
             self.idx_selected_you = 2
-        elif len(self.shapes) == 2:
+        elif len(self.user.shapes) == 2:
             self.idx_selected_you = 2
         else:
             self.idx_selected_you = 1
@@ -135,7 +134,7 @@ class NetworkMatchMenu():
 
         # tell the server what shape you have selected
         self.network.send("SELECTED_" + str(self.idx_selected_you) + ".")
-        self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
+        self.network.send("SHAPE_" + str(self.user.shapes[self.idx_selected_you-1].id) + ".")
         time.sleep(1)
 
     # menu loop
@@ -207,7 +206,7 @@ class NetworkMatchMenu():
             self.opponent_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes_opponent), "OPPONENT"))
             self.opponent_names.append(Text(self.user_opponent.username, 100, 1515, 685, "center", colors[shape.color_id][2]))
 
-        for shape in self.shapes:
+        for shape in self.user.shapes:
             self.you_names.append(Text(self.user.username, 100, 420, 685, "center", colors[shape.color_id][2]))
 
         # Determine opponents selected shape
@@ -284,20 +283,20 @@ class NetworkMatchMenu():
                         if self.idx_selected_you != 1:
                             self.idx_selected_you -= 1
 
-                            if len(self.shapes) >= 6:
+                            if len(self.user.shapes) >= 6:
                                 for shape in self.you_group.sprites():
                                     shape.moveRight()
 
                     elif self.right.rect.collidepoint(mouse_pos):
-                        if self.idx_selected_you != len(self.shapes):
+                        if self.idx_selected_you != len(self.user.shapes):
                             self.idx_selected_you += 1
                             
-                            if len(self.shapes) >= 6:
+                            if len(self.user.shapes) >= 6:
                                 for shape in self.you_group.sprites():
                                     shape.moveLeft()
 
                     self.network.send("SELECTED_" + str(self.idx_selected_you) + ".")
-                    self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
+                    self.network.send("SHAPE_" + str(self.user.shapes[self.idx_selected_you-1].id) + ".")
 
                     counter = 0
                     for shape in self.you_group.sprites():
@@ -359,12 +358,12 @@ class NetworkMatchMenu():
         pygame.display.update()
 
         # (possibly unnecessary) send your shape id one last time just in case
-        self.network.send("SHAPE_" + str(self.shapes[self.idx_selected_you-1].id) + ".")
+        self.network.send("SHAPE_" + str(self.user.shapes[self.idx_selected_you-1].id) + ".")
 
         # THIS IS TRASH - Game should just take database shape objects
         # task for a different day though
         your_circle = {}
-        your_shape = self.shapes[self.idx_selected_you -1]
+        your_shape = self.user.shapes[self.idx_selected_you -1]
         their_circle = {}
         their_shape = self.shapes_opponent[self.idx_selected_opponent -1]
 

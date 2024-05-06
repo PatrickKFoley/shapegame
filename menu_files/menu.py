@@ -32,7 +32,6 @@ class Menu():
 
         # your database entries
         self.user: User | None = None
-        self.shapes: list[Shape] = []
 
         # database session
         self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame/shapegame/database.db", echo=False)
@@ -135,11 +134,11 @@ class Menu():
         while True:
             events = pygame.event.get()
 
-            # draw (and update) all screen elements
-            self.drawScreenElements(events)
-
             # handle any inputs
             self.handleInputs(events)
+
+            # draw (and update) all screen elements
+            self.drawScreenElements(events)
 
             # leave after 1 second of exit being clicked
             if self.exit_clicked:
@@ -177,7 +176,7 @@ class Menu():
 
                     # user's database entries are returned from the register menu
                     registerMenu = RegisterMenu(self.screen, self.session)
-                    self.user, self.shapes = registerMenu.start()
+                    self.user = registerMenu.start()
                     del registerMenu
 
                     # create and add text elements 
@@ -238,18 +237,14 @@ class Menu():
         self.clickables.append(self.shape_tokens_clickable)
 
         # create friends window
-        self.friends_window = FriendsWindow()
+        self.friends_window = FriendsWindow(self.user, self.session)
 
         # load your (network match) shapes
-        
-        self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
-
-        for counter, shape in enumerate(self.shapes):
-            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
-
+        for counter, shape in enumerate(self.user.shapes):
+            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes)))
 
     def drawScreenElements(self, events):
-        # draw + update all elements
+        """draw + update all elements"""
 
         # flip the display, get mouse position
         pygame.display.flip()
@@ -269,10 +264,6 @@ class Menu():
                 clickable.update(mouse_pos)
                 self.screen.blit(clickable.surface, clickable.rect)
 
-        # TEMPORARY draw connect to user
-        self.connect_to_player_editable.update(events)
-        self.screen.blit(self.connect_to_player_editable.surface, self.connect_to_player_editable.rect)
-
         # draw all text elements
         for text in self.texts:
             if text != None and text != self.bad_credentials_text:
@@ -280,7 +271,34 @@ class Menu():
 
         # update and draw friends window
         if self.friends_window != None:
-            self.friends_window.update()
+            redirect = self.friends_window.update(mouse_pos, events)
+
+            # if user is trying to play with friend, but they have no shapes
+            if redirect != None and len(self.user.shapes) == 0:
+                CreateShapeMenu(self.screen, self.user, self.user.shapes, self.session, self.circle_images_full).start()
+            
+            # user has shapes to play match with
+            elif redirect != None:
+                client_method = "P2P." + redirect + "." + self.user.username + "."
+
+                # get changes made to database
+                self.session.commit()
+
+                # create and start network match menu
+                networkMatch = NetworkMatchMenu(self.screen, self.user, self.session, self.circle_images_full, client_method)
+                networkMatch.start()
+                del networkMatch
+
+                # get changes made to database
+                self.session.commit()
+                
+                # recreate network match shape collection
+                self.you_group.empty()
+                for counter, shape in enumerate(self.user.shapes):
+                    self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes)))
+
+
+
             self.screen.blit(self.friends_window.surface, self.friends_window.rect)
 
         # center and draw cursor
@@ -306,9 +324,9 @@ class Menu():
                     redirect = "NONE"
 
                     # clicked network match, but has no shapes
-                    if self.network_match_clickable.rect.collidepoint(mouse_pos) and self.shapes == []:
+                    if self.network_match_clickable.rect.collidepoint(mouse_pos) and self.user.shapes == []:
                         # start shape creation menu, which might redirect
-                        redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                        redirect = CreateShapeMenu(self.screen, self.user, self.user.shapes, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
                         self.clickables.remove(self.shape_tokens_clickable)
@@ -321,18 +339,18 @@ class Menu():
                         self.session.commit()
 
                         # create and start network match menu
-                        networkMatch = NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full)
+                        networkMatch = NetworkMatchMenu(self.screen, self.user, self.user.shapes, self.session, self.circle_images_full)
                         networkMatch.start()
                         del networkMatch
 
                         # get changes made to database
                         self.session.commit()
-                        self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
+                        self.user.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
                         
                         # recreate network match shape collection
                         self.you_group.empty()
-                        for counter, shape in enumerate(self.shapes):
-                            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
+                        for counter, shape in enumerate(self.user.shapes):
+                            self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes)))
 
                     # clicked local match
                     elif self.local_match_clickable.rect.collidepoint(mouse_pos):
@@ -345,7 +363,7 @@ class Menu():
                     # clicked on create shapes and has shape tokens
                     elif self.shape_tokens_clickable.rect.collidepoint(mouse_pos) and self.user.shape_tokens != 0:
                         # start shape creation menu, which might redirect
-                        redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                        redirect = CreateShapeMenu(self.screen, self.user, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
                         self.clickables.remove(self.shape_tokens_clickable)
@@ -353,9 +371,9 @@ class Menu():
                         self.clickables.append(self.shape_tokens_clickable)
 
                     # clicked on collection, but has no shapes, but has shape tokens
-                    elif self.your_shapes_clickable.rect.collidepoint(mouse_pos) and self.shapes == [] and self.user.shape_tokens != 0:
+                    elif self.your_shapes_clickable.rect.collidepoint(mouse_pos) and self.user.shapes == [] and self.user.shape_tokens != 0:
                         # start shape creation menu, which might redirect
-                        redirect = CreateShapeMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full).start()
+                        redirect = CreateShapeMenu(self.screen, self.user, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
                         self.clickables.remove(self.shape_tokens_clickable)
@@ -364,7 +382,7 @@ class Menu():
 
                     # clicked on collection
                     elif self.your_shapes_clickable.rect.collidepoint(mouse_pos):
-                        UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
+                        UserCollectionMenu(self.screen, self.circle_images_full, self.user, self.session).start()
 
                     # clicked exit
                     elif self.exit_clickable.rect.collidepoint(mouse_pos):
@@ -381,30 +399,10 @@ class Menu():
 
                         # so far collections is the only redirect
                         if redirect == "COLLECTIONS":
-                            UserCollectionMenu(self.screen, self.circle_images_full, self.shapes, self.user, self.session).start()
+                            UserCollectionMenu(self.screen, self.circle_images_full, self.user, self.session).start()
 
             elif event.type == KEYDOWN and event.key == K_TAB:
                 self.friends_window.toggle()
-
-            elif event.type == KEYDOWN and event.key == K_RETURN and self.connect_to_player_editable.selected:
-                client_method = "P2P." + self.connect_to_player_editable.getText() + "." + self.user.username + "."
-
-                # get changes made to database
-                self.session.commit()
-
-                # create and start network match menu
-                networkMatch = NetworkMatchMenu(self.screen, self.user, self.shapes, self.session, self.circle_images_full, client_method)
-                networkMatch.start()
-                del networkMatch
-
-                # get changes made to database
-                self.session.commit()
-                self.shapes = self.session.query(Shape).filter(Shape.owner_id == int(self.user.id)).all()
-                
-                # recreate network match shape collection
-                self.you_group.empty()
-                for counter, shape in enumerate(self.shapes):
-                    self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes)))
 
     # SHAPE FUNCTIONS
 

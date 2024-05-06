@@ -13,11 +13,10 @@ from menu_files.main_menu_files.menucircle import MenuShape
 from game_files.circledata import *
 
 class UserCollectionMenu():
-    def __init__(self, screen: Surface, circle_images_full: list[list[Surface]], shapes: list[Shape], user: User, session: Session):
+    def __init__(self, screen: Surface, circle_images_full: list[list[Surface]], user: User, session: Session):
         # parameters passed from menu
         self.screen = screen
         self.circle_images_full = circle_images_full
-        self.shapes = shapes
         self.user = user
         self.session = session
 
@@ -62,16 +61,16 @@ class UserCollectionMenu():
 
         # determine what shape will be selected
         self.selected_shape = 0
-        if len(self.shapes) >= 5:   self.selected_shape = 3
-        elif len(self.shapes) == 4: self.selected_shape = 3
-        elif len(self.shapes) == 3: self.selected_shape = 2
-        elif len(self.shapes) == 2: self.selected_shape = 2
+        if len(self.user.shapes) >= 5:   self.selected_shape = 3
+        elif len(self.user.shapes) == 4: self.selected_shape = 3
+        elif len(self.user.shapes) == 3: self.selected_shape = 2
+        elif len(self.user.shapes) == 2: self.selected_shape = 2
         else:                       self.selected_shape = 1
 
         # load your shape collection
-        for counter, shape in enumerate(self.shapes):
+        for counter, shape in enumerate(self.user.shapes):
             # create shape sprite
-            shape = MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.shapes), "COLLECTIONS", False, self.session)
+            shape = MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes), "COLLECTIONS", False, self.session)
             self.collection_group.add(shape)
 
             # select this sprite if it is the selected sprite
@@ -113,19 +112,19 @@ class UserCollectionMenu():
                             self.selected_shape -= 1
 
                             # if there are more than 6 shapes, instruct them to move
-                            if len(self.shapes) >= 6:
+                            if len(self.user.shapes) >= 6:
                                 for shape in self.collection_group:
                                     shape.moveRight()
 
                     # if the right arrow was clicked
                     elif self.right.rect.collidepoint(mouse_pos):
                         # if we are not on the right-most shape
-                        if self.selected_shape != len(self.shapes):
+                        if self.selected_shape != len(self.user.shapes):
                             # change selection
                             self.selected_shape += 1
 
                             # if there are more than 6 shapes, instruct them to move
-                            if len(self.shapes) >= 6:
+                            if len(self.user.shapes) >= 6:
                                 for shape in self.collection_group:
                                     shape.moveLeft()
 

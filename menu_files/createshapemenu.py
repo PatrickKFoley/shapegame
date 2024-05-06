@@ -16,10 +16,9 @@ from screen_elements.text import Text
 from shared_functions import *
 
 class CreateShapeMenu():
-    def __init__(self, screen: Surface, user: User, shapes: list[Shape], session: Session, circle_images_full: list[list[Surface]]):
+    def __init__(self, screen: Surface, user: User, session: Session, circle_images_full: list[list[Surface]]):
         # parameters from Menu
         self.user = user
-        self.shapes = shapes
         self.screen = screen
         self.session = session
         self.circle_images_full = circle_images_full
@@ -127,8 +126,7 @@ class CreateShapeMenu():
                     self.shape_tokens_remaining_text = Text("shape tokens: " + str(self.user.shape_tokens), 35, 10, 1030, "topleft")
                     self.texts.append(self.shape_tokens_remaining_text)
                     
-                    # add to user's collection group
-                    self.shapes.append(new_shape)
+                    # add new menu shape
                     self.new_shapes_group.add(new_menu_shape)
 
     def drawScreenElements(self):

@@ -159,9 +159,8 @@ class RegisterMenu():
                         if user is None:
                             # TODO issue creating user
                             continue
-
-                        shapes: list[Shape] = self.session.query(Shape).filter(Shape.owner_id == int(user.id)).all()
-                        return user, shapes
+                        
+                        return user
                     
 
     def drawScreenElements(self, events):

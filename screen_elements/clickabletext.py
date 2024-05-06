@@ -3,12 +3,13 @@ import pygame
 MAX_GROWTH = 6
 
 class ClickableText:
-    def __init__(self, text, size, x, y):
+    def __init__(self, text, size, x, y, alignment = "center"):
         self.y = y
         self.x = x
+        self.text = text
+        self.alignment = alignment
         self.text_unselected, self.text_selected, self.rect, small = self.createText(text, size)
-        self.center = [x, y]
-        self.rect.center = self.center
+        self.align()
 
         self.length = small.get_size()[0]
         self.width = small.get_size()[1]
@@ -17,6 +18,8 @@ class ClickableText:
         self.growth_amount = 0
 
         self.buildSurface()
+
+    def getText(self): return self.text
 
     @staticmethod
     def createText(text, size):
@@ -37,7 +40,7 @@ class ClickableText:
             self.surface = pygame.transform.smoothscale(self.text_unselected, (self.length + self.growth_amount*self.length_width_multiplier, self.width + self.growth_amount))
 
         self.rect = self.surface.get_rect()
-        self.rect.center = self.center
+        self.align()
 
     def update(self, mouse_pos):
         if self.rect.collidepoint(mouse_pos):
@@ -49,3 +52,13 @@ class ClickableText:
             if self.growth_amount > 0:
                 self.growth_amount -= 1
                 self.buildSurface()
+
+    def align(self):
+        if self.alignment == "center":
+            self.rect.center = [self.x, self.y]
+        
+        elif self.alignment == "topleft":
+            self.rect.topleft = [self.x, self.y]
+
+        elif self.alignment == "topright":
+            self.rect.topright = [self.x, self.y]

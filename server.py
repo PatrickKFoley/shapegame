@@ -204,12 +204,18 @@ def handleClient(conn, player, pregames, game_id):
                                 shape1.owner = player0
                                 shape1.num_owners += 1
                                 shape1.obtained_on = datetime.datetime.utcnow()
+
+                                if len(player1.shapes) == 0 and player1.shape_tokens == 0:
+                                    player1.shape_tokens += 1
                             
                             else: 
                                 shape0.owner_id = player1_id
                                 shape0.owner = player1
                                 shape0.num_owners += 1
                                 shape0.obtained_on = datetime.datetime.utcnow()
+
+                                if len(player0.shapes) == 0 and player0.shape_tokens == 0:
+                                    player0.shape_tokens += 1
 
                         
 
