@@ -6,7 +6,6 @@ from server_files.database_shape import Shape
 import random, os, datetime
 
 BaseClass = declarative_base()
-Registry = registry()
 
 friends_ass = Table(
     "friends",
@@ -15,7 +14,6 @@ friends_ass = Table(
     Column("user2_id", ForeignKey("users.id"), primary_key=True)
 )
 
-@Registry.mapped
 class User(BaseClass):
     __tablename__ = "users"
 
@@ -32,7 +30,6 @@ class User(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.username}"
 
-@Registry.mapped
 class Shape(BaseClass):
     __tablename__ = "shapes"
 
