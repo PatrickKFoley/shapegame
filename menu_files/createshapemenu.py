@@ -8,7 +8,7 @@ import pygame, random, math, numpy as np
 from sqlalchemy.orm import Session
 from menu_files.create_shape_files.newmenushape import NewMenuShape
 from game_files.circledata import *
-from server_files.database_classes import User, Shape
+from createdb import User, Shape
 from threading import Thread
 from screen_elements.clickabletext import ClickableText
 from screen_elements.text import Text

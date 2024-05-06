@@ -7,7 +7,7 @@ from pygame import *
 from sqlalchemy.orm import Session
 
 from game_files.circledata import *
-from server_files.database_classes import User, Shape
+from createdb import User, Shape
 from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
 from screen_elements.text import Text

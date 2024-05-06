@@ -12,7 +12,7 @@ from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
 from screen_elements.friendswindow import FriendsWindow
 from screen_elements.text import Text
-from server_files.database_classes import User, Shape
+from createdb import User, Shape
 from menu_files.main_menu_files.menucircle import MenuShape
 from menu_files.main_menu_files.simplecircle import SimpleCircle
 from menu_files.powerupdisplaymenu import PowerupDisplayMenu

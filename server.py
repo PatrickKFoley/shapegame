@@ -2,7 +2,7 @@ import socket, pickle, random, datetime
 from _thread import *
 from menu_files.network_pregame_files.pregame import Pregame
 from game_files.game import Game
-from server_files.database_classes import User, Shape
+from createdb import User, Shape
 from game_files.circledata import *
 
 

@@ -1,6 +1,6 @@
 import pygame, random
 from game_files.circledata import *
-from server_files.database_classes import User, Shape
+from createdb import User, Shape
 
 def createText(text, size, color = "white"):
     font = pygame.font.Font("backgrounds/font.ttf", size) 

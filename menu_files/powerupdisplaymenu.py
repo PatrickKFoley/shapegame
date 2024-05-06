@@ -3,7 +3,7 @@ import pygame, random, math, numpy as np
 from pygame.locals import *
 from pygame.mixer import Sound
 from game_files.circledata import *
-from server_files.database_classes import Shape
+from createdb import Shape
 from screen_elements.clickabletext import ClickableText
 from screen_elements.text import Text
 

@@ -3,7 +3,7 @@ import sys
 import math
 import random
 from game_files.game import Game
-from server_files.database_shape import Shape
+from createdb import Shape
 from game_files.circledata import *
 from threading import Thread
 from screen_elements.friendswindow import FriendsWindow
