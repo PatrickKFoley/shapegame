@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from typing import List
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship, mapped_column, Mapped
 from game_files.circledata import *
 from server_files.database_user import User
 from server_files.database_shape import Shape
@@ -8,17 +8,25 @@ import random, os, datetime
 
 BaseClass = declarative_base()
 
+friends_ass = Table(
+    "friends",
+    BaseClass.metadata,
+    Column("user1_id", ForeignKey("users.id"), primary_key=True),
+    Column("user2_id", ForeignKey("users.id"), primary_key=True)
+)
+
 class User(BaseClass):
     __tablename__ = "users"
 
-    id = Column("id", Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     username = Column("username", String, unique=True, nullable=False)
-    shape_tokens = Column("shape_tokens", Integer)
+    shape_tokens = Column("shape_tokens", Integer, default=5)
+
+    shapes: Mapped[List["Shape"]] = relationship("shape", back_populates="user")
+    friends: Mapped[List["User"]] = relationship(secondary=friends_ass, back_populates="users")
 
     def __init__(self, username):
         self.username = username
-        self.shape_tokens = 5
-
 
     def __repr__(self):
         return f"({self.id}) {self.username}"
@@ -26,11 +34,16 @@ class User(BaseClass):
 class Shape(BaseClass):
     __tablename__ = "shapes"
 
-    id = Column("id", Integer, primary_key=True, autoincrement=True)
-    owner_id = Column("owner_id", Integer)
+    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
+    owner: Mapped["User"] = relationship("user", back_populates="shapes")
+
+    created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow())
+    obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
+    created_by = Column("created_by", String)
+
     face_id = Column("face_id", Integer)
     color_id = Column("color_id", Integer)
-
     density = Column("density", Integer)
     velocity = Column("velocity", Integer)
     radius_min = Column("radius_min", Integer)
@@ -43,9 +56,7 @@ class Shape(BaseClass):
     level = Column("level", Integer, default=1)
     num_owners = Column("num_owners", Integer, default=1)
 
-    created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow())
-    obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
-    created_by = Column("created_by", String)
+    
 
     def __init__(self, owner_id, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, creator_username):
         self.owner_id = owner_id
@@ -63,6 +74,7 @@ class Shape(BaseClass):
     
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
+
 
 def createShape(owner_id):
     face_id = random.randint(0, 4)
