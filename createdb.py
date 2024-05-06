@@ -37,7 +37,7 @@ class Shape(BaseClass):
 
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
-    owner: Mapped["User"] = relationship(back_populates="shape", cascade="all, delete")
+    owner: Mapped["User"] = relationship(back_populates="shape")
 
     created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow())
     obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
