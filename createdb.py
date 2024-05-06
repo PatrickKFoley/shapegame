@@ -12,6 +12,23 @@ friends = Table(
     Column("friend_id", Integer, ForeignKey("users.id"), primary_key=True)
 )
 
+class Notification(BaseClass):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
+    owner: Mapped["User"] = relationship(back_populates="notifications")
+
+    message = Column("message", String, nullable=False)
+
+    def __init__(self, owner_id, owner, message):
+        self.owner_id = owner_id
+        self.owner = owner
+        self.message = message
+
+    def __repr__(self):
+        return f'({self.id}) {self.owner_id}, {self.message}'
+
 class User(BaseClass):
     __tablename__ = "users"
 
@@ -19,6 +36,7 @@ class User(BaseClass):
     username = Column("username", String, unique=True, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
+    notifications: Mapped[List["Notification"]] = relationship(back_populates="owner", cascade="all, delete")
     shapes: Mapped[List["Shape"]] = relationship(back_populates="owner", cascade="all, delete")
     friends: Mapped[List["User"]] = relationship("User", secondary=friends,
                                                  primaryjoin=id==friends.c.user_id,
