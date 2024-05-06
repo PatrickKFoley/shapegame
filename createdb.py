@@ -94,8 +94,8 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 
-session.query(Shape).delete()
-session.query(User).delete()
+# session.query(Shape).delete()
+# session.query(User).delete()
 
 try:
     user_1 = User("a")
