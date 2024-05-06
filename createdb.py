@@ -76,7 +76,7 @@ class Shape(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
-connection_string = "postgresql://postgres:postgres@localhost/root/shapegame-server-2024/shapegame.db"
+connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/shapegame.db"
 engine = create_engine(connection_string, echo=True)
 BaseClass.metadata.drop_all(bind=engine)
 BaseClass.metadata.create_all(bind=engine)
@@ -90,19 +90,12 @@ session.query(Shape).delete()
 session.query(User).delete()
 
 try:
-    user_1 = User("pat")
-    # shape_1 = createShape(1)
-
-    user_2 = User("camille")
-    # shape_2 = createShape(2)
+    user_1 = User("a")
+    user_2 = User("b")
     
     session.add(user_1)
     session.add(user_2)
     session.commit()
-
-    # session.add(shape_2)
-    # session.add(shape_1)
-    # session.commit()
 except Exception as e:
     session.rollback()
     print(e)
