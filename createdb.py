@@ -93,10 +93,8 @@ if __name__ == "__main__":
     if not database_exists(engine.url):
         create_database(engine.url)
 
-
     Session = sessionmaker(bind=engine)
     session = Session()
-
 
     session.query(Shape).delete()
     session.query(User).delete()
@@ -107,7 +105,11 @@ if __name__ == "__main__":
         
         session.add(user_1)
         session.add(user_2)
+        user_1.friends.append(user_2)
+
         session.commit()
+        print(user_1.friends)
+        print(user_2.friends)
     except Exception as e:
         session.rollback()
         print(e)
