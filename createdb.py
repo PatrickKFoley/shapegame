@@ -2,7 +2,6 @@ from typing import List
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry
-from server_files.database_classes import User, Shape
 import random, os, datetime
 
 BaseClass = declarative_base()
