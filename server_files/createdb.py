@@ -1,13 +1,13 @@
 from typing import List
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Mapped
-from sqlalchemy import mapped_column
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship, mapped_column, Mapped, registry
 from game_files.circledata import *
 from server_files.database_user import User
 from server_files.database_shape import Shape
 import random, os, datetime
 
 BaseClass = declarative_base()
+Registry = registry()
 
 friends_ass = Table(
     "friends",
@@ -16,6 +16,7 @@ friends_ass = Table(
     Column("user2_id", ForeignKey("users.id"), primary_key=True)
 )
 
+@Registry.mapped
 class User(BaseClass):
     __tablename__ = "users"
 
@@ -32,6 +33,7 @@ class User(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.username}"
 
+@Registry.mapped
 class Shape(BaseClass):
     __tablename__ = "shapes"
 
