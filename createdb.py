@@ -41,6 +41,7 @@ class User(BaseClass):
     favorite_id = Column("favorite_id", Integer, nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
+    num_shapes = Column("num_shapes", Integer, default=0)
 
     notifications: Mapped[List["Notification"]] = relationship(back_populates="owner", cascade="all, delete")
     shapes: Mapped[List["Shape"]] = relationship(back_populates="owner", cascade="all, delete")
