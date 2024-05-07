@@ -20,12 +20,14 @@ class Notification(BaseClass):
     owner: Mapped["User"] = relationship(back_populates="notifications")
 
     new = Column("new", Boolean, default=True)
+    type = Column("type", String, nullable=False)
     message = Column("message", String, nullable=False)
 
-    def __init__(self, owner_id, owner, message):
+    def __init__(self, owner_id, owner, message, type):
         self.owner_id = owner_id
         self.owner = owner
         self.message = message
+        self.type = type
 
     def __repr__(self):
         return f'({self.id}) {self.owner_id}, {self.message}'
