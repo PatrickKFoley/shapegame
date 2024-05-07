@@ -38,7 +38,7 @@ class User(BaseClass):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
-    favorite_id = mapped_column("favorite_id", Integer, ForeignKey("shapes.id", "favorite_id"), nullable=True, default=None)
+    favorite_id = mapped_column("favorite_id", Integer, ForeignKey("shapes.id", name="favorite_id"), nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
 
