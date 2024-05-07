@@ -135,8 +135,8 @@ if __name__ == "__main__":
         session.add(user_2)
         session.add(user_3)
         session.add(user_4)
-        user_1.friends.append(user_2)
-        user_1.friends.append(user_3)
+        # user_1.friends.append(user_2)
+        # user_1.friends.append(user_3)
 
         session.commit()
     except Exception as e:
