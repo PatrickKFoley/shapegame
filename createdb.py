@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table
+from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table, Boolean
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry
 import random, os, datetime
@@ -19,6 +19,7 @@ class Notification(BaseClass):
     owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
     owner: Mapped["User"] = relationship(back_populates="notifications")
 
+    new = Column("new", Boolean, default=True)
     message = Column("message", String, nullable=False)
 
     def __init__(self, owner_id, owner, message):
