@@ -96,7 +96,7 @@ class FriendsWindow:
                     
                     # if found, add as friend and notify
                     self.user.friends.append(friend)
-                    self.session.add(Notification(friend.id, friend, f'{self.user.username} added you as a friend!'))
+                    self.session.add(Notification(friend.id, friend, f'{self.user.username} added you as a friend!', "FRIEND", self.user.username))
                     self.session.commit()
 
                     # add a clickable for this new friend
@@ -112,7 +112,7 @@ class FriendsWindow:
         self.surface = self.background.copy()
         self.move()
 
-        if not self.selected: return
+        if not self.selected and self.x == 0-self.width: return
 
         # handle events will return a friends name if one was clicked on
         redirect = self.handleEvents(mouse_pos, events)

@@ -3,7 +3,7 @@ from pygame.sprite import *
 from pygame.mixer import *
 from pygame import *
 
-import pygame, random, math, numpy as np, sys
+import pygame, random, math, numpy as np, sys, time
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from screen_elements.clickabletext import ClickableText
 from screen_elements.editabletext import EditableText
 from screen_elements.friendswindow import FriendsWindow
+from screen_elements.notificationswindow import NotificationsWindow
 from screen_elements.text import Text
 from createdb import User, Shape
 from menu_files.main_menu_files.menucircle import MenuShape
@@ -22,6 +23,7 @@ from menu_files.createshapemenu import CreateShapeMenu
 from menu_files.networkmatchmenu import NetworkMatchMenu
 from menu_files.registermenu import RegisterMenu
 from game_files.circledata import *
+from threading import Thread
 
 class Menu():
     def __init__(self):
@@ -37,6 +39,10 @@ class Menu():
         self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame/shapegame/database.db", echo=False)
         SessionMaker = sessionmaker(bind=self.engine)
         self.session = SessionMaker()
+
+        # notification poller thread
+        self.poller = Thread(target=self.getNotifications)
+        # self.poller.start()
 
         # sprite groups for your shapes (in network match), new shapes, simple circles (on main menu)
         self.you_group = Group()
@@ -101,6 +107,7 @@ class Menu():
 
         # predefine the friend window (will be created once user has signed in)
         self.friends_window: FriendsWindow | None = None
+        self.notifications_window: NotificationsWindow | None = None
 
         # update the display
         self.screen.blit(self.background, (0, 0))
@@ -144,6 +151,13 @@ class Menu():
             if self.exit_clicked:
                 self.frames_since_exit_clicked += 1
                 if self.frames_since_exit_clicked == 60:
+
+                    # mark all existing notifications as no longer new
+                    for notification in self.user.notifications:
+                        notification.new = False
+                    
+                    self.session.commit()
+
                     break
 
             # limits FPS to 60
@@ -238,6 +252,7 @@ class Menu():
 
         # create friends window
         self.friends_window = FriendsWindow(self.user, self.session)
+        self.notifications_window = NotificationsWindow(self.user, self.session)
 
         # load your (network match) shapes
         for counter, shape in enumerate(self.user.shapes):
@@ -297,9 +312,18 @@ class Menu():
                 for counter, shape in enumerate(self.user.shapes):
                     self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes)))
 
-
-
             self.screen.blit(self.friends_window.surface, self.friends_window.rect)
+
+        # update and draw notifications window
+        if self.notifications_window != None:
+            redirect = self.notifications_window.update(mouse_pos, events)
+
+            if redirect != None:
+                if redirect == "added friend":
+                    del self.friends_window
+                    self.friends_window = FriendsWindow(self.user, self.session)
+
+            self.screen.blit(self.notifications_window.surface, self.notifications_window.rect)
 
         # center and draw cursor
         self.cursor_rect.center = mouse_pos
@@ -403,6 +427,17 @@ class Menu():
 
             elif event.type == KEYDOWN and event.key == K_TAB:
                 self.friends_window.toggle()
+
+            elif event.type == KEYDOWN and event.key == K_SPACE:
+                self.notifications_window.toggle()
+
+    def getNotifications(self):
+        """asnc function used to poll for new notifications"""
+
+        while True:
+            self.session.commit()
+
+            time.sleep(5)
 
     # SHAPE FUNCTIONS
 
