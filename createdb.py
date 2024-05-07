@@ -58,7 +58,7 @@ class User(BaseClass):
 class Shape(BaseClass):
     __tablename__ = "shapes"
 
-    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("id", Integer, ForeignKey("users.favorite_id"), primary_key=True, autoincrement=True)
     owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
     owner: Mapped["User"] = relationship(back_populates="shapes")
 
