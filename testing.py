@@ -7,6 +7,11 @@ from createdb import Shape
 from game_files.circledata import *
 from threading import Thread
 from screen_elements.friendswindow import FriendsWindow
+from screen_elements.notificationswindow import NotificationsWindow
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from createdb import User, Shape
 
 def circle():
     pygame.init()
@@ -147,21 +152,38 @@ def thread():
     print("DONE")
 
 def friends():
+    # database session
+    engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame/shapegame/database.db", echo=False)
+    SessionMaker = sessionmaker(bind=engine)
+    session = SessionMaker()
+
+    user = session.query(User).filter(User.username == "a").one()
+
+    print(user.favorite_id)
+
     pygame.init()
     screen = pygame.display.set_mode((1920, 1080))
-    friends_window = FriendsWindow()
+    friends_window = FriendsWindow(user, session)
+    notifications_window = NotificationsWindow(user, session)
 
     running = True
     while running:
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+
+        for event in events:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_TAB:
                     friends_window.toggle()
+                elif event.key == pygame.K_SPACE:
+                    notifications_window.toggle()
 
-        friends_window.update()
+        friends_window.update(mouse_pos, events)
+        notifications_window.update(mouse_pos, events)
         screen.blit(friends_window.surface, friends_window.rect)
+        screen.blit(notifications_window.surface, notifications_window.rect)
 
         # Update the display
         pygame.display.flip()

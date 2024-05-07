@@ -20,7 +20,7 @@ class FriendSprite(pygame.sprite.Sprite):
         self.session = session
 
         self.width = 1920/4 - 10
-        self.height = 125
+        self.height = 180
 
         self.y = 200 + (index * self.height)
         self.next_y = self.y
@@ -30,13 +30,16 @@ class FriendSprite(pygame.sprite.Sprite):
 
         self.friend_favorite = self.session.query(Shape).where(Shape.id == self.friend.favorite_id).one()
 
-        self.favorite_circle = pygame.image.load("circles/{}/{}/0.png".format(self.friend_favorite.face_id, colors[self.friend_favorite.color_id][0]))
+        self.favorite_circle = pygame.transform.smoothscale(pygame.image.load("circles/{}/{}/0.png".format(self.friend_favorite.face_id, colors[self.friend_favorite.color_id][0])), (150, 150))
+        self.favorite_circle_rect = self.favorite_circle.get_rect()
+        self.favorite_circle_rect.center = (95, 95)
 
-        self.friend_name = Text(self.friend.username, 75, self.width/2, -10, color=colors[self.friend_favorite.color_id][3])
+        self.friend_name = Text(self.friend.username, 75, 190, self.height/3, "topleft", colors[self.friend_favorite.color_id][2])
         self.x = Text("x", 75, self.width-5, -5, "topright", "red")
-        self.o = Text("o", 75, self.width-10, self.height - 80, "topright", "green")
+        self.o = Text("play", 60, self.width-5, self.height - 72, "topright", "green")
 
 
+        self.surface.blit(self.favorite_circle, self.favorite_circle_rect)
         self.surface.blit(self.friend_name.surface, self.friend_name.rect)
         self.surface.blit(self.x.surface, self.x.rect)
         self.surface.blit(self.o.surface, self.o.rect)
@@ -79,10 +82,12 @@ class FriendsWindow:
         self.friends_text = Text("friends", 100, self.width/2, 75)
         self.friend_editable = EditableText("add friend: ", 50, self.width/2, 150)
 
-        self.friends_clickables: list[ClickableText] = []
+        self.friend_sprites: list[FriendSprite] = []
 
         for idx, friend in enumerate(self.user.friends):
-            self.friends_clickables.append(ClickableText(friend.username, 50, 50, 250 + (idx * 60), "topleft"))
+            self.friend_sprites.append(FriendSprite(friend, idx, self.session))
+
+
 
         self.align()
 
@@ -134,9 +139,9 @@ class FriendsWindow:
                         self.friend_editable.select()
 
                 # return a players name if starting a match
-                for clickable in self.friends_clickables:
-                    if clickable.rect.collidepoint(mouse_pos):
-                        return clickable.getText()
+                # for clickable in self.friends_clickables:
+                #     if clickable.rect.collidepoint(mouse_pos):
+                #         return clickable.getText()
 
             # if enter pressed
             elif event.type == KEYDOWN and event.key == K_RETURN:
@@ -180,8 +185,10 @@ class FriendsWindow:
         self.friend_editable.update(events)
         self.surface.blit(self.friends_text.surface, self.friends_text.rect)
         self.surface.blit(self.friend_editable.surface, self.friend_editable.rect)
-        for element in self.friends_clickables:
-            element.update(mouse_pos)
+        
+        
+        for element in self.friend_sprites:
+            element.update()
             self.surface.blit(element.surface, element.rect)
 
 
