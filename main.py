@@ -1,5 +1,3 @@
-# whatt
-
 import pygame, os
 from pygame.locals import *
 from game_files.circledata import *

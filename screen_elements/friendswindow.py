@@ -84,6 +84,7 @@ class FriendsWindow:
                     if self.friend_editable.rect.collidepoint(mouse_pos):
                         self.friend_editable.select()
 
+                # return a players name if starting a match
                 for clickable in self.friends_clickables:
                     if clickable.rect.collidepoint(mouse_pos):
                         return clickable.getText()
@@ -95,8 +96,10 @@ class FriendsWindow:
                     friend = self.session.query(User).filter(User.username == self.friend_editable.getText()).one()
                     
                     # if found, add as friend and notify
+                    print(self.user.id)
+                    self.session.add(Notification(friend.id, friend, f'{self.user.username} now follows you', "FRIEND", self.user.username))
                     self.user.friends.append(friend)
-                    self.session.add(Notification(friend.id, friend, f'{self.user.username} added you as a friend!', "FRIEND", self.user.username))
+                    print(friend)
                     self.session.commit()
 
                     # add a clickable for this new friend
@@ -106,6 +109,12 @@ class FriendsWindow:
                 # user not found
                 except Exception as e:
                     print(f'Error adding friend: {e}')
+
+    def open(self):
+        self.selected = True
+        self.next_x = 0
+        self.x = 0
+        self.align()
 
     # update the window and all its elements
     def update(self, mouse_pos, events):

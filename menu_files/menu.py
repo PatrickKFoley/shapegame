@@ -13,7 +13,7 @@ from screen_elements.editabletext import EditableText
 from screen_elements.friendswindow import FriendsWindow
 from screen_elements.notificationswindow import NotificationsWindow
 from screen_elements.text import Text
-from createdb import User, Shape
+from createdb import User, Shape, Notification
 from menu_files.main_menu_files.menucircle import MenuShape
 from menu_files.main_menu_files.simplecircle import SimpleCircle
 from menu_files.powerupdisplaymenu import PowerupDisplayMenu
@@ -41,7 +41,7 @@ class Menu():
         self.session = SessionMaker()
 
         # notification poller thread
-        self.poller = Thread(target=self.getNotifications)
+        # self.poller = Thread(target=self.getNotifications)
         # self.poller.start()
 
         # sprite groups for your shapes (in network match), new shapes, simple circles (on main menu)
@@ -290,11 +290,15 @@ class Menu():
 
             # if user is trying to play with friend, but they have no shapes
             if redirect != None and len(self.user.shapes) == 0:
-                CreateShapeMenu(self.screen, self.user, self.user.shapes, self.session, self.circle_images_full).start()
+                CreateShapeMenu(self.screen, self.user, self.session, self.circle_images_full).start()
             
             # user has shapes to play match with
             elif redirect != None:
                 client_method = "P2P." + redirect + "." + self.user.username + "."
+
+                # notify player that a game is being started
+                player = self.session.query(User).where(User.username == redirect).one()
+                self.session.add(Notification(player.id, player, f'{self.user.username} wants to play', 'INVITE', self.user.username))
 
                 # get changes made to database
                 self.session.commit()
@@ -322,6 +326,28 @@ class Menu():
                 if redirect == "added friend":
                     del self.friends_window
                     self.friends_window = FriendsWindow(self.user, self.session)
+                    self.friends_window.open()
+
+                # we want to play against redirect
+                else:
+                    client_method = "P2P." + redirect + "." + self.user.username + "."
+
+                    # get changes made to database
+                    self.session.commit()
+
+                    # create and start network match menu
+                    networkMatch = NetworkMatchMenu(self.screen, self.user, self.session, self.circle_images_full, client_method)
+                    networkMatch.start()
+                    del networkMatch
+
+                    # get changes made to database
+                    self.session.commit()
+                    
+                    # recreate network match shape collection
+                    self.you_group.empty()
+                    for counter, shape in enumerate(self.user.shapes):
+                        self.you_group.add(MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes)))
+
 
             self.screen.blit(self.notifications_window.surface, self.notifications_window.rect)
 
@@ -350,7 +376,7 @@ class Menu():
                     # clicked network match, but has no shapes
                     if self.network_match_clickable.rect.collidepoint(mouse_pos) and self.user.shapes == []:
                         # start shape creation menu, which might redirect
-                        redirect = CreateShapeMenu(self.screen, self.user, self.user.shapes, self.session, self.circle_images_full).start()
+                        redirect = CreateShapeMenu(self.screen, self.user, self.session, self.circle_images_full).start()
 
                         # recreate shape token clickable, incase it changed
                         self.clickables.remove(self.shape_tokens_clickable)
@@ -432,12 +458,12 @@ class Menu():
                 self.notifications_window.toggle()
 
     def getNotifications(self):
-        """asnc function used to poll for new notifications"""
+        """async function used to poll for new notifications"""
 
         while True:
             self.session.commit()
 
-            time.sleep(5)
+            time.sleep(1)
 
     # SHAPE FUNCTIONS
 
