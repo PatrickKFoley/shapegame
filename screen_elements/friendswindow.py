@@ -23,7 +23,7 @@ class FriendsWindow:
         self.selected = False
 
         self.background = pygame.transform.smoothscale(load("backgrounds/BG0.png"), (self.width, self.height))
-        self.background.set_alpha(220)
+        self.background.set_alpha(235)
         self.surface = self.background.copy()
         self.rect = self.surface.get_rect()
 
