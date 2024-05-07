@@ -22,12 +22,14 @@ class Notification(BaseClass):
     new = Column("new", Boolean, default=True)
     type = Column("type", String, nullable=False)
     message = Column("message", String, nullable=False)
+    additional = Column("additional", String)
 
-    def __init__(self, owner_id, owner, message, type):
+    def __init__(self, owner_id, owner, message, type, additional):
         self.owner_id = owner_id
         self.owner = owner
         self.message = message
         self.type = type
+        self.additional = additional
 
     def __repr__(self):
         return f'({self.id}) {self.owner_id}, {self.message}'
@@ -125,6 +127,8 @@ if __name__ == "__main__":
         user_2 = User("b")
         user_3 = User("c")
         user_4 = User("d")
+
+        notification_1 = Notification(4, user_4, "a added you as a friend", "FRIEND", "a")
         
         session.add(user_1)
         session.add(user_2)
