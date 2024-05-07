@@ -24,7 +24,7 @@ class Notification(BaseClass):
     message = Column("message", String, nullable=False)
     additional = Column("additional", String)
 
-    def __init__(self, owner_id, owner, message, type, additional):
+    def __init__(self, owner_id, owner, message, type, additional = ""):
         self.owner_id = owner_id
         self.owner = owner
         self.message = message
