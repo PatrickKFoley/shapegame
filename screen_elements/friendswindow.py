@@ -1,14 +1,63 @@
 import pygame
 from pygame.locals import *
+from game_files.circledata import *
 from pygame.image import load
 from screen_elements.text import Text
 from screen_elements.editabletext import EditableText
 from screen_elements.clickabletext import ClickableText
-from createdb import User, Notification
+from createdb import User, Notification, Shape
 from sqlalchemy.orm import Session
 
 # how many pixels per frame the window moves
 STEP_SIZE = 20
+
+class FriendSprite(pygame.sprite.Sprite):
+    def __init__(self, friend: User, index: int, session: Session):
+        super().__init__()
+
+        self.friend = friend
+        self.index = index
+        self.session = session
+
+        self.width = 1920/4 - 10
+        self.height = 125
+
+        self.y = 200 + (index * self.height)
+        self.next_y = self.y
+
+        self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA, 32)
+        pygame.draw.rect(self.surface, (0, 0, 0, 200), (10, 10, self.width, self.height))
+
+        self.friend_favorite = self.session.query(Shape).where(Shape.id == self.friend.favorite_id).one()
+
+        self.favorite_circle = pygame.image.load("circles/{}/{}/0.png".format(self.friend_favorite.face_id, colors[self.friend_favorite.color_id][0]))
+
+        self.friend_name = Text(self.friend.username, 75, self.width/2, -10, color=colors[self.friend_favorite.color_id][3])
+        self.x = Text("x", 75, self.width-5, -5, "topright", "red")
+        self.o = Text("o", 75, self.width-10, self.height - 80, "topright", "green")
+
+
+        self.surface.blit(self.friend_name.surface, self.friend_name.rect)
+        self.surface.blit(self.x.surface, self.x.rect)
+        self.surface.blit(self.o.surface, self.o.rect)
+
+        self.rect = self.surface.get_rect()
+        self.rect.topleft = (0, self.y)
+
+    def update(self):
+        # if needs to move up
+        if self.y > self.next_y:
+            self.y -= STEP_SIZE/2
+
+            if self.y < self.next_y:
+                self.y = self.next_y
+
+            self.rect.topleft = (0, self.y)
+
+    def moveUp(self):
+        self.index -= 1
+        self.next_y = 200 + (self.index * self.height)
+        self.rect.topleft = (0, self.y)
 
 class FriendsWindow:
     def __init__(self, user: User, session: Session):

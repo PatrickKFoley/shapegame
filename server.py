@@ -207,6 +207,10 @@ def handleClient(conn, player, pregames, game_id):
 
                                 if len(player1.shapes) == 0 and player1.shape_tokens == 0:
                                     player1.shape_tokens += 1
+
+                                # handle player losing their favorite shape :(
+                                if shape1.id == player1.favorite_id:
+                                    player1.favorite_id = None
                             
                             else: 
                                 shape0.owner_id = player1_id
@@ -217,8 +221,10 @@ def handleClient(conn, player, pregames, game_id):
                                 if len(player0.shapes) == 0 and player0.shape_tokens == 0:
                                     player0.shape_tokens += 1
 
+                                # handle player losing their favorite shape :(
+                                if shape0.id == player0.favorite_id:
+                                    player0.favorite_id = None
                         
-
                         if pregame.winner == 0: 
                             shape0.num_wins += 1
                             shape0.xp += pregame.xp_earned

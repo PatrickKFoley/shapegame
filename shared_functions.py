@@ -58,6 +58,10 @@ def createShape(owner_id = -1, session = None, username = "no one"):
             owner = session.query(User).filter(User.id == owner_id).one()
             shape = Shape(owner_id, owner, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)
             
+            # set default favorite shape id
+            if len(owner.shapes) == 0:
+                owner.favorite_id = shape.id
+
             session.query(User).filter(User.id == owner_id).update({'shape_tokens': User.shape_tokens -1})
             session.add(shape)
             session.commit()
