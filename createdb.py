@@ -128,8 +128,11 @@ if __name__ == "__main__":
         user_3 = User("c")
         user_4 = User("d")
 
-        notification_1 = Notification(4, user_4, "a now follows you", "FRIEND", "a")
-        notification_1 = Notification(4, user_4, "a now follows you", "FRIEND", "b")
+        notification_1 = Notification(4, user_4, "aiden now follows you", "FRIEND", "a")
+        notification_2 = Notification(4, user_4, "camille now follows you", "FRIEND", "b")
+        notification_3 = Notification(4, user_4, "thisnameislong now follows you", "FRIEND", "b")
+        notification_4 = Notification(4, user_4, "camille wants to play", "INVITE", "b")
+        notification_5 = Notification(4, user_4, "pat wants to play", "INVITE", "b")
         
         session.add(user_1)
         session.add(user_2)
