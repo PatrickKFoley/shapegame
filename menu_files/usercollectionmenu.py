@@ -45,12 +45,14 @@ class UserCollectionMenu():
         self.texts.append(self.logged_in_as_text)
 
         # create clickable elements
-        self.exit_clickable: ClickableText = ClickableText("back", 50, 1870, 1045)
+        self.exit_clickable = ClickableText("back", 50, 1870, 1045)
+        self.set_favorite = ClickableText("set as favorite", 50, 1920/2, 50)
         self.right = Arrow(1920/2 + 50, 700-25, "->")
         self.left = Arrow(1920/2 - 50, 700-25, "<-")
 
         self.clickables: list[ClickableText | Arrow] = []
         self.clickables.append(self.exit_clickable)
+        self.clickables.append(self.set_favorite)
         self.clickables.append(self.right)
         self.clickables.append(self.left)
 
@@ -70,13 +72,19 @@ class UserCollectionMenu():
         # load your shape collection
         for counter, shape in enumerate(self.user.shapes):
             # create shape sprite
-            shape = MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes), "COLLECTIONS", False, self.session)
-            self.collection_group.add(shape)
+            menu_shape = MenuShape(counter+1, shape, self.circle_images_full[shape.face_id][shape.color_id], len(self.user.shapes), "COLLECTIONS", False, self.session)
+            self.collection_group.add(menu_shape)
 
             # select this sprite if it is the selected sprite
             if counter + 1 == self.selected_shape:
-                shape.toggleSelected()
+                menu_shape.toggleSelected()
 
+            # favorite this sprite if it is the user's favorite
+            if shape.id == self.user.favorite_id:
+                menu_shape.setFavorite()
+
+        self.heart = pygame.transform.smoothscale(pygame.image.load("backgrounds\heart.png"), (70, 70))
+        
         # exit flag
         self.exit_clicked = False
 
@@ -100,7 +108,27 @@ class UserCollectionMenu():
                 # exit
                 if self.exit_clickable.rect.collidepoint(mouse_pos):
                     self.exit_clicked = True
-                
+
+                # if set favorite clicked
+                elif self.set_favorite.rect.collidepoint(mouse_pos):
+                    
+                    # update user entry and menu shape
+                    for idx, shape in enumerate(self.collection_group):
+                        if (idx + 1) == self.selected_shape:
+                            shape.setFavorite()
+
+                            try:
+                                self.user.favorite_id = shape.shape.id
+                                self.session.commit()
+                            
+                            except Exception as e:
+                                print(f'something went wrong setting favorite {e}')
+                                self.session.rollback()
+
+                        else:
+                            shape.unfavorite()
+                            
+
                 # if one of the arrows was clicked
                 elif self.left.rect.collidepoint(mouse_pos) or self.right.rect.collidepoint(mouse_pos):
                     
@@ -144,7 +172,14 @@ class UserCollectionMenu():
         self.screen.blit(self.background, (0, 0))
 
         # update and draw your sprites
-        self.collection_group.update(self.screen) 
+        # determine if the selected shape is 
+        favorite_selected = False
+        for idx, sprite in enumerate(self.collection_group):
+            sprite.update(self.screen)
+
+            if (idx + 1) == self.selected_shape and sprite.shape.id == self.user.favorite_id:
+                favorite_selected = True
+
         self.collection_group.draw(self.screen)
 
         # update and draw clickable elements
@@ -154,7 +189,13 @@ class UserCollectionMenu():
 
         # draw text elements
         for text in self.texts:
-            self.screen.blit(text.surface, text.rect)
+            if text != self.set_favorite:
+                self.screen.blit(text.surface, text.rect)
+
+        # draw hearts around the shape name if favorite is selected
+        if favorite_selected:
+            self.screen.blit(self.heart, (1920/2-40 + 265, 700))
+            self.screen.blit(self.heart, (1920/2-40 - 265, 700))
 
         # center and draw cursor
         self.cursor_rect.center = pygame.mouse.get_pos()

@@ -77,6 +77,7 @@ class FriendsWindow:
         self.width = int(1920/4)
         self.height = 1080
 
+        self.y = 0
         self.x = 0 - self.width
         self.next_x = 0 - self.width
         self.selected = False
@@ -127,7 +128,7 @@ class FriendsWindow:
 
     # move the window to its current position
     def align(self):
-        self.rect.topleft = [self.x, 0]
+        self.rect.topleft = [self.x, self.y]
 
     # returns a friends name if one is clicked as a redirect
     def handleEvents(self, mouse_pos, events):
@@ -185,6 +186,14 @@ class FriendsWindow:
                 # user not found
                 except Exception as e:
                     print(f'Error adding friend: {e}')
+
+            # elif event.type == KEYDOWN and event.key == K_DOWN:
+            #     self.y += 10
+            #     self.align()
+
+            # elif event.type == KEYDOWN and event.key == K_UP:
+            #     self.y -= 10
+            #     self.align()
 
     # instantly open the window
     def open(self):

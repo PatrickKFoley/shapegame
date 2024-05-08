@@ -26,6 +26,7 @@ class MenuShape(pygame.sprite.Sprite):
 
         self.shape = shape
         self.selected = selected
+        self.favorite = False
 
         self.stats_surface = self.createStatsSurface()
         self.stats_surface_rect = self.stats_surface.get_rect()
@@ -54,6 +55,8 @@ class MenuShape(pygame.sprite.Sprite):
             self.image = pygame.transform.scale(self.image_full, (self.small_r, self.small_r))
             self.r = self.small_r
         self.next_r = self.r
+
+        self.heart = pygame.transform.smoothscale(pygame.image.load("backgrounds\heart.png"), (70, 70))
 
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
@@ -224,6 +227,12 @@ class MenuShape(pygame.sprite.Sprite):
 
             return surface, surface.get_rect()
 
+    def setFavorite(self):
+        self.favorite = True
+
+    def unfavorite(self):
+        self.favorite = False
+
     def moveLeft(self):
         self.next_x -= 1920 / self.num_shapes
 
@@ -275,6 +284,11 @@ class MenuShape(pygame.sprite.Sprite):
 
         if self.selected:
             screen.blit(self.stats_surface, self.stats_surface_rect)
+
+        if self.favorite:
+            rect = self.heart.get_rect()
+            rect.center = (self.x, self.y - self.r/2 - 35)
+            screen.blit(self.heart, rect)
 
         
 
