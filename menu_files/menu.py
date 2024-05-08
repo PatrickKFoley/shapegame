@@ -291,6 +291,11 @@ class Menu():
             # if user is trying to play with friend, but they have no shapes
             if redirect != None and len(self.user.shapes) == 0:
                 CreateShapeMenu(self.screen, self.user, self.session, self.circle_images_full).start()
+
+                # recreate shape token clickable, incase it changed
+                self.clickables.remove(self.shape_tokens_clickable)
+                self.shape_tokens_clickable = ClickableText("Shape tokens: " + str(self.user.shape_tokens), 35, 1920/2, 1030)
+                self.clickables.append(self.shape_tokens_clickable)
             
             # user has shapes to play match with
             elif redirect != None:

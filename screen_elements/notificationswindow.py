@@ -214,8 +214,6 @@ class NotificationsWindow:
 
         self.num_notifications -= 1
 
-        self.session.commit()
-
     # update the window and all its elements
     def update(self, mouse_pos, events):
         self.surface = self.background.copy()

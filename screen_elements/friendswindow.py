@@ -5,8 +5,9 @@ from pygame.image import load
 from screen_elements.text import Text
 from screen_elements.editabletext import EditableText
 from screen_elements.clickabletext import ClickableText
-from createdb import User, Notification, Shape
+from createdb import User, Notification, Shape, friends
 from sqlalchemy.orm import Session
+from sqlalchemy import delete
 
 # how many pixels per frame the window moves
 STEP_SIZE = 20
@@ -16,6 +17,7 @@ class FriendSprite(pygame.sprite.Sprite):
         super().__init__()
 
         self.friend = friend
+        self.username = friend.username
         self.index = index
         self.session = session
 
@@ -28,20 +30,25 @@ class FriendSprite(pygame.sprite.Sprite):
         self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA, 32)
         pygame.draw.rect(self.surface, (0, 0, 0, 200), (10, 10, self.width, self.height))
 
-        self.friend_favorite = self.session.query(Shape).where(Shape.id == self.friend.favorite_id).one()
+        try:
+            self.friend_favorite = self.session.query(Shape).where(Shape.id == self.friend.favorite_id).one()
+            self.friend_name = Text(self.friend.username, 75, 190, self.height/3, "topleft", colors[self.friend_favorite.color_id][2])
+            self.favorite_circle = pygame.transform.smoothscale(pygame.image.load("circles/{}/{}/0.png".format(self.friend_favorite.face_id, colors[self.friend_favorite.color_id][0])), (150, 150))
+        except:
+            self.favorite_circle = pygame.Surface((1, 1), pygame.SRCALPHA, 32)
+            self.friend_name = Text(self.friend.username, 75, 190, self.height/3, "topleft")
 
-        self.favorite_circle = pygame.transform.smoothscale(pygame.image.load("circles/{}/{}/0.png".format(self.friend_favorite.face_id, colors[self.friend_favorite.color_id][0])), (150, 150))
+        
         self.favorite_circle_rect = self.favorite_circle.get_rect()
         self.favorite_circle_rect.center = (95, 95)
 
-        self.friend_name = Text(self.friend.username, 75, 190, self.height/3, "topleft", colors[self.friend_favorite.color_id][2])
         self.x = Text("x", 75, self.width-5, -5, "topright", "red")
         self.o = Text("play", 60, self.width-5, self.height - 72, "topright", "green")
 
 
         self.surface.blit(self.favorite_circle, self.favorite_circle_rect)
         self.surface.blit(self.friend_name.surface, self.friend_name.rect)
-        self.surface.blit(self.x.surface, self.x.rect)
+        # self.surface.blit(self.x.surface, self.x.rect)
         self.surface.blit(self.o.surface, self.o.rect)
 
         self.rect = self.surface.get_rect()
@@ -86,8 +93,6 @@ class FriendsWindow:
 
         for idx, friend in enumerate(self.user.friends):
             self.friend_sprites.append(FriendSprite(friend, idx, self.session))
-
-
 
         self.align()
 
@@ -139,31 +144,49 @@ class FriendsWindow:
                         self.friend_editable.select()
 
                 # return a players name if starting a match
-                # for clickable in self.friends_clickables:
-                #     if clickable.rect.collidepoint(mouse_pos):
-                #         return clickable.getText()
+                for friend_sprite in self.friend_sprites:
+
+                    rel_mouse_pos = (mouse_pos[0], mouse_pos[1] - friend_sprite.y)
+
+                    if friend_sprite.x.rect.collidepoint(rel_mouse_pos):
+                        # self.removeFriend(friend_sprite.index)
+                        pass
+
+                    elif friend_sprite.o.rect.collidepoint(rel_mouse_pos):
+                        return friend_sprite.username
 
             # if enter pressed
             elif event.type == KEYDOWN and event.key == K_RETURN:
                 # try to add user as friend
                 try:
                     friend = self.session.query(User).filter(User.username == self.friend_editable.getText()).one()
+
+                    if friend == self.user:
+                        print("adding self")
+                        return
+                        
+                    for friend in self.user.friends:
+                        print(friend)
+
+                    if friend in self.user.friends:
+                        print("adding existing friend")
+                        return
                     
                     # if found, add as friend and notify
-                    print(self.user.id)
                     self.session.add(Notification(friend.id, friend, f'{self.user.username} now follows you', "FRIEND", self.user.username))
                     self.user.friends.append(friend)
-                    print(friend)
                     self.session.commit()
 
-                    # add a clickable for this new friend
-                    self.friends_clickables.append(ClickableText(friend.username, 50, 50, 250 + ((len(self.user.friends) - 1) * 60), "topleft"))
+                    # add a friend_sprite for this new friend
+                    # self.friends_clickables.append(ClickableText(friend.username, 50, 50, 250 + ((len(self.user.friends) - 1) * 60), "topleft"))
+                    self.friend_sprites.append(FriendSprite(friend, len(self.user.friends)-1, self.session))
 
 
                 # user not found
                 except Exception as e:
                     print(f'Error adding friend: {e}')
 
+    # instantly open the window
     def open(self):
         self.selected = True
         self.next_x = 0
@@ -191,6 +214,35 @@ class FriendsWindow:
             element.update()
             self.surface.blit(element.surface, element.rect)
 
+    def removeFriend(self, index):
+        deleted = False
+        deleted_friend = None
+
+        for friend_sprite in self.friend_sprites:
+
+            if friend_sprite.index == index:
+                deleted_friend = friend_sprite
+                deleted = True
+
+            elif deleted:
+                friend_sprite.moveUp()
+
+        # entry = self.session.query(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == friend_sprite.friend.id))
+        # self.session.delete(entry)
+
+        # Construct the delete query
+        delete_query = delete(friends).where(
+            (friends.c.user_id == self.user.id) & (friends.c.friend_id == friend_sprite.friend.id)
+        )
+
+        # Execute the query
+        # self.user.friends.remove(friend_sprite.friend)
+        self.session.execute(delete_query)
+
+        self.session.commit()
+
+        self.friend_sprites.remove(deleted_friend)
+        del deleted_friend
 
                 
 
