@@ -6,6 +6,8 @@ class EditableText:
     def __init__(self, text, size, x, y, alignment = "center"):
         self.x = x
         self.y = y
+        self.y_init = y
+        self.y_scroll = 0
         self.text = text
         self.size = size
         self.alignment = alignment 
@@ -85,12 +87,10 @@ class EditableText:
         self.rect = self.surface.get_rect()
         self.align()
 
-
     def select(self):
         self.selected = True
         self.growing = True
         self.shrinking = False
-
 
     def deselect(self):
         self.selected = False
@@ -110,6 +110,12 @@ class EditableText:
         self.align()
 
         self.surface = self.input.surface
+
+    def scroll(self, amount):
+        self.y_scroll += amount
+
+        self.y = self.y_scroll + self.y_init
+        self.align()
 
     def align(self):
         if self.alignment == "center":

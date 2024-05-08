@@ -185,12 +185,13 @@ class UserCollectionMenu():
         # update and draw clickable elements
         for clickable in self.clickables:
             clickable.update(mouse_pos)
-            self.screen.blit(clickable.surface, clickable.rect)
+
+            if not (clickable == self.set_favorite and favorite_selected):
+                self.screen.blit(clickable.surface, clickable.rect)
 
         # draw text elements
         for text in self.texts:
-            if text != self.set_favorite:
-                self.screen.blit(text.surface, text.rect)
+            self.screen.blit(text.surface, text.rect)
 
         # draw hearts around the shape name if favorite is selected
         if favorite_selected:
