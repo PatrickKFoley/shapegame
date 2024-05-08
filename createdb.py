@@ -129,6 +129,9 @@ if __name__ == "__main__":
         user_2 = User("b")
         user_3 = User("c")
         user_4 = User("d")
+        user_5 = User("e")
+        user_6 = User("f")
+        user_7 = User("g")
 
         # notification_1 = Notification(4, user_4, "aiden now follows you", "FRIEND", "a")
         # notification_2 = Notification(4, user_4, "camille now follows you", "FRIEND", "b")
@@ -140,8 +143,15 @@ if __name__ == "__main__":
         session.add(user_2)
         session.add(user_3)
         session.add(user_4)
+        session.add(user_5)
+        session.add(user_6)
+        session.add(user_7)
         user_1.friends.append(user_2)
         user_1.friends.append(user_3)
+        user_1.friends.append(user_4)
+        user_1.friends.append(user_5)
+        user_1.friends.append(user_6)
+        user_1.friends.append(user_7)
 
         session.commit()
     except Exception as e:
