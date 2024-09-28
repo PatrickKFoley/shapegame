@@ -2,9 +2,11 @@ import pygame, random, pygame_textinput, math, numpy as np
 from pygame.locals import *
 from menu_files.main_menu_files.simplecircle import SimpleCircle
 from game_files.game import Game
+from game_files.game2 import Game2
 from game_files.circledata import *
 from screen_elements.clickabletext import ClickableText
 from screen_elements.arrow import Arrow
+from createdb import User, Shape as DbShape
 
 class LocalMatchMenu():
     def __init__(self, screen, circle_images_full):
@@ -479,34 +481,52 @@ class LocalMatchMenu():
                 self.game_played = True
 
             if start_clicked:
+                self.start_sound.play()
+                pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+
                 self.screen.blit(self.background, (0, 0))
                 self.screen.blit(self.loading, self.loading_rect)
                 pygame.display.update()
 
-                circle_0 = circles[self.face_0].copy()
-                circle_1 = circles[self.face_1].copy()
-
-                circle_0["color"] = colors[self.color_0]
-                circle_0["group_id"] = 0
-                circle_0["face_id"] = self.face_0
-                circle_0["team_size"] = self.c0_count
-
-                circle_1["color"] = colors[self.color_1]
-                circle_1["group_id"] = 1
-                circle_1["face_id"] = self.face_1
-                circle_1["team_size"] = self.c1_count
-
                 seed = self.seed_input.value
                 if seed == "Seed (optional)":
                     seed = False
-                
-                real = True
+
+                user_1 = User("someone")
+                user_2 = User("someone else")
+                shape_1 = DbShape(user_1.id, user_1, self.face_0, self.color_0, 1, circles[self.face_0]["velocity"], circles[self.face_0]["radius_min"], circles[self.face_0]["radius_max"], circles[self.face_0]["health"], circles[self.face_0]["dmg_multiplier"], circles[self.face_0]["luck"], circles[self.face_0]["team_size"], user_1.username, circles[self.face_0]["name"], "whatever")
+                shape_2 = DbShape(user_2.id, user_2, self.face_1, self.color_1, 1, circles[self.face_1]["velocity"], circles[self.face_1]["radius_min"], circles[self.face_1]["radius_max"], circles[self.face_1]["health"], circles[self.face_1]["dmg_multiplier"], circles[self.face_1]["luck"], circles[self.face_1]["team_size"], user_2.username, circles[self.face_1]["name"], "whatever")
+
                 print("Playing game with seed: {}".format(seed))
-                self.start_sound.play()
-                pygame.mixer.Sound.fadeout(self.menu_music, 1000)
-                game = Game(circle_0, circle_1, circle_0["name"], circle_1["name"], self.screen, seed, real, True)
-                winner, self.stats_surface = game.play_game()
+                
+                game = Game2(self.screen, shape_1, shape_2, user_1, user_2, seed, False, False)
+                game.play()
                 self.game_played = True
+
+                # circle_0 = circles[self.face_0].copy()
+                # circle_1 = circles[self.face_1].copy()
+
+                # circle_0["color"] = colors[self.color_0]
+                # circle_0["group_id"] = 0
+                # circle_0["face_id"] = self.face_0
+                # circle_0["team_size"] = self.c0_count
+
+                # circle_1["color"] = colors[self.color_1]
+                # circle_1["group_id"] = 1
+                # circle_1["face_id"] = self.face_1
+                # circle_1["team_size"] = self.c1_count
+
+                # seed = self.seed_input.value
+                # if seed == "Seed (optional)":
+                #     seed = False
+                
+                # real = True
+                # print("Playing game with seed: {}".format(seed))
+                # self.start_sound.play()
+                # pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+                # game = Game(circle_0, circle_1, circle_0["name"], circle_1["name"], self.screen, seed, real, True)
+                # winner, self.stats_surface = game.play_game()
+                # self.game_played = True
 
 
             self.cursor_rect.center = pygame.mouse.get_pos()

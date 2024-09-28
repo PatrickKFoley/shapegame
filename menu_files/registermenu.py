@@ -136,6 +136,7 @@ class RegisterMenu():
                     self.bad_password_flag = False
                     self.short_password_flag = False
                     self.username_taken_flag = False
+                    self.bad_username_flag = False
 
                     # search for username
                     try:
@@ -147,6 +148,10 @@ class RegisterMenu():
                     # password must be > 8 character
                     # if (len(self.register_password_editable.getText()) <= 8):
                     #     short_password_flag = True
+
+                    # username between 3 and 15 characters
+                    if (len(self.register_password_editable.getText()) <= 8):
+                        short_password_flag = True
 
                     # passwords must match
                     if (self.register_password_confirm_editable.getText() != self.register_password_editable.getText()):

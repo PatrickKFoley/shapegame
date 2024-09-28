@@ -4,14 +4,14 @@ from game_files.clouds import Clouds
 from game_files.laser import Laser
 
 class Circle(pygame.sprite.Sprite):
-    def __init__(self, attributes, id, game, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = [], real = True):
+    def __init__(self, attributes, id, images, hud_images, XY = 0, R = 0, VEL = 0, NEW = False, smoke_images = [], real = True):
         super().__init__()
 
         self.real = real
+        self.fps = 60
 
         self.g_id = attributes["group_id"]
         self.id = id
-        self.game = game
         self.frames = 0
         self.new = NEW
         self.alive = True
@@ -27,6 +27,7 @@ class Circle(pygame.sprite.Sprite):
         self.colliding_with = []
         self.took_dmg = False
         self.powerups_changed = False
+        self.hp_mode = True     # True for value, False for percent
         
         self.growth_amount = 50
         self.frames_held_mushroom = 0
@@ -53,11 +54,8 @@ class Circle(pygame.sprite.Sprite):
         self.hp = self.max_hp = attributes["health"]
         self.dmg_multiplier = attributes["dmg_multiplier"]
 
-        if XY == 0:
-            # Need some sort of smart spawning so that they can't overlap 
-            [self.x, self.y] = game.spawn_locations[self.g_id][self.id]
-        else:
-            [self.x, self.y] = XY
+
+        [self.x, self.y] = XY
 
         # Powerups array
         self.powerups = []
@@ -115,7 +113,7 @@ class Circle(pygame.sprite.Sprite):
 
         pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
         
-        if self.game.hp_mode:
+        if self.hp_mode:
             if hp_p == 100:
                 size = int(hp_circle_r * 1.1)
             else:
@@ -146,29 +144,8 @@ class Circle(pygame.sprite.Sprite):
         text_rect.topleft = (self.image.get_size()[0] / 2 - offset - font.size(str(self.id))[0] / 2, self.image.get_size()[1] / 2 - offset - font.size(str(self.id))[1] / 2)
         self.image.blit(text_obj, text_rect)
 
-    def killCircle(self):
-        if self.real: self.game.clouds_group.add(Clouds(self.x, self.y, self.game.smoke_images, self.game.screen))
-
-        stats = self.stats
-        id = self.id
+    def killSelf(self):
         self.kill()
-
-        # row_num = self.id - (len(self.game.groups[self.g_id]) - self.game.circle_counts[self.g_id])
-        # # row_num_last = len(self.game.groups[self.g_id])
-
-        # if row_num % 2 == 0:
-        #     color = "lightgray"
-        # else:
-        #     color = "white"
-        # pygame.draw.rect(self.game.stats_surface, color, (10 + 850 * self.g_id, 195 + 30 * row_num, 845, 30))
-        
-        # pygame.draw.rect(self.game.stats_surface, "darkgray", (10 + 850 * self.g_id, 195 + 30 * row_num_last, 845, 30))
-
-        # self.game.dead_circle = True
-        if [id, stats] not in self.game.dead_stats[self.g_id]:
-            self.game.dead_stats[self.g_id].append([id, stats])
-
-        self.game.createStatsScreen(False, True)
 
     def getNextImage(self, index):
         if not self.real:
@@ -180,90 +157,58 @@ class Circle(pygame.sprite.Sprite):
     def getPowerups(self):
         return self.powerups
     
-    def removePowerup(self, id):
-        if id in self.powerups:
-            if len(self.powerups) == 1:
-                self.powerups = []
-            else:
-                self.powerups.remove(id)
-                self.stats.activatePowerup()
-        else:
-            return
+    def collectStar(self):
+        self.bonus_luck += 5
 
-        # If removing star, subtract luck
-        if id == 2:
-            self.bonus_luck -= 5
-        # if removing muscle, divide dmg_multiplier
-        if id == 3:
-            self.dmg_multiplier /= 3
-        # if removing speed, divide dmg_multiplier
-        if id == 4:
-            self.dmg_multiplier /= 1.5
-        # if removing health, gain health
-        if id == 5:
-            self.game.playSound(self.game.heal_sound)
-            new_hp = min(self.hp + self.max_hp / 2, self.max_hp)
-            self.stats.heal(new_hp - self.hp)
-            self.hp = new_hp
-            self.checkImageChange()
-            self.game.addKillfeed(self, self, 5)
-        # if removing laser, spawn laser in same direction as circle
-        if id == 7:
-            # want to limit the speed of laser to 10
-            desired_speed = 8
-            current_speed = math.sqrt(self.v_x**2 + self.v_y**2)
-            multiplier = desired_speed / current_speed
+    def removeStar(self):
+        self.bonus_luck -= 5
 
-            if self.real:
-                self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, self.game.powerup_images_screen[7]))
-            else:
-                self.game.laser_group.add(Laser(self, self.getG_id(), self.x, self.y, self.v_x * multiplier, self.v_y * multiplier, None, self.real))
+    def collectMuscle(self):
+        self.dmg_multiplier *= 3
 
-            self.game.playSound(self.game.laser_sound)
+    def removeMuscle(self):
+        self.dmg_multiplier /= 3
+        self.stats.useMuscle()
 
-        if id == 9:
-            self.growTo(self.r - self.growth_amount)
-            self.dmg_multiplier /= 5
-            
+    def collectSpeed(self):
+        self.dmg_multiplier *= 1.5
+        self.v_x *= 2
+        self.v_y *= 2
 
-        # self.constructSurface()
+    def removeSpeed(self):
+        self.dmg_multiplier /= 1.5
+        self.stats.useSpeed()
+
+    def removeHealth(self):
+        new_hp = min(self.hp + self.max_hp / 2, self.max_hp)
+        self.stats.heal(new_hp - self.hp)
+        self.hp = new_hp
+        self.checkImageChange()
+
+    def collectBomb(self):
+        self.bomb_timer = 3 * self.fps
+
+    def removeBomb(self):
+        self.powerups.remove(6)
         self.powerups_changed = True
 
-    def collectPowerup(self, id):
-        self.powerups.append(id)
+    def collectMushroom(self):
+        # start growing
+        self.growing = True
+        self.next_r = self.r + self.growth_amount
 
-        # check if picked up star (+5 luck)
-        if id == 2:
-            self.bonus_luck += 5
-        # check if picked up muscle (3x dmg_multiplier)
-        if id == 3:
-            self.dmg_multiplier *= 3
-        # check if picked up muscle (double speed + dmg_multiplier)
-        if id == 4:
-            self.dmg_multiplier *= 1.5
-            self.v_x *= 2
-            self.v_y *= 2
-        # check if picked up bomb (explode in some time)
-        if id == 6:
-            self.bomb_timer = 3 * self.game.fps
-        if id == 9:
-            # start growing
-            self.growing = True
-            self.next_r = self.r + self.growth_amount
+        self.stats.heal(100)
+        self.hp += 100
+        self.checkImageChange()
 
-            # heal some amount + killfeed and shit
-            if self.real: self.game.playSound(self.game.heal_sound)
-            self.stats.heal(100)
-            self.hp += 100
-            self.checkImageChange()
-            self.game.addKillfeed(self, self, 9)
+        # get increased damage multiplier
+        self.dmg_multiplier *= 5
 
-            # get increased damage multiplier
-            self.dmg_multiplier *= 5
-
-        # self.constructSurface()
-        self.powerups_changed = True
-
+    def removeMushroom(self):
+        self.growTo(self.r - self.growth_amount)
+        self.dmg_multiplier /= 5
+        self.powerups.remove(9)
+       
     def update(self, game):
         if self.bomb_timer >= 0:
             self.bomb_timer -= 1
@@ -271,7 +216,7 @@ class Circle(pygame.sprite.Sprite):
             if self.bomb_timer == 0:
                 game.blowupBomb(self, self.x, self.y)
                 self.bomb_timer = -1
-                self.removePowerup(6)
+                self.removeBomb()
 
         # puff of smoke animation
         self.frames += 2
@@ -316,9 +261,9 @@ class Circle(pygame.sprite.Sprite):
         if 9 in self.powerups:
             self.frames_held_mushroom += 1
             
-            if self.frames_held_mushroom == self.game.fps * 10:
+            if self.frames_held_mushroom == self.fps * 10:
                 self.frames_held_mushroom = 0
-                self.removePowerup(9)
+                self.removeMushroom()
 
 
 
@@ -333,7 +278,7 @@ class Circle(pygame.sprite.Sprite):
             if self.real:
                 hp_circle_r = min(self.r/2, 16)
                 offset = math.sqrt((self.r + hp_circle_r)**2 / 2)
-                self.image.blit(self.game.blood_image_small, (self.image.get_size()[0] / 2 + self.r, self.image.get_size()[1] / 2 - self.game.blood_image_small.get_size()[0] - 5))
+                self.image.blit(game.blood_image_small, (self.image.get_size()[0] / 2 + self.r, self.image.get_size()[1] / 2 - game.blood_image_small.get_size()[0] - 5))
 
                 if self.dmg_counter == 0:
                     flag = True
@@ -355,7 +300,7 @@ class Circle(pygame.sprite.Sprite):
 
             if self.real: pygame.draw.circle(self.image, color, (self.image.get_size()[0] / 2 + offset, self.image.get_size()[1] / 2 - offset), hp_circle_r)
             
-            if self.game.hp_mode:
+            if self.hp_mode:
                 if hp_p == 100:
                     size = int(hp_circle_r * 1.1)
                 else:

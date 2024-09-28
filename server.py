@@ -10,7 +10,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
+# for connection to server database
+# connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
+
+# for connection to local database
+connection_string = "sqlite:///database.db"
 
 BaseClass = declarative_base()
 engine = create_engine(connection_string, echo=False)
@@ -186,7 +190,7 @@ def handleClient(conn, player, pregames, game_id):
 
                         print(f'About to simulate game with id: {game_id}')
 
-                        pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
+                        pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False, True).play_game()
 
                         winner_username = player0_username
                         if pregame.winner == 1:

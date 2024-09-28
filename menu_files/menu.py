@@ -36,7 +36,11 @@ class Menu():
         self.user: User | None = None
 
         # database session
-        self.engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame/shapegame/database.db", echo=False)
+        # bellow is for server db
+        self.engine = create_engine("postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db", echo=False)
+        
+        # bellow is for local db
+        # self.engine = create_engine("sqlite:///database.db", echo=False)
         SessionMaker = sessionmaker(bind=self.engine)
         self.session = SessionMaker()
 
@@ -212,6 +216,7 @@ class Menu():
 
                     # query found no user entries
                     except Exception as e:
+                        print(e)
                         bad_credentials_flag = True
 
             # update clickable texts
@@ -394,7 +399,7 @@ class Menu():
                         self.session.commit()
 
                         # create and start network match menu
-                        networkMatch = NetworkMatchMenu(self.screen, self.user, self.user.shapes, self.session, self.circle_images_full)
+                        networkMatch = NetworkMatchMenu(self.screen, self.user, self.session, self.circle_images_full)
                         networkMatch.start()
                         del networkMatch
 

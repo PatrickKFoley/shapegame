@@ -1,4 +1,5 @@
 import pygame
+from pygame.locals import *
 import sys
 import math
 import random
@@ -6,12 +7,20 @@ from game_files.game import Game
 from createdb import Shape
 from game_files.circledata import *
 from threading import Thread
+from game_files.powerup2 import Powerup
 from screen_elements.friendswindow import FriendsWindow
 from screen_elements.notificationswindow import NotificationsWindow
 
+from createdb import User, Shape as ShapeData
+from game_files.circledata import colors as color_data
+from game_files.circledata import powerup_data
+from pygame.sprite import Group
+
+from game_files.shape import Shape
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from createdb import User, Shape
+from createdb import User, Shape as DbShape
 
 def circle():
     pygame.init()
@@ -193,7 +202,105 @@ def friends():
     pygame.quit()
     sys.exit()
 
-friends()
+def shape2():
+
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    clock = pygame.time.Clock()
+    frames = 0
+
+    shape_images = []
+    hud_images = []
+    powerup_images = []
+    shape_data = ShapeData(-1, User(""), 1, 11, 1, 0, 90, 100, 100, 1, 1, 1, "", "", "")
+    shape_data2 = ShapeData(-1, User(""), 1, 11, 1, 0, 50, 60, 100, 1, 1, 1, "", "", "")
+
+    healthbar_img = pygame.image.load("backgrounds/healthbar.png")
+    
+    for powerup in powerup_data:
+        image = pygame.image.load(powerup_data[powerup][0])
+        hud_images.append(pygame.transform.smoothscale(image, (20, 20)))
+        powerup_images.append(pygame.transform.smoothscale(image, (40, 40)))
+
+    for i in range(0, 4):
+        shape_images.append(pygame.transform.smoothscale(pygame.image.load("circles/{}/{}/{}.png".format(shape_data.face_id, color_data[shape_data.color_id][0], i)), (shape_data.radius_max + 100, shape_data.radius_max + 100)))
+        
+
+    shape = Shape(shape_data, 1, 1, shape_images, hud_images, healthbar_img)
+    # shape2 = Shape(shape_data2, 3, 1, shape_images, hud_images, healthbar_img)
+    group = Group()
+    group.add(shape)
+    # group.add(shape2)
+
+# Main loop
+
+    running = True
+    while running:
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+        frames += 1
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == MOUSEBUTTONDOWN:
+
+                shape.collectPowerup(Powerup("resurrect", powerup_images[3], (100, 100)))
+
+        screen.fill((0, 0, 0))
+
+        if frames >= 20:
+            shape.takeDamage(1)
+                
+                # shape2.takeDamage(2)
+
+        group.update()
+        group.draw(screen)
+        
+
+        
+        pygame.display.flip()
+        clock.tick(60)
+        
+
+    # Quit Pygame
+    pygame.quit()
+    sys.exit()
+
+
+def point_on_arc(percent, square_size):
+    """
+    Returns the (x, y) point on an arc that bulges from the bottom left to the top left of a square.
+    
+    Parameters:
+    - percent: A value between 0 and 100 representing the position along the arc.
+    - square_size: The size of the square (assumed to be square, so width = height = side length).
+    
+    Returns:
+    - A tuple (x, y) representing the point on the arc.
+    """
+    # Calculate the radius of the arc (the side length of the square)
+    radius = square_size
+    
+    # Map percent (0-100) to angle (270° to 180°)
+    start_angle = 270
+    end_angle = 180
+    angle = math.radians(start_angle - (start_angle - end_angle) * (percent / 100))
+    
+    # The center of the quarter-circle (bottom-left corner of the square)
+    center_x = 0
+    center_y = square_size
+    
+    # Calculate the x, y coordinates on the arc
+    x = center_x + radius * math.cos(angle)
+    y = center_y + radius * math.sin(angle)
+    
+    return (square_size-x*-1, y)
+
+print(point_on_arc(90, 10))
+
+# shape2()
 
 # while True:
 #     simulate()

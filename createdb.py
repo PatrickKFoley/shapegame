@@ -110,7 +110,11 @@ class Shape(BaseClass):
 
 
 if __name__ == "__main__":
-    connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
+    # string for server database connection
+    # connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
+    
+    # string for local database connection
+    connection_string = "sqlite:///database.db"
     engine = create_engine(connection_string, echo=True)
     BaseClass.metadata.drop_all(bind=engine)
     BaseClass.metadata.create_all(bind=engine)

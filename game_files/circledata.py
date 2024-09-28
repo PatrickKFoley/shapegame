@@ -7,6 +7,19 @@ names = ["Zippy", "Bixie", "Jazzy", "Quirk", "Fizzy", "Zazzy", "Pixel", "Zippy",
 # CUMULATIVE AMOUNTS (LEVEL 2 = 10-19)
 xp_amounts = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 
+powerup_data = {
+    "insta-kill":   ["powerups/skull.png",      0],
+    "resurrect":    ["powerups/cross.png",      1],
+    "star":         ["powerups/star.png",       2],
+    "muscle":       ["powerups/muscle.png",     3],
+    "speed":        ["powerups/speed.png",      4],
+    "health":       ["powerups/health.png",     5],
+    "bomb":         ["powerups/bomb.png",       6],
+    "laser":        ["powerups/laser.png",      7],
+    "buckshot":     ["powerups/blue_laser.png", 8],
+    "mushroom":     ["powerups/mushroom.png",   9]
+}
+
 colors = [
     # SPECIAL COLORS - TAKE CARE
     ["rainbow", "gradient1.png", (255, 180, 180)],

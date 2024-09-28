@@ -203,9 +203,12 @@ class NotificationsWindow:
                 notification.moveUp()
 
         # remove database entry
-        entry = self.session.query(Notification).where(Notification.id == notification.notification.id).one()
-        self.session.delete(entry)
-        self.session.commit()
+        try:
+            entry = self.session.query(Notification).where(Notification.id == notification.notification.id).one()
+            self.session.delete(entry)
+            self.session.commit()
+        except:
+            self.session.rollback()
         # self.user.notifications.remove(self.user.notifications[index])
         
         # delete sprite

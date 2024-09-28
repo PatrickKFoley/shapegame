@@ -1,6 +1,7 @@
 USER EXPERIENCE
     - user creation
-        - create/alter user account - CREATE DONE  
+        - create user account - DONE  
+        - alter user account
     - social side
         - friends
         - messaging

@@ -13,7 +13,11 @@ class Network:
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # server connection information
-        self.server = "172.105.8.221"
+        # server ip 
+        self.server = "172.105.17.177"
+
+        # local ip
+        # self.server = "192.168.2.12"
         self.port = 5555
         self.addr = (self.server, self.port)
 

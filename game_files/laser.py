@@ -1,17 +1,22 @@
-import pygame
+import pygame, math
 
 class Laser(pygame.sprite.Sprite):
-    def __init__(self, circle, g_id, x, y, vx, vy, image, real = True):
+    def __init__(self, shape, image, real = True):
         super().__init__()
+        self.shape = shape
+        self.image = image
         self.real = real
 
-        self.g_id = g_id
-        self.circle = circle
-        self.x = x
-        self.y = y
-        self.vx = vx *3
-        self.vy = vy *3
-        self.image = image
+        desired_speed = 8
+        current_speed = math.sqrt(shape.v_x**2 + shape.v_y**2)
+        multiplier = desired_speed / current_speed
+
+        self.g_id = shape.g_id
+        self.x = shape.x
+        self.y = shape.y
+        self.vx = shape.v_x * multiplier * 3
+        self.vy = shape.v_y * multiplier * 3
+        
         self.r = 20
         self.frames = 0
         self.ids_collided_with = []

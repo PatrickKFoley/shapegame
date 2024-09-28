@@ -4,18 +4,20 @@ from game_files.powerup import Powerup
 from game_files.bluelaser import BlueLaser
 from game_files.explosion import Explosion
 from game_files.clouds import Clouds
+from game_files.laser import Laser
 from game_files.killfeed import Killfeed
 from game_files.circle import Circle
 from game_files.circledata import *
 
 class Game: 
-    def __init__(self, c0, c1, username_0, username_1, screen, seed = False, real = True, god_mode = False):
+    def __init__(self, c0, c1, username_0, username_1, screen, seed = False, real = True, god_mode = False, server = False):
         
         # ------------- NECESSARY STUFF ---------
         
         self.real = real
         self.start_real = real
         self.god_mode = god_mode
+        self.server = server
 
         if seed != False:
             random.seed(seed)
@@ -59,7 +61,6 @@ class Game:
         self.spawned_counter = 0
         self.mode = "GAME"
         self.stats_screen = False
-        self.dead_circle = True
         self.hp_mode = False
 
 
@@ -89,10 +90,6 @@ class Game:
         self.explosions_group = pygame.sprite.Group()
         self.killfeed_group = pygame.sprite.Group()
 
-
-        # Fixed a bug by swapping the array index on self.circles[]["health"]
-        # no clue how that works but it works
-
         # Max hp of each group
         self.max_hps = [0, 0]
         self.hps = []
@@ -119,9 +116,9 @@ class Game:
 
         if not self.real:
             for i in range(self.circle_counts[0]):
-                self.addCircle(0)
+                self.addShapeToTeam(0)
             for i in range(self.circle_counts[1]):
-                self.addCircle(1)
+                self.addShapeToTeam(1)
 
 
         # Preprocess images
@@ -136,7 +133,34 @@ class Game:
         self.death_sounds = self.collision_sounds = self.game_sounds = [None]
         self.choir_sound = self.explosion_sound = self.fuse_sound = self.heal_sound = self.laser_hit_sound = self.laser_sound = self.pop_sound = self.punch_sound = self.shotgun_sound = self.twinkle_sound = self.win_sound = self.wind_sound = self.click_sound = self.close_sound = None
 
+        # return asap when simulating on server
+        if self.server:
+            return
+        
+        # do a little more if being simulated by user (for ending stats screen)
+        self.cur_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
+        self.stats_surface = pygame.Surface((1710, self.cur_rows * 30 + 215))
+
         if not self.real:
+            # load necessary images for stats screen
+
+            # basic shape images
+            for i in range(0, 1):
+                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[1]["face_id"], self.circles[1]["color"][0], i)))
+                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[0]["face_id"], self.circles[0]["color"][0], i)))
+            self.images = [self.c0_images, self.c1_images]
+
+            # column headers
+            self.blood_image = pygame.transform.smoothscale(pygame.image.load("powerups/blood.png"), (40, 40))
+            self.sword_image = pygame.transform.smoothscale(pygame.image.load("powerups/sword.png"), (40, 40))
+            self.blood_image_small = pygame.transform.smoothscale(pygame.image.load("powerups/blood.png"), (30, 30))
+            self.coffin_img = pygame.transform.smoothscale(pygame.image.load("powerups/coffin.png"), (40, 40))
+
+            # powerup column headers
+            for powerup in self.powerups:
+                image = pygame.image.load(powerup[0])
+                self.powerup_images_screen.append(pygame.transform.smoothscale(image, (40, 40)))
+
             return
 
 
@@ -146,7 +170,6 @@ class Game:
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
-        self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
         self.loading = pygame.image.load("backgrounds/loading.png")
 
         self.clock = pygame.time.Clock()
@@ -176,58 +199,20 @@ class Game:
             image = pygame.transform.smoothscale(image, (int(image.get_size()[0] / 2), int(image.get_size()[1] / 2)))
             self.smoke_images.append(image)
 
-        # Circles
-        if os.path.isdir("circles/{}/{}".format(self.circles[1]["face_id"], self.circles[1]["color"][0])):
-            for i in range(0, 4):
-                self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[1]["face_id"], self.circles[1]["color"][0], i)))
-        else:
-            print("\nJust a moment! New circles being drawn!")
-            os.mkdir("circles/{}/{}".format(self.circles[1]["face_id"], self.circles[1]["color"][0]))
-            for n in range(0, 4):
-                path = "circles/{}/{}.png".format(self.circles[1]["face_id"], n)
-                image = pygame.image.load(path)
-
-                # loop through image, replace green pixels
-                for j in range(0, image.get_size()[0]):
-                    for k in range(0, image.get_size()[1]):
-                        pixel = image.get_at((j, k))
-                        if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), self.circles[1]["color"][1])
-                        elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), self.circles[1]["color"][3])
-                        elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
-                            image.set_at((j, k), self.circles[1]["color"][2])
-
-                pygame.image.save(image, "circles/{}/{}/{}.png".format(self.circles[1]["face_id"], self.circles[1]["color"][0], n))
-                self.c1_images.append(image)
-
-        if os.path.isdir("circles/{}/{}".format(self.circles[0]["face_id"], self.circles[0]["color"][0])):
-            for i in range(0, 4):
-                self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[0]["face_id"], self.circles[0]["color"][0], i)))
-        else:
-            print("\nJust a moment! New circles being drawn!")
-            os.mkdir("circles/{}/{}".format(self.circles[0]["face_id"], self.circles[0]["color"][0]))
-            for n in range(0, 4):
-                path = "circles/{}/{}.png".format(self.circles[0]["face_id"], n)
-                image = pygame.image.load(path)
-
-                for j in range(0, image.get_size()[0]):
-                    for k in range(0, image.get_size()[1]):
-                        pixel = image.get_at((j, k))
-                        if pixel[0] <= 100 and pixel[1] >= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), self.circles[0]["color"][1])
-                        elif pixel[0] <= 100 and 100 <= pixel[1] <= 150 and pixel[2] <= 100:
-                            image.set_at((j, k), self.circles[0]["color"][3])
-                        elif 100 <= pixel[0] <= 150 and pixel[1] >= 200 and 100 <= pixel[2] <= 150:
-                            image.set_at((j, k), self.circles[0]["color"][2])
-
-                pygame.image.save(image, "circles/{}/{}/{}.png".format(self.circles[0]["face_id"], self.circles[0]["color"][0], n))
-                self.c0_images.append(image)
-     
+        # shapes
+        for i in range(0, 4):
+            self.c1_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[1]["face_id"], self.circles[1]["color"][0], i)))
+            self.c0_images.append(pygame.image.load("circles/{}/{}/{}.png".format(self.circles[0]["face_id"], self.circles[0]["color"][0], i)))
         self.images = [self.c0_images, self.c1_images]
 
-        self.coffin_img = pygame.transform.smoothscale(pygame.image.load("powerups/coffin.png"), (40, 40))
+        # Now that images are loaded, add shapes
+        for i in range(self.circle_counts[0]):
+            self.addShapeToTeam(0)
+        for i in range(self.circle_counts[1]):
+            self.addShapeToTeam(1)
 
+        
+        # powerups
         for powerup in self.powerups:
             image = pygame.image.load(powerup[0])
             self.powerup_images_screen.append(pygame.transform.smoothscale(image, (40, 40)))
@@ -236,21 +221,12 @@ class Game:
         self.blood_image = pygame.transform.smoothscale(pygame.image.load("powerups/blood.png"), (40, 40))
         self.sword_image = pygame.transform.smoothscale(pygame.image.load("powerups/sword.png"), (40, 40))
         self.blood_image_small = pygame.transform.smoothscale(pygame.image.load("powerups/blood.png"), (30, 30))
+        self.coffin_img = pygame.transform.smoothscale(pygame.image.load("powerups/coffin.png"), (40, 40))
 
 
+        # TODO: clickable text
         self.exit, self.exit_rect = self.createText("exit", 50)
         self.exit_rect.center = (1870, 1050)
-
-        # Now that images are loaded, add shapes
-        for i in range(self.circle_counts[0]):
-                self.addCircle(0)
-        for i in range(self.circle_counts[1]):
-            self.addCircle(1)
-
-        # STUFF THAT IS NOW NECESSARY?
-
-        self.cur_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-        self.stats_surface = pygame.Surface((1710, self.cur_rows * 30 + 215))
 
         # ------------------- SOUNDS ------------------
 
@@ -303,142 +279,96 @@ class Game:
 
         # self.game_sounds[random.randint(0, len(self.game_sounds) - 1)].play(-1)
 
+    def handle_inputs(self):
+        for event in pygame.event.get():
+            if event.type == MOUSEBUTTONDOWN:
+                self.playSound(self.click_sound)
+                
+                if event.button == 1:
+                    if self.exit_rect.collidepoint(pygame.mouse.get_pos()):
+                        self.running = False
+
+                    elif self.god_mode:
+                        self.addShapeToTeam(0, pygame.mouse.get_pos(), 0, 0, True)
+                        self.createStatsScreen(True)
+        
+                elif event.button == 2:
+                    self.fortnite_x = 0
+                    self.fortnite_x_counter = 0
+                    self.fortnite_x_growing = False
+                    self.fortnite_y = 0
+                    self.fortnite_y_counter = 0
+                    self.fortnite_y_growing = False
+
+                elif event.button == 3:
+                    self.addShapeToTeam(1, pygame.mouse.get_pos(), 0, 0, True)
+                    self.createStatsScreen(True)
+
+            if event.type == KEYDOWN:
+                if event.key == 104:
+                    self.toggleHealthMode()
+                if event.key == 9:
+                    self.stats_screen = not self.stats_screen
+                    self.createStatsScreen(True)
+                elif self.god_mode:
+                    self.spawnPowerup(event.key - 48, pygame.mouse.get_pos())
+
+    # Do fortnite circle things
+    def doFortnite(self):
+        if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= ((self.c0_count + self.c1_count) / 3):
+            self.fortnite_x_growing = self.fortnite_y_growing = True
+
+        if self.fortnite_x_growing:
+            self.fortnite_x_counter += 1
+            if self.fortnite_x_counter % 3 == 0:
+                if self.fortnite_x <= 350:
+                    self.fortnite_x += 1
+
+        if self.fortnite_y_growing:
+            self.fortnite_y_counter += 1
+            if self.fortnite_y_counter % 3 == 0:
+                if self.fortnite_y <= 250:
+                    self.fortnite_y += 1
+
     def play_game(self):
         while self.running:
             self.frames += 1
-            # poll for events
-
-            if self.real:
-                for event in pygame.event.get():
-                    # button click event
-                    if event.type == MOUSEBUTTONDOWN:
-                        self.playSound(self.click_sound)
-                        if event.button == 1:
-                            if self.exit_rect.collidepoint(pygame.mouse.get_pos()):
-                                self.running = False
-                                # self.real = False
-
-                                # # GO THROUGH ALL OTHER OBJECT AND SET REAL = FALSE
-                                # for group in self.groups:
-                                #     for shape in group:
-                                #         shape.real = self.real
-
-                                # for laser in self.laser_group:
-                                #     laser.real = self.real
-
-                                # for blue_laser in self.blue_laser_group:
-                                #     blue_laser.real = self.real
-
-                                # for killfeed in self.killfeed_group:
-                                #     killfeed.kill()
-
-                            elif self.god_mode:
-                                self.addCircle(0, pygame.mouse.get_pos(), 0, 0, True)
-                                self.createStatsScreen(True)
-
-                        if not self.god_mode:
-                            pass
-                
-                        elif event.button == 2:
-                            self.fortnite_x = 0
-                            self.fortnite_x_counter = 0
-                            self.fortnite_x_growing = False
-                            self.fortnite_y = 0
-                            self.fortnite_y_counter = 0
-                            self.fortnite_y_growing = False
-
-                        elif event.button == 3:
-                            self.addCircle(1, pygame.mouse.get_pos(), 0, 0, True)
-                            self.createStatsScreen(True)
-
-                    # keyboard click event
-                    if event.type == KEYDOWN:
-                        if event.key == 104:
-                            self.toggleHealthMode()
-                        if event.key == 9:
-                            self.stats_screen = not self.stats_screen
-                            self.createStatsScreen(True)
-                        elif self.god_mode:
-                            self.spawnPowerup(event.key - 48, pygame.mouse.get_pos())
-
-            if self.real:
-                num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-                if self.cur_rows != num_rows:
-                    self.createStatsScreen(True)
-
-            # flip() the display to put your work on screen
             
-            if self.real:
-                pygame.display.flip()
-                self.screen.blit(self.background, (0, 0))
-                self.screen.blit(self.exit, self.exit_rect)
-                self.screen.blit(self.hp_mode_surface, (self.screen_w + 100, self.screen_h - 100))
-
-            elif not self.real and self.start_real:
+            # ?
+            if not self.real and self.start_real:
                 pygame.display.flip()
                 self.screen.blit(self.background, (0, 0))
                 self.screen.blit(self.simulating, self.simulating_rect)
 
-
-            # Every x seconds spawn a random powerup
+            # Every 5 seconds spawn a random powerup
             if not self.done and self.frames % (5 * self.fps) == 0:
                 self.spawnPowerup()
 
-            # Every x seconds there there is less than 10 circles spawn a speed powerup
+            # Every 10 seconds there there is less than 10 circles spawn a speed powerup
             if not self.done and self.frames % (10 * self.fps) == 0 and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) < ((self.c0_count + self.c1_count) / 3):
                 self.spawnPowerup(4)
 
-            self.dead_circle = False
-
-            # draw & update groups
-            if self.real:
-                self.groups[0].draw(self.screen)
-                self.groups[1].draw(self.screen)
-                self.laser_group.draw(self.screen)
-                self.blue_laser_group.draw(self.screen)
-                self.powerup_group.draw(self.screen)
-                self.killfeed_group.draw(self.screen)
-                self.clouds_group.draw(self.screen)
-                self.explosions_group.draw(self.screen)
-
+            # update groups
             self.groups[0].update(self)
+            self.groups[1].update(self)
             self.laser_group.update(self)
             self.blue_laser_group.update(self)
-            self.check_collisions()
-            self.groups[1].update(self)
-            self.check_collisions()
-
             self.clouds_group.update()
             self.explosions_group.update()
+            self.powerup_group.update(self)
+            
+            self.checkPowerupCollect()
+            self.check_collisions()
+
+            # update killfeed
+            # sprite returns 1 when dying, instructing others to move upwards
             for killfeed in self.killfeed_group.sprites():
                 if killfeed.update() == 1:
                     self.killfeed_group.update(True)
-
-            self.powerup_group.update(self)
-            self.checkPowerupCollect()
-            
-            if self.real:
-                self.drawStats()
-
-            # Do fortnite circle things
-            if not self.done and len(self.groups[0].sprites()) + len(self.groups[1].sprites()) <= ((self.c0_count + self.c1_count) / 3):
-                self.fortnite_x_growing = self.fortnite_y_growing = True
-
-            if self.fortnite_x_growing:
-                self.fortnite_x_counter += 1
-                if self.fortnite_x_counter % 3 == 0:
-                    if self.fortnite_x <= 350:
-                        self.fortnite_x += 1
-
-            if self.fortnite_y_growing:
-                self.fortnite_y_counter += 1
-                if self.fortnite_y_counter % 3 == 0:
-                    if self.fortnite_y <= 250:
-                        self.fortnite_y += 1
-
-            if self.real:
-                pygame.draw.rect(self.screen, "black", (self.fortnite_x, self.fortnite_y, self.screen_w - self.fortnite_x * 2, self.screen_h - self.fortnite_y * 2), 2)
-
+                
+            self.doFortnite()
+                
+            # check if one team is empty
             if len(self.groups[0].sprites()) == 0:
                 self.done = True
                 self.p1_win_flag = True
@@ -455,61 +385,86 @@ class Game:
                 if self.real: 
                     self.screen.blit(self.player_0_wins, self.player_0_wins_rect)
             
-            if self.done and self.play_sound and self.real:
-                self.play_sound = False
-                if self.win_sound.get_num_channels() == 0:
+            # handle the game finishing
+            if self.done:
+                # return the winner immediately if game is simulated by server
+                if self.server:
+                    if self.p0_win_flag: return 0
+                    else: return 1
+
+                # return the winner and stats screen immediately if game is simulated by the player
+                if not self.real and not self.server:
+                    self.createStatsScreen(True)
+
+                    if self.p0_win_flag: return 0, self.stats_surface
+                    else: return 1, self.stats_surface
+                
+                # play the win sound only once
+                if self.play_sound and self.real:
+                    self.play_sound = False
                     self.playSound(self.win_sound)
 
-            if self.done:
+                # show the stats screen after 10 seconds
                 self.frames_done += 1
                 if self.frames_done == 10 * self.fps:
                     self.stats_screen = True
 
-                    if self.done and not self.real:
-                        self.createStatsScreen(True)
-                        return self.stats_surface
-
+            # handle the game being real
             if self.real:
+                self.handle_inputs()
+
+                # draw misc things
+                self.screen.blit(self.background, (0, 0))
+                self.screen.blit(self.exit, self.exit_rect)
+                pygame.draw.rect(self.screen, "black", (self.fortnite_x, self.fortnite_y, self.screen_w - self.fortnite_x * 2, self.screen_h - self.fortnite_y * 2), 2)
+                self.drawTopRightStats()
+                # self.screen.blit(self.hp_mode_surface, (self.screen_w + 100, self.screen_h - 100)) 
+
+                # draw groups
+                self.groups[0].draw(self.screen)
+                self.groups[1].draw(self.screen)
+                self.laser_group.draw(self.screen)
+                self.blue_laser_group.draw(self.screen)
+                self.powerup_group.draw(self.screen)
+                self.killfeed_group.draw(self.screen)
+                self.clouds_group.draw(self.screen)
+                self.explosions_group.draw(self.screen)
+
+                # draw the stats screen if a new row is necessary
                 num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
-                if self.cur_rows != num_rows and self.real:
+                if self.cur_rows != num_rows:
                     self.createStatsScreen(True)
 
-            if self.stats_screen and self.real:
-                if self.frames % (self.fps / 2) == 0:
-                    for group in self.groups:
-                        for member in group:
-                            member.checkStatsChange()
+                # draw stats screen
+                if self.stats_screen:
+                    # if the stats screen is open, refresh it every half second
+                    if self.frames % (self.fps / 2) == 0:
+                        for group in self.groups:
+                            for member in group:
+                                member.checkStatsChange()
 
-                    self.createStatsScreen(True)
+                        self.createStatsScreen(True)
 
-                    for group in self.groups:
-                        for member in group:
-                            member.old_stats.copy(member.stats)
+                        for group in self.groups:
+                            for member in group:
+                                member.old_stats.copy(member.stats)
 
-                if self.real: self.screen.blit(self.stats_surface, (10, 50))
+                    self.screen.blit(self.stats_surface, (10, 50))
 
-            
-
-            # limits FPS to 60
-            if self.real: 
+                # draw the cursor on top
                 self.cursor_rect.center = pygame.mouse.get_pos()
                 self.screen.blit(self.cursor, self.cursor_rect)
+
+                # show screenm, tick clock
+                pygame.display.flip()
                 self.clock.tick(self.fps)
 
-            if self.done and not self.real:
-                # self.createStatsScreen(True)
-
-                if self.p0_win_flag: return 0
-                else: return 1
-
+        # return the final stats
         if self.real:
-            # self.close_sound.play()
-            # self.screen.blit(self.background, (0, 0))
-            # self.screen.blit(self.loading, (1920 / 2 - self.loading.get_size()[0] / 2, 1080 / 2 - self.loading.get_size()[1] / 2))
-            # pygame.display.update()
-            # time.sleep(0.5)
             self.createStatsScreen(True)
-            return self.stats_surface
+
+            if self.p0_win_flag: return 0, self.stats_surface
+            else: return 1, self.stats_surface
 
     def createText(self, text, size, color = "white", font_name = "sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheadingbolditalicsitkadisplaybolditalicsitkabannerbolditalic"):
         font = pygame.font.Font("backgrounds/font.ttf", size)
@@ -562,7 +517,7 @@ class Game:
 
                 if dist <= max_dist:
                     # Member has collected powerup
-                    member.collectPowerup(powerup.getId())
+                    self.memberCollectPowerup(member, powerup.getId())
                     powerup.kill()
 
 
@@ -608,7 +563,6 @@ class Game:
                 return self.memberHitMember(mem_2, mem_1)
                 
     def memberHitMember(self, winner, loser):
-        loser_copy = loser
         loser_resurrect = False
 
         # Handle if winner has insta kill
@@ -642,34 +596,99 @@ class Game:
             if 1 in winner.powerups and not loser_resurrect:
                 self.memberResurrectMember(winner, loser)
 
-        # Determine if any powerups were used for stats
-        # Clear winner of any powerups they should win
+        # Determine if any powerups were used by winner
         if 2 in winner.powerups:
             winner.stats.useStar()
         if 3 in winner.powerups:
-            winner.removePowerup(3)
-            winner.stats.useMuscle()
+            self.memberRemovePowerup(winner, 3)
         if 4 in winner.powerups:
-            winner.removePowerup(4)
-            winner.stats.useSpeed()
+            self.memberRemovePowerup(winner, 4)
         if 5 in winner.powerups:
-            winner.removePowerup(5)
+            self.memberRemovePowerup(winner, 5)
         if 7 in winner.powerups:
-            winner.removePowerup(7)
+            self.memberRemovePowerup(winner, 7)
         if 8 in winner.powerups:
-            winner.removePowerup(8)
-            # Will switch real brains of each removePowerup call to be done by Game, starting with this
-            self.memberSpawnBlueLasers(winner)
-
+            self.memberRemovePowerup(winner, 8)
+            
+        # Determine if any powerups were used by loser
         if 2 in loser.powerups:
-            loser.removePowerup(2)
+            self.memberRemovePowerup(loser, 2)
 
-
+        # return indicating if loser was killed
         if loser.hp <= 0:
             return 1
         else:
             return 0
         
+    def memberRemovePowerup(self, member, powerup_id):
+        if powerup_id in member.powerups:
+            if len(member.powerups) == 1:
+                member.powerups = []
+            else:
+                member.powerups.remove(powerup_id)
+                member.stats.activatePowerup()
+        else:
+            return
+
+        # star
+        if powerup_id == 2:
+            member.removeStar()
+        # if removing muscle, divide dmg_multiplier
+        if powerup_id == 3:
+            member.removeMuscle()
+        # if removing speed, divide dmg_multiplier
+        if powerup_id == 4:
+            member.removeSpeed()
+        # if removing health, gain health
+        if powerup_id == 5:
+            self.playSound(self.heal_sound)
+            self.addKillfeed(member, member, 5)
+            member.removeHealth()
+        # laser
+        if powerup_id == 7:
+            self.memberSpawnLaser(member)
+        # 8-way laser
+        if powerup_id == 8:
+            self.memberSpawnBlueLasers(member)
+        # mushroom
+        if id == 9:
+            member.removeMushroom()
+            
+        member.powerups_changed = True
+
+    def memberCollectPowerup(self, member: Circle, powerup_id):
+        member.powerups.append(powerup_id)
+
+        # check if picked up star (+5 luck)
+        if powerup_id == 2:
+            member.collectStar()
+        # check if picked up muscle (3x dmg_multiplier)
+        if powerup_id == 3:
+           member.collectMuscle()
+        # check if picked up speed (double speed + dmg_multiplier)
+        if powerup_id == 4:
+            member.collectSpeed()
+        # check if picked up bomb (explode in some time)
+        if powerup_id == 6:
+            member.collectBomb()
+        if powerup_id == 9:
+            member.collectMushroom()
+
+            # sound and killfeed
+            if self.real: self.playSound(self.heal_sound)
+            self.addKillfeed(member, member, 9)
+
+        # self.constructSurface()
+        member.powerups_changed = True
+
+    def memberSpawnLaser(self, member):
+        if self.real:
+            self.laser_group.add(Laser(member, self.powerup_images_screen[7]))
+        else:
+            self.laser_group.add(Laser(member, None, self.real))
+
+        self.playSound(self.laser_sound)
+
     def memberSpawnBlueLasers(self, circle):
         directions = [
             [0, 30],
@@ -688,6 +707,22 @@ class Game:
             else:
                 self.blue_laser_group.add(BlueLaser(circle, direction, None, self.real))
 
+    def memberKillSelf(self, member):
+        # create clouds at place of death
+        if self.real: self.clouds_group.add(Clouds(member.x, member.y, self.smoke_images, self.screen))
+
+        # retrieve stats from member before destruction
+        stats = member.stats
+        id = member.id
+        member.killSelf()
+
+        # add member stats to collection and redraw stats screen
+        # this check probably could be avoided somehow
+        if [id, stats] not in self.dead_stats[member.g_id]:
+            self.dead_stats[member.g_id].append([id, stats])
+
+        self.createStatsScreen(False, True)
+
     def memberKillMember(self, winner, loser, action = -1):
         loser_resurrect = False
 
@@ -701,7 +736,7 @@ class Game:
 
         # remove powerup % update stats, kill circle
         winner.stats.killPlayer(loser.id)
-        loser.killCircle()
+        self.memberKillSelf(loser)
 
         return loser_resurrect
 
@@ -718,11 +753,12 @@ class Game:
             loser_resurrect = True
 
         # remove powerup % update stats, kill circle
-        winner.removePowerup(0)
+        winner.powerups.remove(0)
+        winner.powerups_changed = True
         winner.stats.useInstakill()
         winner.stats.dealDamage(loser.hp)
         winner.stats.killPlayer(loser.id)
-        loser.killCircle()
+        loser.killSelf()
 
         return loser_resurrect
 
@@ -734,7 +770,7 @@ class Game:
             new_circle_before = dead_circle
 
         # create circle
-        new_circle = self.addCircle(god.g_id, new_circle_before.getXY(), new_circle_before.r, new_circle_before.getVel(), True)
+        new_circle = self.addShapeToTeam(god.g_id, new_circle_before.getXY(), new_circle_before.r, new_circle_before.getVel(), True)
 
         # killfeed and stats
         self.addKillfeed(god, new_circle, 1)
@@ -744,7 +780,7 @@ class Game:
         self.playSound(self.choir_sound)
 
         # remove powerup
-        god.removePowerup(1)
+        if 1 in god.powerups: god.powerups.remove(1)
 
         return new_circle.id
             
@@ -880,19 +916,19 @@ class Game:
 
     def laserHitMember(self, laser, hit):
         laser_damage = 25
-        laser.circle.stats.laserHit()
-        laser.circle.stats.dealDamage(laser_damage)
+        laser.shape.stats.laserHit()
+        laser.shape.stats.dealDamage(laser_damage)
         laser.ids_collided_with.append(hit.id)
         self.playSound(self.laser_hit_sound)
 
         hit.takeDamage(laser_damage)
 
         if hit.hp <= 0:
-            possible_id = self.memberKillMember(laser.circle, hit, 7)
+            possible_id = self.memberKillMember(laser.shape, hit, 7)
             if possible_id: laser.ids_collided_with.append(possible_id)
 
-            if 1 in laser.circle.powerups and not possible_id:
-                self.memberResurrectMember(laser.circle, hit)
+            if 1 in laser.shape.powerups and not possible_id:
+                self.memberResurrectMember(laser.shape, hit)
 
     def blueLaserHitMember(self, laser, hit):
         laser_damage = 10
@@ -959,7 +995,7 @@ class Game:
         self.playSound(self.death_sounds[random.randint(0, len(self.death_sounds)-1)])
         self.addKillfeed(bomb_holder, killed, 6)
 
-        killed.killCircle()
+        killed.killSelf()
 
         if 1 in killed.powerups:
             self.memberResurrectMember(killed)
@@ -980,7 +1016,9 @@ class Game:
         if new not in self.killfeed_group:
             self.killfeed_group.add(new)
 
-    def addCircle(self, g_id, xy = 0, r = 0, v = 0, new = False):
+    # add a new shape to a team by ID
+    # is used for both new shapes and resurrected shapes
+    def addShapeToTeam(self, g_id, xy = 0, r = 0, v = 0, new = False):
         if new:
             self.total_count += 1
 
@@ -997,29 +1035,28 @@ class Game:
                     xy = (xy[0], (self.id_count[g_id] % 5) * self.screen_h / (remainder + 1))
 
         if self.real:
-            new_circle = Circle(self.circles[g_id], self.id_count[g_id], self, self.images[g_id], self.powerup_images_hud, xy, r, v, new, self.smoke_images)
+            new_circle = Circle(self.circles[g_id], self.id_count[g_id], self.images[g_id], self.powerup_images_hud, xy, r, v, new, self.smoke_images)
         else:
-            new_circle = Circle(self.circles[g_id], self.id_count[g_id], self, None, None, xy, r, v, new, None, False)
+            new_circle = Circle(self.circles[g_id], self.id_count[g_id], None, None, xy, r, v, new, None, False)
 
         self.id_count[g_id] += 1
         self.groups[g_id].add(new_circle)
 
         return new_circle
 
+    # Switch between shapes displaying health as amount or percent
     def toggleHealthMode(self):
-        self.hp_mode_surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
         self.hp_mode = not self.hp_mode
+        
+        # force shapes to redraw their health by pretending they took damage
+        # also change the hp_mode of the shapes
         for group in self.groups:
             for member in group:
+                member.hp_mode = self.hp_mode
                 member.took_dmg = True
 
-        # font = pygame.font.Font("freesansbold.ttf", 40)
-        # if self.hp_mode:
-        #     self.draw_text("Health: Percentage", font, self.screen_w, self.screen_h - 100, True, self.hp_mode_surface)
-        # else:
-        #     self.draw_text("Health: Values", font, self.screen_w, self.screen_h - 100, True, self.hp_mode_surface)
-
-    def drawStats(self):
+    # TODO: this should only be called when the stats it showcases change, not every frame
+    def drawTopRightStats(self):
         if self.hps[0] <= self.max_hps[0] / 4:
             image = self.images[0][3]
         elif self.hps[0] <= self.max_hps[0] * 2 / 4:
@@ -1033,10 +1070,6 @@ class Game:
         self.screen.blit(image, (self.screen_w + 105, 10))
         self.draw_text("x{}".format(len(self.groups[0])), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 147, 105)
         self.draw_text("{}%".format(round((self.hps[0] / self.max_hps[0]) * 100, 1)), pygame.font.Font("backgrounds/font.ttf", 30), "white", self.screen_w + 155, 130)
-
-        # pygame.draw.rect(self.screen, "red", ((image.get_size()[0] * 2 + 10, self.screen_h + 25, self.max_hps[0] / 2.5, 5)))
-        # pygame.draw.rect(self.screen, "green", (image.get_size()[0] * 2 + 10, self.screen_h + 25, self.hps[0] / 2.5, 5))
-
 
         if self.hps[1] <= self.max_hps[1] / 4:
             image = self.images[1][3]
@@ -1077,7 +1110,7 @@ class Game:
         self.screen.blit(image, (x - (image.get_size()[0] / 2), y - (image.get_size()[1] / 2)))
 
     def createStatsScreen(self, first = False, second = False):
-        if not self.real: return
+        if not self.real and self.server: return
 
         # create stats screen image
         num_rows = max(len(self.groups[0].sprites()) + len(self.dead_stats[0]), len(self.groups[1].sprites()) + len(self.dead_stats[1]))
