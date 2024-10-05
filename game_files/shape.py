@@ -114,56 +114,6 @@ class Shape(pygame.sprite.Sprite):
         # rerender healthbar
         self.sections_to_render.append("healthbar")
 
-    def create_health_wedge(self):
-        """
-        Create a wedge-shaped mask for the health arc based on the entity's health percentage.
-        The wedge starts at the two bottom corners and points towards the center of the arc.
-        
-        Parameters:
-        - arc_image: The full arc image (pygame.Surface)
-        - max_health: Maximum health value
-        - current_health: Current health value
-        
-        Returns:
-        - A new pygame.Surface with the wedge-shaped arc representing the remaining health
-        """
-        # Calculate the health percentage
-        health_percent = self.hp / self.max_hp
-        
-        # Get the dimensions of the arc image
-        arc_width, arc_height = self.healthbar_img_full.get_size()
-
-        # Create a transparent surface the same size as the arc image
-        healthbar_img = pygame.Surface((arc_width, arc_height), pygame.SRCALPHA)
-        
-        # Calculate the top vertex of the wedge
-        middle_x = arc_width / 2
-        middle_y = arc_height
-        
-        # Calculate the bottom vertices based on health percentage
-        bottom_left_x = int(arc_width * (1 - health_percent) / 2)
-        bottom_right_x = int(arc_width * (1 + health_percent) / 2)
-        bottom_y = arc_height
-
-        # Define the points of the triangular wedge
-        points = [(middle_x, middle_y), (bottom_left_x, bottom_y), (bottom_left_x, 0), (bottom_right_x, 0),  (bottom_right_x, bottom_y)]
-
-        if self.hp == 100 or self.hp == 66 or self.hp == 33:
-            print(f'middle_x {middle_x} top_y {middle_y} arc_width {arc_width}')
-            print(f'points {points}')
-
-        # Draw the wedge-shaped polygon onto a mask surface
-        mask = pygame.Surface((arc_width, arc_height), pygame.SRCALPHA)
-        pygame.draw.polygon(mask, (255, 255, 255, 255), points)
-        
-        # Blit the arc image onto the healthbar surface using the mask
-        healthbar_img.blit(self.healthbar_img_full, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-        healthbar_img.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
-        
-        self.healthbar_img = healthbar_img
-        self.healthbar_rect = self.healthbar_img.get_rect()
-        self.healthbar_rect.topleft = [self.image.get_size()[0]/2 - self.healthbar_img.get_size()[0]/2, self.image.get_size()[1]/2 - self.healthbar_img.get_size()[1]]
-
     def renderSelf(self):
         """renders shapes image using sections_to_render attribute. only renders what is needed. valid sections are "all", "face", "powerups" """
        
@@ -220,45 +170,39 @@ class Shape(pygame.sprite.Sprite):
                 self.powerups_surface.blit(powerup_img, [self.powerups_surface.get_size()[0]/2 + powerup_positions[i][0] - powerup_img.get_size()[0]/2, self.powerups_surface.get_size()[1]/2 + powerup_positions[i][1] - powerup_img.get_size()[1]/2])
 
         if "healthbar" in self.sections_to_render or "all" in self.sections_to_render:
-            self.create_health_wedge()
+            # crop the image to the proper size
+            health_percent = self.hp / self.max_hp
+
+            # map percent (0-100) to angle (270° to 180°)
+            angle = math.radians(270 - (270 - 180) * health_percent)
+
+            # calculate the 2 coordinates of the two endpoints of the arc (both share y)
+            radius = self.r + 50
+            x_l = radius - (radius * math.cos(angle)) *-1
+            x_r = 2 * radius - x_l
+            y = radius + (radius * math.sin(angle))
+
+            # determine difference between new and max size
+            new_h = max(y, int(self.healthbar_max_h * 0.5))
+            new_w = x_r - x_l
+            d_w = self.healthbar_max_w - new_w
+
+
             # # crop the image to the proper size
             # health_percent = self.hp / self.max_hp
             # new_h = max(int(self.healthbar_max_h * health_percent), int(self.healthbar_max_h * 0.5))
             # new_w = int(self.healthbar_max_w * (health_percent))
             # d_w = self.healthbar_max_w - new_w
 
-            # region = (int(d_w/2), 0, new_w, new_h)
-            # self.healthbar_img = pygame.Surface((self.healthbar_max_w, self.healthbar_max_h), pygame.SRCALPHA, 32)
-            # self.healthbar_img.blit(self.healthbar_img_full, (int(d_w/2), 0), region)
-            # self.healthbar_rect = self.healthbar_img.get_rect()
+            region = (int(d_w/2), 0, new_w, new_h)
+            self.healthbar_img = pygame.Surface((self.healthbar_max_w, self.healthbar_max_h), pygame.SRCALPHA, 32)
+            self.healthbar_img.blit(self.healthbar_img_full, (int(d_w/2), 0), region)
+            self.healthbar_rect = self.healthbar_img.get_rect()
 
 
             # # position the healthbar in the middle of the shape
-            # self.healthbar_rect.topleft = [self.image.get_size()[0]/2 - self.healthbar_img.get_size()[0]/2, self.image.get_size()[1]/2 - self.healthbar_img.get_size()[1]]
-
-            # # crop the image to the proper size
-            # health_percent = self.hp / self.max_hp
-
-            # # Use quadratic interpolation to make the height shrink faster initially
-            # adjusted_health_percent = health_percent ** 3
-
-            # # Calculate the new height and width using the adjusted health percentage
-            # new_h = max(int(self.healthbar_max_h * adjusted_health_percent), int(self.healthbar_max_h * 0.5))
-            # new_w = int(self.healthbar_max_w * health_percent)  # Still use linear scaling for width
-            # d_w = self.healthbar_max_w - new_w
-
-            # # Define the region to crop, but now the height shrinks non-linearly
-            # region = (int(d_w / 2), 0, new_w, new_h)
-
-            # # Create a new surface and blit the cropped portion of the full healthbar image
-            # self.healthbar_img = pygame.Surface((self.healthbar_max_w, self.healthbar_max_h), pygame.SRCALPHA, 32)
-            # self.healthbar_img.blit(self.healthbar_img_full, (int(d_w / 2), 0), region)
-
-            # # Update the healthbar rectangle and position it
-            # self.healthbar_rect = self.healthbar_img.get_rect()
-            # self.healthbar_rect.topleft = [self.image.get_size()[0] / 2 - self.healthbar_img.get_size()[0] / 2, self.image.get_size()[1] / 2 - self.healthbar_img.get_size()[1]]
-
-            
+            self.healthbar_rect.topleft = [self.image.get_size()[0]/2 - self.healthbar_img.get_size()[0]/2, self.image.get_size()[1]/2 - self.healthbar_img.get_size()[1]]
+    
         # once all sections are rerendered, clear sections array
         self.sections_to_render = []
 

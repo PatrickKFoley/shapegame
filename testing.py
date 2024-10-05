@@ -232,7 +232,7 @@ def shape2():
     group.add(shape)
     # group.add(shape2)
 
-# Main loop
+    # Main loop
 
     running = True
     while running:
@@ -251,7 +251,7 @@ def shape2():
         screen.fill((0, 0, 0))
 
         if frames >= 20:
-            shape.takeDamage(1)
+            shape.takeDamage(.1)
                 
                 # shape2.takeDamage(2)
 
@@ -268,18 +268,48 @@ def shape2():
     pygame.quit()
     sys.exit()
 
+def arctest():
+
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    clock = pygame.time.Clock()
+    frames = 0
+
+    
+
+    # Main loop
+
+    running = True
+    while running:
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+        frames += 1
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == MOUSEBUTTONDOWN:
+                pass
+
+        screen.fill((0, 0, 0))
+
+        for i in range(0, 100):
+            points = point_on_arc(100-i, 500)
+            pygame.draw.circle(screen, (255, 255, 255), points[0], 1)
+            pygame.draw.circle(screen, (255, 255, 255), points[1], 1)
+
+
+        
+        pygame.display.flip()
+        clock.tick(60)
+        
+
+    # Quit Pygame
+    pygame.quit()
+    sys.exit()
 
 def point_on_arc(percent, square_size):
-    """
-    Returns the (x, y) point on an arc that bulges from the bottom left to the top left of a square.
-    
-    Parameters:
-    - percent: A value between 0 and 100 representing the position along the arc.
-    - square_size: The size of the square (assumed to be square, so width = height = side length).
-    
-    Returns:
-    - A tuple (x, y) representing the point on the arc.
-    """
     # Calculate the radius of the arc (the side length of the square)
     radius = square_size
     
@@ -288,19 +318,68 @@ def point_on_arc(percent, square_size):
     end_angle = 180
     angle = math.radians(start_angle - (start_angle - end_angle) * (percent / 100))
     
-    # The center of the quarter-circle (bottom-left corner of the square)
-    center_x = 0
-    center_y = square_size
-    
     # Calculate the x, y coordinates on the arc
-    x = center_x + radius * math.cos(angle)
-    y = center_y + radius * math.sin(angle)
+    x_l = radius - (radius * math.cos(angle)) *-1
+    x_r = 2 * radius - x
+    y = radius + (radius * math.sin(angle))
     
-    return (square_size-x*-1, y)
+    return [(x_l, y), (x_r, y)]
+    
+def newArt():
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    clock = pygame.time.Clock()
+    frames = 0
 
-print(point_on_arc(90, 10))
+
+    blue = pygame.image.load("shape_images/blue.png").convert_alpha()
+    orange = pygame.image.load("shape_images/orange.png").convert_alpha()
+    green = pygame.image.load("shape_images/green.png").convert_alpha()
+    lemonlime = pygame.image.load("shape_images/lemonlime.png").convert_alpha()
+    f0 = pygame.image.load("shape_images/0/0.png").convert_alpha()
+    f1 = pygame.image.load("shape_images/0/1.png").convert_alpha()
+    f2 = pygame.image.load("shape_images/0/2.png").convert_alpha()
+    f3 = pygame.image.load("shape_images/0/3.png").convert_alpha()
+    
+
+    blue.blit(f0, [0, 0])
+    orange.blit(f1, [0, 0])
+    green.blit(f2, [0, 0])
+    lemonlime.blit(f3, [0, 0])
+    blue = pygame.transform.smoothscale(blue, [200, 200])
+    orange = pygame.transform.smoothscale(orange, [200, 200])
+    green = pygame.transform.smoothscale(green, [200, 200])
+    lemonlime = pygame.transform.smoothscale(lemonlime, [200, 200])
+
+            
+
+    running = True
+    while running:
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+        frames += 1
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+
+        screen.fill((0, 0, 0))
+
+        screen.blit(blue, [0, 0])
+        screen.blit(orange, [200, 0])
+        screen.blit(green, [400, 0])
+        screen.blit(lemonlime, [600, 0])
+
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
+# print(point_on_arc(90, 10))
+# arctest()
 
 # shape2()
+newArt()
 
 # while True:
 #     simulate()
