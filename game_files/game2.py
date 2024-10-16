@@ -1,5 +1,6 @@
 import pygame, random, os, numpy, math, time, itertools
 from queue import Queue
+from collections import deque
 from pygame import Surface
 from pygame.locals import *
 from pygame.sprite import Group
@@ -13,6 +14,7 @@ from createdb import User, Shape as ShapeData
 
 from game_files.shape import Shape
 from game_files.laser2 import Laser
+from game_files.buckshot import Buckshot
 from game_files.powerup2 import Powerup
 from game_files.killfeed2 import Killfeed
 from game_files.circledata import *
@@ -21,6 +23,7 @@ from game_files.colordata import color_data
 
 ACTION_KILL = 'kill'
 ACTION_HEAL = 'heal'
+ACTION_RESURRECT = 'resurrect'
 ACTION_PICKUP_BOMB = 'pickup_bomb'
 ACTION_PICKUP_SKULL = 'pickup_instakill'
 ACTION_PICKUP_WINGS = 'pickup_resurrect'
@@ -35,6 +38,8 @@ KILL_SKULL = 'kill_skull'
 KILL_STAR = 'kill_star'
 KILL_BOXING_GLOVE = 'kill_boxing_glove'
 KILL_LASER = 'kill_laser'
+KILL_BUCKSHOT = 'kill_buckshot'
+
 
 class Game2:
     def __init__(self, screen: Surface, shape_1_data: ShapeData, shape_2_data: ShapeData, user_1: User, user_2: User, seed = False, player_simulated = False, server_simulated = False):
@@ -129,12 +134,12 @@ class Game2:
         '''populate teams'''
 
         for i in range(0, self.shape_1_data.team_size):
-            shape = Shape(self.shape_1_data, color_data[self.shape_1_data.color_id], i, 0, self.shape_1_face_images, self.powerup_images_small, self.shape_1_healthbar_images)
+            shape = Shape(i, 0, self.shape_1_data, color_data[self.shape_1_data.color_id], self.shape_1_face_images, self.powerup_images_small, self.shape_1_healthbar_images)
             
             self.team_1_group.add(shape)
 
         for i in range(0, self.shape_2_data.team_size):
-            shape = Shape(self.shape_2_data, color_data[self.shape_2_data.color_id], i, 1, self.shape_2_face_images, self.powerup_images_small, self.shape_2_healthbar_images)
+            shape = Shape(i, 1, self.shape_2_data, color_data[self.shape_2_data.color_id], self.shape_2_face_images, self.powerup_images_small, self.shape_2_healthbar_images)
 
             self.team_2_group.add(shape)
 
@@ -288,7 +293,11 @@ class Game2:
 
         self.laser_images = []
         for i in range(8):
-            self.laser_images.append(pygame.transform.smoothscale(pygame.image.load(f'powerups/laser/{i}.png').convert_alpha(), [40, 40]))
+            self.laser_images.append(pygame.transform.smoothscale(pygame.image.load(f'powerup_images/laser/{i}.png').convert_alpha(), [40, 40]))
+
+        self.buckshot_images = []
+        for i in range(10):
+            self.buckshot_images.append(pygame.transform.smoothscale(pygame.image.load(f'powerup_images/buckshot/{i}.png').convert_alpha(), [40, 40]))
 
     def loadSounds(self):
         '''load all sounds'''
@@ -370,12 +379,16 @@ class Game2:
 
         # update killfeed elements
         cycle_killfeeds = False
+        num_cycles = 0
         for killfeed in self.killfeed_group.sprites():
-            ret = killfeed.update(cycle_killfeeds)
+            ret = killfeed.update()
+            num_cycles += ret if ret == 1 else 0
 
             if ret == 1:
-                cycle_killfeeds = True
                 self.num_killfeeds -= 1
+
+            for i in range(num_cycles):
+                killfeed.cycle()
 
         # detect collisions
         self.detectCollisions()
@@ -458,6 +471,8 @@ class Game2:
             action_img = self.killfeed_action_imgs[action[5:]]
         if action.startswith('heal'):
             action_img = self.killfeed_action_imgs['cherry']
+        if action.startswith('resurrect'):
+            action_img = self.killfeed_action_imgs['resurrect']
             
         killfeed = Killfeed(self.num_killfeeds, left, action, action_img, self.killfeed_backgrounds, self.killfeed_tapes, right)
         self.num_killfeeds += 1
@@ -480,6 +495,9 @@ class Game2:
                 self.shape_rerender_queue.put(shape_1)
                 self.shape_rerender_list.append(shape_1)
 
+            if shape_1.bomb_timer == 0:
+                self.blowupBomb(shape_1)
+
             if shape_1.is_dead: continue
 
             for shape_2 in itertools.chain(self.team_1_group, self.team_2_group):
@@ -491,7 +509,6 @@ class Game2:
                 # keep track of which shapes you are not touching
                 else:
                     if shape_2 in shape_1.shapes_touching: shape_1.shapes_touching.remove(shape_2)
-
 
             for powerup in self.powerup_group:
                 dist = math.sqrt((powerup.x - shape_1.x)**2 + (powerup.y - shape_1.y)**2)
@@ -552,10 +569,6 @@ class Game2:
     def repositionShapes(self, shape_1: Shape, shape_2: Shape):
         '''rectify the positions and velocities of two shapes which are currently colliding'''
 
-        # STEP 0: move back a step
-        # shape_1.move(True)
-        # shape_2.move(True)
-
         # STEP 1
 
         [x2, y2] = shape_2.getXY()
@@ -565,6 +578,7 @@ class Game2:
         [vx2i, vy2i] = shape_2.getV()
 
         norm_vec = numpy.array([x2 - x1, y2 - y1])
+        if norm_vec[0] == 0 and norm_vec[1] == 0: return
 
         divisor = math.sqrt(norm_vec[0]**2 + norm_vec[1]**2)
         unit_vec = numpy.array([norm_vec[0] / divisor, norm_vec[1] / divisor])
@@ -617,13 +631,7 @@ class Game2:
         v2p = v2np_ + v2tp_
         shape_2.setV(v2p[0], v2p[1])
 
-        [vx1f, vy1f] = shape_1.getV()
-        [vx2f, vy2f] = shape_2.getV()
-
-        # print(f'{vx1i}->{vx1f}')
-        # print(f'{vy1i}->{vy1f}')
-        # print(f'{vx2i}->{vx2f}')
-        # print(f'{vy2i}->{vy2f}')
+    # SHAPE HIT FUNCTIONS
 
     def shapeDamageShape(self, winner: Shape, loser: Shape):
         '''handler for if two shapes of opposing teams collide and deal damage'''
@@ -647,15 +655,32 @@ class Game2:
         # activate any powerups from winner which are used on outgoing damage
         if 'cherry' in winner.powerup_arr:
             winner.removePowerup('cherry')
-            winner.heal(winner.max_hp/3)
-            self.playSound(self.heal_sound)
-            self.addKillfeed(winner, ACTION_HEAL)
+            self.healShape(winner, round(winner.max_hp/3))
 
         if 'laser' in winner.powerup_arr:
             self.playSound(self.laser_sound)
 
             winner.removePowerup('laser')
             self.laser_group.add(Laser(winner, self.laser_images))
+
+        if 'buckshot' in winner.powerup_arr:
+            self.playSound(self.laser_sound)
+
+            winner.removePowerup('buckshot')
+
+            directions = [
+                [0, 30],
+                [21, 21], 
+                [30, 0],
+                [21, -21],
+                [0, -30],
+                [-21, -21],
+                [-30, 0],
+                [-21, 21]
+            ]
+            
+            for direction in directions:
+                self.laser_group.add(Buckshot(winner, direction, self.buckshot_images))
 
         # determine if team overview needs to be rendered
         # lower total team hp
@@ -683,6 +708,15 @@ class Game2:
 
             else: self.addKillfeed(winner, 'kill', loser)
 
+            # check if any shapes will be resurrected
+            if 'resurrect' in loser.powerup_arr:
+                self.shapeRespawnShape(loser, loser)
+                loser.removePowerup('resurrect')
+
+            elif 'resurrect' in winner.powerup_arr:
+                self.shapeRespawnShape(winner, loser)
+                winner.removePowerup('resurrect')
+
     def laserHitShape(self, laser: Laser, shape: Shape):
         if shape.shape_id in laser.ids_collided_with or shape.team_id == laser.team_id: return
 
@@ -701,13 +735,14 @@ class Game2:
         self.checkTeamOverviewChanges(shape.team_id)
 
         if shape.is_dead:
-            self.addKillfeed(laser.shape, KILL_LASER, shape)
+            self.addKillfeed(laser.shape, f'kill_{laser.type}', shape)
+            laser.shape.killShape()
 
     def shapeCollectPowerup(self, shape: Shape, powerup: Powerup):
         '''handler for shape collecting a powerup'''
 
         # shapes can have max 5 powerups
-        if len(shape.powerup_arr) == 5: return
+        if len(shape.powerup_arr) == 5 or powerup.name in shape.powerup_arr: return
 
         # handle everything that the game has to do regarding the pickup
         # (sounds, killfeed...)
@@ -726,10 +761,95 @@ class Game2:
         shape.collectPowerup(powerup)
 
         # add killfeed entry
-        # self.addKillfeed(shape, f'pickup_{powerup.name}')
+        if powerup.name == 'bomb': self.addKillfeed(shape, f'pickup_{powerup.name}')
         
         # kill powerup
         powerup.kill()
+
+    def healShape(self, shape: Shape, amount: int):
+        
+        # limit health to 100%
+        if shape.hp + amount > shape.max_hp:
+            amount = shape.max_hp - shape.hp
+        
+        shape.heal(amount)
+
+        # determine if team overview needs to be rendered
+        # lower total team hp
+        if shape.team_id == 0: self.team_1_total_hp += amount
+        else: self.team_2_total_hp += amount
+        self.checkTeamOverviewChanges(shape.team_id)
+
+        self.playSound(self.heal_sound)
+        self.addKillfeed(shape, ACTION_HEAL)
+
+    def shapeRespawnShape(self, creating_shape: Shape, model_shape: Shape):
+        '''create a new shape, on the team as creating_shape, with the attributes of model_shape'''
+        
+        if creating_shape.team_id == 0:
+            shape = Shape(self.team_1_team_size, creating_shape.team_id, resurrected_creator=creating_shape, resurrected_model=model_shape)
+            self.team_1_team_size += 1
+            self.team_1_max_hp += shape.hp
+            self.team_1_total_hp += shape.hp
+            self.team_1_group.add(shape)
+
+            # if adding a member to team 1, move team 2 stats surface location
+            self.team_2_stats_rect.topleft = [self.team_2_stats_rect.x, 164 + int(20.6 * (self.team_1_team_size))]
+        
+        else:
+            shape = Shape(self.team_2_team_size, creating_shape.team_id, resurrected_creator=creating_shape, resurrected_model=model_shape)
+            self.team_2_team_size += 1
+            self.team_2_max_hp += shape.hp
+            self.team_2_total_hp += shape.hp
+            self.team_2_group.add(shape)
+
+        # determine if team overview needs to be rendered
+        self.checkTeamOverviewChanges(creating_shape.team_id)
+
+        # play sounds, create killfeed
+        self.playSound(self.choir_sound)
+        self.addKillfeed(creating_shape, ACTION_RESURRECT, shape)
+
+        # add shape to front of stats render queue
+        self.shape_rerender_list.append(shape)
+        self.shape_rerender_queue.queue.insert(0, shape)
+
+    def blowupBomb(self, shape: Shape):
+        if not self.player_simulated and not self.server_simulated:
+            self.fuse_sound.stop()
+            # add to group
+            self.playSound(self.explosion_sound)
+
+        kills = 0
+        x, y = shape.getXY()
+
+        for shape_2 in itertools.chain(self.team_1_group, self.team_2_group):
+            if shape_2.is_dead: continue
+
+            [x2, y2] = shape_2.getXY()
+            dist = math.sqrt( (x2- x)**2 + (y2 - y)** 2)
+
+            if dist <= 200:
+                self.shapeDealDamage(shape, shape_2, 200-dist)
+
+            if shape_2.is_dead:
+                kills += 1
+
+        if kills >= 2 and 'resurrect' not in shape.powerup_arr:
+            self.shapeRespawnShape(shape, shape)
+
+    def shapeDealDamage(self, shape_hitting: Shape, shape_hit: Shape, amount: int):
+        amount = min(shape_hit.hp, amount)
+
+        shape_hit.takeDamage(amount)
+        shape_hitting.dealDamage(amount)
+
+        if shape_hit.team_id == 0: self.team_1_total_hp -= amount
+        else: self.team_2_total_hp -= amount
+        self.checkTeamOverviewChanges(shape_hit.team_id)
+
+        if shape_hit.is_dead: shape_hitting.killShape()
+
 
     # RENDERING HELPERS
     
@@ -849,7 +969,7 @@ class Game2:
         '''renders a single shape's stats using shape.stats_to_render attribute. valid stats are 'all', 'hp', 'dmg_dealt', 'dmg_received', 'kills', 'resurrects', 'powerups_collected', '''
 
         # if this shape isn't new, remove it from the tracking list
-        if shape.id_stat_text != None: self.shape_rerender_list.remove(shape) 
+        if shape in self.shape_rerender_list: self.shape_rerender_list.remove(shape) 
 
         surface = self.team_1_stats if shape.team_id == 0 else self.team_2_stats
         
@@ -863,8 +983,7 @@ class Game2:
 
         if shape.id_stat_text == None or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.id_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.id_stat_text)
+            self.eraseTextFromBackground(surface, shape.id_stat_text)
 
             shape.id_stat_text = Text(f'{shape.shape_id}:', font_size, (2 if shape.shape_id >= 10 else 10) + x_pos, y_pos, color=color)
             surface.blit(shape.id_stat_text.surface, shape.id_stat_text.rect)
@@ -872,8 +991,7 @@ class Game2:
         x_pos += 60
         if 'hp' in shape.stats_to_render or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.hp_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.hp_stat_text)
+            self.eraseTextFromBackground(surface, shape.hp_stat_text)
 
             # replace stat text and blit
             hp_str = str(max(round(shape.hp / shape.max_hp * 100), 0)) + '%'
@@ -883,8 +1001,7 @@ class Game2:
         x_pos += 60
         if 'kills' in shape.stats_to_render or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.kills_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.kills_stat_text)
+            self.eraseTextFromBackground(surface, shape.kills_stat_text)
 
             # replace stat text and blit
             shape.kills_stat_text = Text(str(shape.stats.kills), font_size, x_pos, y_pos, color=color)
@@ -893,8 +1010,7 @@ class Game2:
         x_pos += 70
         if 'resurrects' in shape.stats_to_render or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.resurrects_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.resurrects_stat_text)
+            self.eraseTextFromBackground(surface, shape.resurrects_stat_text)
 
             # replace stat text and blit
             shape.resurrects_stat_text = Text(str(shape.stats.resurrects), font_size, x_pos, y_pos, color=color)
@@ -903,8 +1019,7 @@ class Game2:
         x_pos += 70
         if 'dmg_dealt' in shape.stats_to_render or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.dmg_dealt_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.dmg_dealt_stat_text)
+            self.eraseTextFromBackground(surface, shape.dmg_dealt_stat_text)
 
             # replace stat text and blit
             shape.dmg_dealt_stat_text = Text(str(shape.stats.dmg_dealt), font_size, x_pos, y_pos, color=color)
@@ -913,8 +1028,7 @@ class Game2:
         x_pos += 70
         if 'dmg_received' in shape.stats_to_render or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.dmg_received_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.dmg_received_stat_text)
+            self.eraseTextFromBackground(surface, shape.dmg_received_stat_text)
 
             # replace stat text and blit
             shape.dmg_received_stat_text = Text(str(shape.stats.dmg_received), font_size, x_pos, y_pos, color=color)
@@ -923,8 +1037,7 @@ class Game2:
         x_pos += 70
         if 'powerups_collected' in shape.stats_to_render or 'all' in shape.stats_to_render:
             # if stats has already been rendered, erase it
-            if shape.powerups_collected_stat_text != None:
-                self.eraseTextFromBackground(surface, shape.powerups_collected_stat_text)
+            self.eraseTextFromBackground(surface, shape.powerups_collected_stat_text)
 
             # replace stat text and blit
             shape.powerups_collected_stat_text = Text(str(shape.stats.powerups_collected), font_size, x_pos, y_pos, color=color)

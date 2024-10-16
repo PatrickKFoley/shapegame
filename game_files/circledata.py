@@ -9,15 +9,26 @@ xp_amounts = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 
 powerup_data = {
     # "skull":        ["powerup_images/skull.png",        0],
-    # "resurrect":    ["powerup_images/wings.png",        1],
+    # "resurrect":    ["powerup_images/wings.png",        0],
     # "star":         ["powerup_images/star.png",         0],
     # "boxing_glove": ["powerup_images/boxing_glove.png", 0],
     # "feather":      ["powerup_images/feather.png",      0],
     # "cherry":       ["powerup_images/cherry.png",       0],
-    # "bomb":         ["powerup_images/bomb.png",         6],
-    "laser":        ["powerup_images/green_laser.png",  0],
-    # "buckshot":     ["powerup_images/purple_laser.png", 8],
+    "bomb":         ["powerup_images/bomb.png",         0],
+    # "laser":        ["powerup_images/green_laser.png",  0],
+    # "buckshot":     ["powerup_images/purple_laser.png", 0],
     # "mushroom":     ["powerup_images/mushroom.png",     9]
+
+    # "skull":        ["powerup_images/skull.png",        0],
+    # "resurrect":    ["powerup_images/wings.png",        1],
+    # "star":         ["powerup_images/star.png",         2],
+    # "boxing_glove": ["powerup_images/boxing_glove.png", 3],
+    # "feather":      ["powerup_images/feather.png",      4],
+    # "cherry":       ["powerup_images/cherry.png",       5],
+    # # "bomb":         ["powerup_images/bomb.png",         6],
+    # "laser":        ["powerup_images/green_laser.png",  6],
+    # "buckshot":     ["powerup_images/purple_laser.png", 7],
+    # # "mushroom":     ["powerup_images/mushroom.png",     9]
 
     # "skull":        ["powerup_images/skull.png",        0],
     # "resurrect":    ["powerup_images/wings.png",        1],

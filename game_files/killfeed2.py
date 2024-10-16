@@ -61,6 +61,7 @@ class Killfeed(pygame.sprite.Sprite):
         kill_remarks = ['you should have seen it.', 'it was brutal.', 'shit was based.', 'call the amberlamps!', 'he need some milk!']
         warning_remarks = ['watch out!', 'stay clear!', 'neat.']
         healed_remarks = ['good as new.', 'that\'ll come in use.', 'all better :)']
+        resurrect_remaks = ['praise god!', 'unbelievable.', 'hallelujah']
         left_name = f'{self.left.shape_data.name} {self.left.shape_id}'
         right_name = f'{self.right.shape_data.name} {self.right.shape_id}' if self.right else None
 
@@ -78,6 +79,11 @@ class Killfeed(pygame.sprite.Sprite):
             return [
                 f'{left_name} was healed.',
                 f'{random.choice(healed_remarks)}'
+            ]
+        elif self.action.startswith('resurrect'):
+            return [
+                f'{left_name} resurrected {right_name}.',
+                f'{random.choice(resurrect_remaks)}'
             ]
         
     def cycle(self, ):
@@ -120,3 +126,5 @@ class Killfeed(pygame.sprite.Sprite):
             if self.alpha <= 0: self.alpha = 0; self.kill(); return 1
 
             self.image.set_alpha(self.alpha)
+
+        return 0

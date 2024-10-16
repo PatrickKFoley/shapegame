@@ -8,6 +8,7 @@ class Laser(pygame.sprite.Sprite):
         self.shape = shape
         self.images = images
         self.real = real
+        self.type = 'laser'
 
         # range of motion
         self.screen_w = 1920-460
@@ -27,7 +28,7 @@ class Laser(pygame.sprite.Sprite):
         self.y = shape.y
         self.vx = shape.vx * multiplier * 3
         self.vy = shape.vy * multiplier * 3
-        self.damage = 20
+        self.damage = 10
         
         self.r = 20
         self.frames = 0
@@ -45,19 +46,19 @@ class Laser(pygame.sprite.Sprite):
         # ensure laser stays within bounds
         if self.x > self.screen_w - self.r:
             self.x = self.screen_w - self.r
-            self.vx = -1 * self.vx
+            self.vx *= -1
 
         if self.x < self.r:
             self.x = self.r
-            self.vx = -1 * self.vx
+            self.vx *= -1
 
         if self.y > self.screen_h - self.r:
             self.y = self.screen_h - self.r
-            self.vy = -1 * self.vy
+            self.vy *= -1
 
         if self.y < self.r:
             self.y = self.r
-            self.vy = -1 * self.vy
+            self.vy *= -1
 
         self.rect.center = [self.x, self.y]
 
@@ -77,3 +78,4 @@ class Laser(pygame.sprite.Sprite):
             if self.alpha <= 0: self.kill()
             
             self.image.set_alpha(self.alpha)
+        # elif self.image.get_alpha() != 255: self.image.set_alpha(255)

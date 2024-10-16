@@ -1,5 +1,5 @@
 import  pygame, random, math, numpy as np
-import pygame.surface
+from pygame.surface import Surface
 from game_files.shapestats import ShapeStats
 from game_files.clouds import Clouds
 from game_files.colordata import ColorData
@@ -10,25 +10,28 @@ from game_files.circledata import powerup_data
 from screen_elements.text import Text 
 
 class Shape(pygame.sprite.Sprite):
-    def __init__(self, shape_data: ShapeData, color_data: ColorData, shape_id, team_id, face_images, hud_images, healthbar_imgs, resurrected = False, simulated = False):
+    def __init__(self, shape_id, team_id, shape_data: ShapeData = 0, color_data: ColorData = 0,  face_images: list[Surface] = 0, hud_images: list[Surface] = 0, healthbar_imgs: list[Surface] = 0, resurrected_creator = False, resurrected_model = False, simulated = False):
         super().__init__()
-
-        # attributes passed from game
-        self.shape_data = shape_data
-        self.type = shape_data.type
-        self.color_data = color_data
-        self.shape_id = shape_id
-        self.team_id = team_id
-        self.face_images = face_images
-        self.hud_images = hud_images
-        self.healthbar_imgs_full = healthbar_imgs
 
         # range of motion
         self.screen_w = 1920-460
         self.screen_h = 1080
+
+        self.shape_id = shape_id
+        self.team_id = team_id
         
         # check if this is a resurrected shape
-        if resurrected == False:
+        if resurrected_model == False:
+            self.model_id = None
+
+            # attributes passed from game
+            self.shape_data = shape_data
+            self.type = shape_data.type
+            self.color_data = color_data
+            self.face_images = face_images
+            self.hud_images = hud_images
+            self.healthbar_imgs_full = healthbar_imgs
+
             self.r = random.randint(shape_data.radius_min, shape_data.radius_max)
             self.m = round((3/4) * 3.14 * self.r**3)
             self.vx = shape_data.velocity if team_id == 1 else shape_data.velocity * -1
@@ -56,19 +59,41 @@ class Shape(pygame.sprite.Sprite):
 
             # if you aren't spawning in a full row, move vertically
             num_remainders = shape_data.team_size % 5
-            # print(num_remainders)
             if num_remainders != 0 and shape_id >= shape_data.team_size - num_remainders:
                 self.y = ((shape_id+1) % 5) * self.screen_h / (num_remainders + 1)
+
+        else:
+            # copy all data from resurrected model
+            self.model_id = resurrected_model.shape_id
+
+            self.shape_data = resurrected_creator.shape_data
+            self.type = resurrected_creator.shape_data.type
+            self.color_data = resurrected_creator.color_data
+            self.face_images = resurrected_creator.face_images
+            self.hud_images = resurrected_creator.hud_images
+            self.healthbar_imgs_full = resurrected_creator.healthbar_imgs_full
+
+            self.r = resurrected_model.r
+            self.m = resurrected_model.m
+            self.vx = int(resurrected_model.vx)
+            self.vy = int(resurrected_model.vy)
+            self.x = int(resurrected_model.x)
+            self.y = int(resurrected_model.y)
+
+            # not sure what causes the nan issue, but this will avoid it
+            if str(self.vx) == 'nan' or str(self.vy) == 'nan':
+                self.vx = shape_data.velocity if team_id == 1 else shape_data.velocity * -1
+                self.vy = random.randint(-1, 1)
 
         # healthbar things
         self.current_healthbar_image_id = 0
         self.healthbar_img = self.healthbar_imgs_full[self.current_healthbar_image_id]
 
         # all other necessary shape attributes
-        self.luck = shape_data.luck
-        self.dmg_x = shape_data.dmg_multiplier
-        self.hp = shape_data.health
-        self.max_hp = shape_data.health
+        self.luck = self.shape_data.luck
+        self.dmg_x = self.shape_data.dmg_multiplier
+        self.hp = self.shape_data.health
+        self.max_hp = self.shape_data.health
         self.current_shape_image_id = 0
         self.necessary_surface_size = int(self.r*2) + 50 # 50 should be plenty for healthbar and powerups
         self.is_dead = False
@@ -101,13 +126,14 @@ class Shape(pygame.sprite.Sprite):
         
         # collection for powerup names
         self.powerup_arr: list[str] = []
+        self.bomb_timer = -1
 
         # get your body image from color data (default for circle)
-        self.body_image = color_data.circle_image
+        self.body_image = self.color_data.circle_image
         if self.type == 'square':
-            self.body_image = color_data.square_image
+            self.body_image = self.color_data.square_image
         elif self.type == 'triangle':
-            self.body_image = color_data.triangle_image
+            self.body_image = self.color_data.triangle_image
 
         # construct shape images (full sized)
         self.shape_images = []
@@ -138,14 +164,17 @@ class Shape(pygame.sprite.Sprite):
         return [self.vx, self.vy]
     
     def getDamage(self):
+        # return 20
+
         if 'skull' in self.powerup_arr: return 99999
 
         velocity = math.sqrt(self.getV()[0]**2 + self.getV()[1]**2)
 
-        if velocity == np.nan:
+        if velocity == np.nan or str(velocity) == 'nan':
             velocity = 0
 
-        return round(self.dmg_x * (velocity * self.m / 100000))
+        damage = round(self.dmg_x * (velocity * self.m / 1000000))
+        return damage
 
     def setV(self, vx, vy):
         self.vx = vx
@@ -160,7 +189,8 @@ class Shape(pygame.sprite.Sprite):
         if self.is_dead:
             return
 
-        # if random.choice([0, 1, 2, 3]) == 0: self.takeDamage(0.25)
+        if self.bomb_timer >= 0:
+            self.bomb_timer -= 1
 
         self.handleGrowth()
 
@@ -254,6 +284,9 @@ class Shape(pygame.sprite.Sprite):
 
         elif powerup.name == 'boxing_glove':
             self.dmg_x *= 2
+
+        elif powerup.name == 'bomb':
+            self.bomb_timer = 200
 
         self.powerup_arr.append(powerup.name)
         self.shape_sections_to_render.append("powerups")
