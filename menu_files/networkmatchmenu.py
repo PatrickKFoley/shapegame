@@ -408,7 +408,7 @@ class NetworkMatchMenu():
             game = Game(their_circle, your_circle, self.user_opponent.username, self.user.username, self.screen, self.pregame.seed)
         
         # play the game
-        game.play_game()
+        game.playGame()
         del game
 
         # if the server has not determined a winner yet

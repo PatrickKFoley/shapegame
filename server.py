@@ -190,7 +190,7 @@ def handleClient(conn, player, pregames, game_id):
 
                         print(f'About to simulate game with id: {game_id}')
 
-                        pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False, True).play_game()
+                        pregame.winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False, True).playGame()
 
                         winner_username = player0_username
                         if pregame.winner == 1:

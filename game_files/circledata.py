@@ -8,16 +8,27 @@ names = ["Zippy", "Bixie", "Jazzy", "Quirk", "Fizzy", "Zazzy", "Pixel", "Zippy",
 xp_amounts = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 
 powerup_data = {
-    "insta-kill":   ["powerups/skull.png",      0],
-    "resurrect":    ["powerups/cross.png",      1],
-    "star":         ["powerups/star.png",       2],
-    "muscle":       ["powerups/muscle.png",     3],
-    "speed":        ["powerups/speed.png",      4],
-    "health":       ["powerups/health.png",     5],
-    "bomb":         ["powerups/bomb.png",       6],
-    "laser":        ["powerups/laser.png",      7],
-    "buckshot":     ["powerups/blue_laser.png", 8],
-    "mushroom":     ["powerups/mushroom.png",   9]
+    # "skull":        ["powerup_images/skull.png",        0],
+    # "resurrect":    ["powerup_images/wings.png",        1],
+    # "star":         ["powerup_images/star.png",         0],
+    # "boxing_glove": ["powerup_images/boxing_glove.png", 0],
+    # "feather":      ["powerup_images/feather.png",      0],
+    # "cherry":       ["powerup_images/cherry.png",       0],
+    # "bomb":         ["powerup_images/bomb.png",         6],
+    "laser":        ["powerup_images/green_laser.png",  0],
+    # "buckshot":     ["powerup_images/purple_laser.png", 8],
+    # "mushroom":     ["powerup_images/mushroom.png",     9]
+
+    # "skull":        ["powerup_images/skull.png",        0],
+    # "resurrect":    ["powerup_images/wings.png",        1],
+    # "star":         ["powerup_images/star.png",         2],
+    # "boxing_glove": ["powerup_images/boxing_glove.png", 3],
+    # "feather":      ["powerup_images/feather.png",      4],
+    # "cherry":       ["powerup_images/cherry.png",       5],
+    # "bomb":         ["powerup_images/bomb.png",         6],
+    # "laser":        ["powerup_images/green_laser.png",  7],
+    # "buckshot":     ["powerup_images/purple_laser.png", 8],
+    # "mushroom":     ["powerup_images/mushroom.png",     9]
 }
 
 colors = [

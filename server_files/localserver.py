@@ -145,7 +145,7 @@ def threaded_client(conn, player, game_id):
 
                         print("ABOUT TO PLAY GAME")
 
-                        winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).play_game()
+                        winner = Game(game_shape0, game_shape1, "", "", None, pregame.seed, False).playGame()
 
                         print("GAME FINISHED: {}".format(winner))
                         game_played = True

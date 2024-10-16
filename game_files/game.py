@@ -330,7 +330,7 @@ class Game:
                 if self.fortnite_y <= 250:
                     self.fortnite_y += 1
 
-    def play_game(self):
+    def playGame(self):
         while self.running:
             self.frames += 1
             

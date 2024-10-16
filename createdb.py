@@ -67,6 +67,7 @@ class Shape(BaseClass):
     obtained_on = Column("obtained_on", DateTime, default=datetime.datetime.utcnow())
     created_by = Column("created_by", String)
 
+    type = Column("type", String)
     face_id = Column("face_id", Integer)
     color_id = Column("color_id", Integer)
     density = Column("density", Integer)
@@ -88,7 +89,8 @@ class Shape(BaseClass):
 
     
 
-    def __init__(self, owner_id, owner, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, creator_username, name, title):
+    def __init__(self, owner_id, owner, type, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, creator_username, name, title):
+        self.type = type
         self.owner_id = owner_id
         self.owner = owner
         self.face_id = face_id

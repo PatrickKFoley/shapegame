@@ -5,7 +5,7 @@ class Powerup(pygame.sprite.Sprite):
         super().__init__()
 
         # attributes from game
-        # names are "insta-kill", "resurrect", "star", "muscle", "speed", "health", "bomb", "laser", "buckshot", "mushroom"
+        # names are "skull", "wings", "star", "boxing_glove", "feather", "cherry", "bomb", "laser", "buckshot", "mushroom"
         self.name = name
         self.image = image
         self.x = xy[0]

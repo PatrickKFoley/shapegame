@@ -1,4 +1,4 @@
-import pygame
+import pygame, numpy
 from pygame.locals import *
 import sys
 import math
@@ -14,13 +14,159 @@ from screen_elements.notificationswindow import NotificationsWindow
 from createdb import User, Shape as ShapeData
 from game_files.circledata import colors as color_data
 from game_files.circledata import powerup_data
+from game_files.colordata import color_data
 from pygame.sprite import Group
 
 from game_files.shape import Shape
+from game_files.game2 import Game2
+from game_files.game3 import Game3
+
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from createdb import User, Shape as DbShape
+
+RENDER_W = 854
+RENDER_H = 480
+
+def determineCollisionBrokenAlso(self, shape_1: Shape, shape_2: Shape):
+    # 1: get relative v and pos
+    v1 = numpy.array(shape_1.getV())
+    v2 = numpy.array(shape_2.getV())
+    v_rel = v2 - v1
+
+    p1 = numpy.array(shape_1.getXY())
+    p2 = numpy.array(shape_2.getXY())
+    pos_rel = p2 - p1
+
+    # 2: calculate time of closest approach
+    v_rel_sqr = numpy.dot(v_rel, v_rel)
+
+    # if relative vel is below 0, no collision will occur
+    # if v_rel_sqr == 0: return False
+
+    # time of closest approach
+    t_closest = -numpy.dot(pos_rel, v_rel) / v_rel_sqr
+
+    # 3: check if closest approach is within this frame
+    if 0 <= t_closest <= 1:
+
+        # calculate positions at t_closest
+        future_p1 = p1 + t_closest * v1
+        future_p2 = p2 + t_closest * v2
+
+        # print(f'{p1} -> {future_p1}')
+        # print(f'{p2} -> {future_p2}')
+
+        # temp move collision mask
+        shape_1.collision_mask_rect.center = future_p1
+        shape_2.collision_mask_rect.center = future_p2
+
+        # 4: determine if collision is taking place
+        collision = shape_1.collision_mask.overlap(shape_2.collision_mask, [int(shape_2.collision_mask_rect.x - shape_1.collision_mask_rect.x), int(shape_2.collision_mask_rect.y - shape_1.collision_mask_rect.y)])
+
+        # move collision mask back
+        shape_1.collision_mask_rect.center = p1
+        shape_2.collision_mask_rect.center = p2
+
+        return bool(collision)
+    
+    # ?: check if overlapping at the end of this frame
+
+    p1f = p1 + v1
+    p2f = p2 + v2
+
+    # temp move collision mask
+    shape_1.collision_mask_rect.center = p1f
+    shape_2.collision_mask_rect.center = p2f
+
+    # 4: determine if collision is taking place
+    collision = shape_1.collision_mask.overlap(shape_2.collision_mask, [int(shape_2.collision_mask_rect.x - shape_1.collision_mask_rect.x), int(shape_2.collision_mask_rect.y - shape_1.collision_mask_rect.y)])
+
+    # move collision mask back
+    shape_1.collision_mask_rect.center = p1
+    shape_2.collision_mask_rect.center = p2
+
+    return bool(collision)
+
+    def determineCollisionBroken(self, shape_1: Shape, shape_2: Shape):
+        '''implementation of Continuous Collision Detection (CCD)'''
+        
+        # 1. Get the current positions, velocities, and dimensions of the shapes
+        v1 = numpy.array(shape_1.getV())  # Velocity of shape_1
+        v2 = numpy.array(shape_2.getV())  # Velocity of shape_2
+        v_rel = v2 - v1  # Relative velocity
+        
+        p1 = numpy.array([shape_1.collision_mask_rect.x, shape_1.collision_mask_rect.y])  # Position (top-left corner) of shape_1
+        p2 = numpy.array([shape_2.collision_mask_rect.x, shape_2.collision_mask_rect.y])  # Position (top-left corner) of shape_2
+
+        size_1 = numpy.array([shape_1.collision_mask.get_size()[0], shape_1.collision_mask.get_size()[1]])  # Size of shape_1's bounding box
+        size_2 = numpy.array([shape_2.collision_mask.get_size()[0], shape_2.collision_mask.get_size()[1]])  # Size of shape_2's bounding box
+
+        # 2. Define boundaries of each shape (AABB boundaries)
+        p1_min = p1  # top-left corner of shape_1
+        p1_max = p1 + size_1  # bottom-right corner of shape_1
+        p2_min = p2  # top-left corner of shape_2
+        p2_max = p2 + size_2  # bottom-right corner of shape_2
+
+        # 3. Calculate time of collision along both x and y axes
+        def axis_collision(p1_min, p1_max, p2_min, p2_max, v_rel_axis):
+            # Calculate t_enter (time when they start overlapping) and t_exit (time when they stop overlapping)
+            if v_rel_axis > 0:
+                t_enter = (p2_min - p1_max) / v_rel_axis
+                t_exit = (p2_max - p1_min) / v_rel_axis
+            elif v_rel_axis < 0:
+                t_enter = (p2_max - p1_min) / v_rel_axis
+                t_exit = (p2_min - p1_max) / v_rel_axis
+            else:  # If velocity along the axis is 0, they won't collide on that axis
+                if p1_max < p2_min or p2_max < p1_min:
+                    return -float('inf'), float('inf')  # No overlap
+                return 0, 1  # Overlap for the entire frame
+
+            return t_enter, t_exit
+
+        # 4. Calculate times of collision along the x-axis
+        t_enter_x, t_exit_x = axis_collision(p1_min[0], p1_max[0], p2_min[0], p2_max[0], v_rel[0])
+
+        # 5. Calculate times of collision along the y-axis
+        t_enter_y, t_exit_y = axis_collision(p1_min[1], p1_max[1], p2_min[1], p2_max[1], v_rel[1])
+
+        # 6. Find the latest time of entering and the earliest time of exiting
+        t_enter = max(t_enter_x, t_enter_y)
+        t_exit = min(t_exit_x, t_exit_y)
+
+        # 7. If t_enter <= t_exit and 0 <= t_enter <= 1, a collision will happen within this frame
+        if 0 <= t_enter <= t_exit <= 1:
+            # Calculate positions at t_enter (time of collision)
+            future_p1 = p1 + t_enter * v1
+            future_p2 = p2 + t_enter * v2
+
+            try:
+                future_p1 = [int(future_p1[0]), int(future_p1[1])]
+                future_p2 = [int(future_p2[0]), int(future_p2[1])]
+            except:
+                return False
+
+            print(future_p1, future_p2)
+            if future_p1[1] < -1000 or future_p2[1] < -1000: return False
+
+            # Move the collision masks to the future positions for accurate detection
+            shape_1.collision_mask_rect.topleft = future_p1
+            shape_2.collision_mask_rect.topleft = future_p2
+
+            # Check for overlap using the collision masks
+            collision = shape_1.collision_mask.overlap(shape_2.collision_mask, [
+                int(shape_2.collision_mask_rect.x - shape_1.collision_mask_rect.x),
+                int(shape_2.collision_mask_rect.y - shape_1.collision_mask_rect.y)
+            ])
+
+            # Move collision masks back to original positions
+            shape_1.collision_mask_rect.topleft = p1
+            shape_2.collision_mask_rect.topleft = p2
+
+            return bool(collision)
+
+        return False
 
 def circle():
     pygame.init()
@@ -129,7 +275,7 @@ def get2Shapes():
 def simulate():
     game_shape1, game_shape2 = get2Shapes()
 
-    print(Game(game_shape1, game_shape2, "team 0", "team 1", None, False, False).play_game())
+    print(Game(game_shape1, game_shape2, "team 0", "team 1", None, False, False).playGame())
 
 def play_game():
     pygame.init()
@@ -139,7 +285,7 @@ def play_game():
     screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
     game_shape1, game_shape2 = get2Shapes()
 
-    print(Game(game_shape1, game_shape2, "team 0", "team 1", screen).play_game())
+    print(Game(game_shape1, game_shape2, "team 0", "team 1", screen).playGame())
 
 def countTo5():
     i = 0
@@ -212,25 +358,25 @@ def shape2():
     shape_images = []
     hud_images = []
     powerup_images = []
-    shape_data = ShapeData(-1, User(""), 1, 11, 1, 0, 90, 100, 100, 1, 1, 1, "", "", "")
-    shape_data2 = ShapeData(-1, User(""), 1, 11, 1, 0, 50, 60, 100, 1, 1, 1, "", "", "")
+    shape_data = ShapeData(-1, User(""), 1, 0, 1, 0, 130, 160, 100, 1, 1, 1, "", "", "")
+    shape_data2 = ShapeData(-1, User(""), 1, 0, 1, 0, 50, 60, 100, 1, 1, 1, "", "", "")
 
-    healthbar_img = pygame.image.load("backgrounds/healthbar.png")
+    healthbar_images = []
+    for i in range(0, 17):
+        healthbar_images.append(pygame.image.load(f'shape_images/health/{i}.png').convert_alpha())
     
     for powerup in powerup_data:
         image = pygame.image.load(powerup_data[powerup][0])
         hud_images.append(pygame.transform.smoothscale(image, (20, 20)))
         powerup_images.append(pygame.transform.smoothscale(image, (40, 40)))
 
+    face_images = []
     for i in range(0, 4):
-        shape_images.append(pygame.transform.smoothscale(pygame.image.load("circles/{}/{}/{}.png".format(shape_data.face_id, color_data[shape_data.color_id][0], i)), (shape_data.radius_max + 100, shape_data.radius_max + 100)))
-        
+        face_images.append(pygame.image.load(f'shape_images/0/{i}.png').convert_alpha())
 
-    shape = Shape(shape_data, 1, 1, shape_images, hud_images, healthbar_img)
-    # shape2 = Shape(shape_data2, 3, 1, shape_images, hud_images, healthbar_img)
+    shape = Shape(shape_data, color_data[shape_data.color_id], 6, 1, face_images, hud_images, healthbar_images)
     group = Group()
     group.add(shape)
-    # group.add(shape2)
 
     # Main loop
 
@@ -248,12 +394,19 @@ def shape2():
 
                 shape.collectPowerup(Powerup("resurrect", powerup_images[3], (100, 100)))
 
+                if event.button == 1:
+                    shape.state = 'growing'
+
+
         screen.fill((0, 0, 0))
 
-        if frames >= 20:
-            shape.takeDamage(.1)
-                
-                # shape2.takeDamage(2)
+
+        # if frames >= 40:
+        #     shape.takeDamage(0.025)
+           
+        #     if frames <= 240:
+        #         shape.r += 1
+        #         shape.sections_to_render.append('all')
 
         group.update()
         group.draw(screen)
@@ -261,48 +414,8 @@ def shape2():
 
         
         pygame.display.flip()
-        clock.tick(60)
-        
-
-    # Quit Pygame
-    pygame.quit()
-    sys.exit()
-
-def arctest():
-
-    pygame.init()
-    screen = pygame.display.set_mode((1920, 1080))
-    clock = pygame.time.Clock()
-    frames = 0
-
-    
-
-    # Main loop
-
-    running = True
-    while running:
-        events = pygame.event.get()
-        mouse_pos = pygame.mouse.get_pos()
-        frames += 1
-
-        for event in events:
-            if event.type == pygame.QUIT:
-                running = False
-
-            if event.type == MOUSEBUTTONDOWN:
-                pass
-
-        screen.fill((0, 0, 0))
-
-        for i in range(0, 100):
-            points = point_on_arc(100-i, 500)
-            pygame.draw.circle(screen, (255, 255, 255), points[0], 1)
-            pygame.draw.circle(screen, (255, 255, 255), points[1], 1)
-
-
-        
-        pygame.display.flip()
-        clock.tick(60)
+        clock.tick()
+        # print(clock.get_fps())
         
 
     # Quit Pygame
@@ -319,12 +432,11 @@ def point_on_arc(percent, square_size):
     angle = math.radians(start_angle - (start_angle - end_angle) * (percent / 100))
     
     # Calculate the x, y coordinates on the arc
-    x_l = radius - (radius * math.cos(angle)) *-1
-    x_r = 2 * radius - x
-    y = radius + (radius * math.sin(angle))
+    x = center_x + radius * math.cos(angle)
+    y = center_y + radius * math.sin(angle)
     
-    return [(x_l, y), (x_r, y)]
-    
+    return (square_size-x*-1, y)
+
 def newArt():
     pygame.init()
     screen = pygame.display.set_mode((1920, 1080))
@@ -340,7 +452,7 @@ def newArt():
     f1 = pygame.image.load("shape_images/0/1.png").convert_alpha()
     f2 = pygame.image.load("shape_images/0/2.png").convert_alpha()
     f3 = pygame.image.load("shape_images/0/3.png").convert_alpha()
-    
+
 
     blue.blit(f0, [0, 0])
     orange.blit(f1, [0, 0])
@@ -351,7 +463,7 @@ def newArt():
     green = pygame.transform.smoothscale(green, [200, 200])
     lemonlime = pygame.transform.smoothscale(lemonlime, [200, 200])
 
-            
+
 
     running = True
     while running:
@@ -374,14 +486,85 @@ def newArt():
         pygame.display.flip()
         clock.tick(60)
 
+def cleanImages(path, num_images):
+    num_pixels = 0
 
-# print(point_on_arc(90, 10))
-# arctest()
+    for i in range(num_images):
+        image = pygame.image.load(f'{path}{i}.png')
 
+        for x in range(0, image.get_size()[0]):
+            for y in range(0, image.get_size()[1]):
+                pixel = image.get_at((x, y))
+            
+                if x == 0 and y == 0: print(pixel)
+
+                if pixel[3] <= 100:
+                    image.set_at((x, y), (0, 0, 0, 0))
+                    num_pixels += 1
+
+        pygame.image.save(image, f'{path}new/{i}.png')
+
+    print(num_pixels)
+
+def game2():
+    user1 = User("Camille")
+    user2 = User("Patrick")
+    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 30, 40, 100, 1, 1, 15, "", "dumbass", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 30, 40, 100, 1, 1, 15, "", "dickhead", "")
+    
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    Game2(screen, shape_data, shape_data2, user1, user2).play()
+
+def game3():
+    user1 = User("Camille")
+    user2 = User("Patrick")
+    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 3, 12, 15, 100, 1, 1, 24, "", "", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 3, 17, 20, 100, 1, 1, 24, "", "", "")
+    
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    Game3(screen, shape_data, shape_data2, user1, user2).play()
+
+def killfeed():
+    user1 = User("Camille")
+    user2 = User("Patrick")
+    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 30, 40, 100, 1, 1, 15, "", "", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 30, 40, 100, 1, 1, 15, "", "", "")
+
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    clock = pygame.time.Clock()
+    frames = 0
+
+    # Main loop
+
+    running = True
+    while running:
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+        frames += 1
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+
+        screen.fill((0, 0, 0))
+        
+        
+        pygame.display.flip()
+        clock.tick()
+        # print(clock.get_fps())
+        
+
+    # Quit Pygame
+    pygame.quit()
+    sys.exit()
+
+# newArt()
+# generateHealthBars()
 # shape2()
-newArt()
-
-# while True:
-#     simulate()
-# play_game()
-# thread()
+# cleanImages('shape_images/healthbars/triangle/', 18)
+game2()
+# killfeed
+# game3()
