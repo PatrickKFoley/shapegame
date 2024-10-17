@@ -361,12 +361,24 @@ class Game2:
 
     def initFortnite(self):
 
-        self.a = (1920-460)
-        self.b = 1080
+        self.arena_w = (1920-460)
+        self.arena_h = 1080
+
+        self.a = int((1920-460) * 1.425)
+        self.b = int(1080 * 1.425)
+
+        self.min_a = int((1920-460) * .6)
+        self.min_b = int(1080 * .6)
+        
+        self.next_a = self.a
+        self.next_b = self.b
+        
         self.oval_surface = Surface([self.a, self.b], pygame.SRCALPHA, 32)
-
-        pygame.draw.ellipse(self.oval_surface, (255, 255, 255), [0, 0, self.a, self.b], width=10)
-
+        self.oval_rect = self.oval_surface.get_rect()
+        
+        pygame.draw.ellipse(self.oval_surface, 'black', self.oval_rect, width=5)
+        
+        self.oval_rect.center = [730, 540]
         self.oval_mask = pygame.mask.from_surface(self.oval_surface)
 
     # GAME STATE UPDATE FUNCTIONS
@@ -395,8 +407,8 @@ class Game2:
         self.powerup_group.update()
         self.laser_group.update()
         self.clouds_group.update()
-        self.team_1_group.update(self.oval_mask)
-        self.team_2_group.update(self.oval_mask)
+        self.team_1_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
+        self.team_2_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
 
         # update killfeed elements
         cycle_killfeeds = False
@@ -413,6 +425,8 @@ class Game2:
 
         # detect collisions
         self.detectCollisions()
+
+    def check_fortnite(self): pass
 
     def spawnRandomPowerups(self):
         '''spawn a random powerup every few seconds'''
@@ -1079,8 +1093,8 @@ class Game2:
 
         # draw background here since we want shapes on bottom layer
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.oval_surface, (0, 0))
-        self.screen.blit(self.oval_mask, [0, 0])
+        self.screen.blit(self.oval_surface, self.oval_rect)
+        # self.screen.blit(self.oval_mask.to_surface(), [0, 0])
 
         # draw groups
         self.powerup_group.draw(self.screen)

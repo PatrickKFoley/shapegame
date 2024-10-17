@@ -506,11 +506,11 @@ def cleanImages(path, num_images):
 def game2():
     user1 = User("Camille")
     user2 = User("Patrick")
-    # shape_data = ShapeData(1, user1, 'triangle', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
-    # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 15, "", "dickhead", "")
+    shape_data = ShapeData(1, user1, 'triangle', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 15, "", "dickhead", "")
 
-    shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 3, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
-    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 3, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
+    # shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
+    # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
     
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
