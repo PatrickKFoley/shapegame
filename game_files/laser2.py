@@ -75,7 +75,9 @@ class Laser(pygame.sprite.Sprite):
         if self.frames >= 60 * 5:
             self.alpha -= 3
 
-            if self.alpha <= 0: self.kill()
+            if self.alpha <= 0: 
+                self.kill()
+                for image in self.images: image.set_alpha(255)
             
             self.image.set_alpha(self.alpha)
         # elif self.image.get_alpha() != 255: self.image.set_alpha(255)

@@ -1,6 +1,5 @@
 import pygame, random, os, numpy, math, time, itertools
 from queue import Queue
-from collections import deque
 from pygame import Surface
 from pygame.locals import *
 from pygame.sprite import Group
@@ -17,6 +16,7 @@ from game_files.laser2 import Laser
 from game_files.buckshot import Buckshot
 from game_files.powerup2 import Powerup
 from game_files.killfeed2 import Killfeed
+from game_files.clouds2 import Clouds
 from game_files.circledata import *
 from game_files.circledata import colors as color_data
 from game_files.colordata import color_data
@@ -39,7 +39,6 @@ KILL_STAR = 'kill_star'
 KILL_BOXING_GLOVE = 'kill_boxing_glove'
 KILL_LASER = 'kill_laser'
 KILL_BUCKSHOT = 'kill_buckshot'
-
 
 class Game2:
     def __init__(self, screen: Surface, shape_1_data: ShapeData, shape_2_data: ShapeData, user_1: User, user_2: User, seed = False, player_simulated = False, server_simulated = False):
@@ -68,6 +67,8 @@ class Game2:
         self.initStatsScreen()
         self.initTeamOverview()
 
+        self.initFortnite()
+
     # INIT HELPERS
 
     def initSimulationNecessities(self):
@@ -79,6 +80,7 @@ class Game2:
         self.p1_win = False
         self.p2_win = False
         self.player_win_text = None
+        self.num_active_bombs = 0
 
         # screen bounds for shape movement
         self.screen_w = 1920 - 460
@@ -299,6 +301,14 @@ class Game2:
         for i in range(10):
             self.buckshot_images.append(pygame.transform.smoothscale(pygame.image.load(f'powerup_images/buckshot/{i}.png').convert_alpha(), [40, 40]))
 
+        self.cloud_images = []
+        for i in range(5):
+            self.cloud_images.append(pygame.transform.smoothscale(pygame.image.load(f'powerup_images/screen_effects/clouds/{i}.png').convert_alpha(), [100, 100]))
+
+        self.explosion_images = []
+        for i in range(7):
+            self.explosion_images.append(pygame.transform.smoothscale(pygame.image.load(f'powerup_images/screen_effects/explosions/{i}.png').convert_alpha(), [100, 100]))
+
     def loadSounds(self):
         '''load all sounds'''
 
@@ -349,6 +359,16 @@ class Game2:
         for sound in self.death_sounds:
             sound.set_volume(.5)
 
+    def initFortnite(self):
+
+        self.a = (1920-460)
+        self.b = 1080
+        self.oval_surface = Surface([self.a, self.b], pygame.SRCALPHA, 32)
+
+        pygame.draw.ellipse(self.oval_surface, (255, 255, 255), [0, 0, self.a, self.b], width=10)
+
+        self.oval_mask = pygame.mask.from_surface(self.oval_surface)
+
     # GAME STATE UPDATE FUNCTIONS
 
     def updateGameState(self):
@@ -374,8 +394,9 @@ class Game2:
         # update groups
         self.powerup_group.update()
         self.laser_group.update()
-        self.team_1_group.update()
-        self.team_2_group.update()
+        self.clouds_group.update()
+        self.team_1_group.update(self.oval_mask)
+        self.team_2_group.update(self.oval_mask)
 
         # update killfeed elements
         cycle_killfeeds = False
@@ -396,7 +417,7 @@ class Game2:
     def spawnRandomPowerups(self):
         '''spawn a random powerup every few seconds'''
 
-        seconds_per_powerup = 1
+        seconds_per_powerup = 999
 
         if not self.done and self.frames_played % (seconds_per_powerup * self.target_fps) == 0:
             powerup_name = random.choice(list(self.powerup_data.keys()))
@@ -450,7 +471,7 @@ class Game2:
                     else: self.stats_window_next_x = 1920
 
     def playSound(self, sound):
-        if self.player_simulated or self.server_simulated or sound.get_num_channels() > 3: return
+        if self.player_simulated or self.server_simulated or sound.get_num_channels() > 5: return
 
         sound.play()
         
@@ -564,7 +585,7 @@ class Game2:
 
         if roll_1 == roll_2: return
 
-        self.shapeDamageShape(shape_1, shape_2) if roll_1 > roll_2 else self.shapeDamageShape(shape_2, shape_1)
+        self.opponentsCollide(shape_1, shape_2) if roll_1 > roll_2 else self.opponentsCollide(shape_2, shape_1)
 
     def repositionShapes(self, shape_1: Shape, shape_2: Shape):
         '''rectify the positions and velocities of two shapes which are currently colliding'''
@@ -633,8 +654,8 @@ class Game2:
 
     # SHAPE HIT FUNCTIONS
 
-    def shapeDamageShape(self, winner: Shape, loser: Shape):
-        '''handler for if two shapes of opposing teams collide and deal damage'''
+    def opponentsCollide(self, winner: Shape, loser: Shape):
+        '''handler for if two shapes of opposing teams collide'''
 
         # if loser has skull, they are the winner
         if 'skull' in loser.powerup_arr:
@@ -642,101 +663,24 @@ class Game2:
             winner = loser
             loser = winner_copy
 
-        # limit amount of damage being done to losers current health
-        dmg_amount = min(winner.getDamage(), loser.hp)
-
-        winner.dealDamage(dmg_amount)
-        loser.takeDamage(dmg_amount)
-
-        # remove any powerups from loser which are lost on incoming damage
-        loser.removePowerup('star')
-        loser.removePowerup('boxing_glove')
-
-        # activate any powerups from winner which are used on outgoing damage
-        if 'cherry' in winner.powerup_arr:
-            winner.removePowerup('cherry')
-            self.healShape(winner, round(winner.max_hp/3))
-
-        if 'laser' in winner.powerup_arr:
-            self.playSound(self.laser_sound)
-
-            winner.removePowerup('laser')
-            self.laser_group.add(Laser(winner, self.laser_images))
-
-        if 'buckshot' in winner.powerup_arr:
-            self.playSound(self.laser_sound)
-
-            winner.removePowerup('buckshot')
-
-            directions = [
-                [0, 30],
-                [21, 21], 
-                [30, 0],
-                [21, -21],
-                [0, -30],
-                [-21, -21],
-                [-30, 0],
-                [-21, 21]
-            ]
-            
-            for direction in directions:
-                self.laser_group.add(Buckshot(winner, direction, self.buckshot_images))
-
-        # determine if team overview needs to be rendered
-        # lower total team hp
-        if loser.team_id == 0: self.team_1_total_hp -= dmg_amount
-        else: self.team_2_total_hp -= dmg_amount
-        self.checkTeamOverviewChanges(loser.team_id)
+        self.shapeDamageShape(winner, loser, winner.getDamage())
+        self.attemptKillfeed(winner, loser)
+        self.activatePowerups(winner, loser)
+        self.attemptResurrect(winner, loser)
         
         if loser.is_dead:
-            self.playSound(random.choice(self.death_sounds))
-            winner.killShape()
-
-            # create killfeed element and play extra sounds
-            if 'skull' in winner.powerup_arr:
-                self.addKillfeed(winner, KILL_SKULL, loser)
-                self.playSound(self.shotgun_sound)
-
-                winner.removePowerup('skull')
-
-            elif 'star' in winner.powerup_arr:
-                self.addKillfeed(winner, KILL_STAR, loser)
-
-            elif 'boxing_glove' in winner.powerup_arr:
-                self.addKillfeed(winner, KILL_BOXING_GLOVE, loser)
-                self.playSound(self.punch_sound)
-
-            else: self.addKillfeed(winner, 'kill', loser)
-
-            # check if any shapes will be resurrected
-            if 'resurrect' in loser.powerup_arr:
-                self.shapeRespawnShape(loser, loser)
-                loser.removePowerup('resurrect')
-
-            elif 'resurrect' in winner.powerup_arr:
-                self.shapeRespawnShape(winner, loser)
-                winner.removePowerup('resurrect')
+            self.clouds_group.add(Clouds(loser, self.cloud_images))
 
     def laserHitShape(self, laser: Laser, shape: Shape):
         if shape.shape_id in laser.ids_collided_with or shape.team_id == laser.team_id: return
 
+        laser.ids_collided_with.append(shape.shape_id)
         self.playSound(self.laser_hit_sound)
         
-        dmg_amount = min(shape.hp, laser.damage)
-
-        shape.takeDamage(dmg_amount)
-        laser.shape.dealDamage(dmg_amount)
-        laser.ids_collided_with.append(shape.shape_id)
-
-        # determine if team overview needs to be rendered
-        # lower total team hp
-        if shape.team_id == 0: self.team_1_total_hp -= dmg_amount
-        else: self.team_2_total_hp -= dmg_amount
-        self.checkTeamOverviewChanges(shape.team_id)
+        self.shapeDamageShape(laser.shape, shape, laser.damage)
 
         if shape.is_dead:
             self.addKillfeed(laser.shape, f'kill_{laser.type}', shape)
-            laser.shape.killShape()
 
     def shapeCollectPowerup(self, shape: Shape, powerup: Powerup):
         '''handler for shape collecting a powerup'''
@@ -752,7 +696,7 @@ class Game2:
         elif powerup.name == 'boxing_glove': pass
         elif powerup.name == 'feather': pass
         elif powerup.name == 'cherry': pass
-        elif powerup.name == 'bomb': pass
+        elif powerup.name == 'bomb': self.fuse_sound.play(10); self.num_active_bombs += 1
         elif powerup.name == 'laser': pass
         elif powerup.name == 'buckshot': pass
         elif powerup.name == 'mushroom': pass
@@ -803,6 +747,9 @@ class Game2:
             self.team_2_total_hp += shape.hp
             self.team_2_group.add(shape)
 
+        # add clouds
+        self.clouds_group.add(Clouds(shape, self.cloud_images))
+
         # determine if team overview needs to be rendered
         self.checkTeamOverviewChanges(creating_shape.team_id)
 
@@ -815,10 +762,17 @@ class Game2:
         self.shape_rerender_queue.queue.insert(0, shape)
 
     def blowupBomb(self, shape: Shape):
+        self.num_active_bombs -= 1
+
         if not self.player_simulated and not self.server_simulated:
-            self.fuse_sound.stop()
             # add to group
+            self.clouds_group.add(Clouds(shape, self.explosion_images))
+
             self.playSound(self.explosion_sound)
+            if self.num_active_bombs == 0: self.fuse_sound.stop()
+
+        # reset shape bomb timer
+        shape.bomb_timer = -999
 
         kills = 0
         x, y = shape.getXY()
@@ -830,7 +784,7 @@ class Game2:
             dist = math.sqrt( (x2- x)**2 + (y2 - y)** 2)
 
             if dist <= 200:
-                self.shapeDealDamage(shape, shape_2, 200-dist)
+                self.shapeDamageShape(shape, shape_2, 200-dist)
 
             if shape_2.is_dead:
                 kills += 1
@@ -838,19 +792,91 @@ class Game2:
         if kills >= 2 and 'resurrect' not in shape.powerup_arr:
             self.shapeRespawnShape(shape, shape)
 
-    def shapeDealDamage(self, shape_hitting: Shape, shape_hit: Shape, amount: int):
-        amount = min(shape_hit.hp, amount)
+    def shapeDamageShape(self, winner: Shape, loser: Shape, amount: int):
+        '''exchange blows between two shapes. handles shape image and stat rendering, and team overview'''
 
-        shape_hit.takeDamage(amount)
-        shape_hitting.dealDamage(amount)
+        amount = int(min(loser.hp, amount))
 
-        if shape_hit.team_id == 0: self.team_1_total_hp -= amount
+        loser.takeDamage(amount)
+        winner.dealDamage(amount)
+
+        if loser.team_id == 0: self.team_1_total_hp -= amount
         else: self.team_2_total_hp -= amount
-        self.checkTeamOverviewChanges(shape_hit.team_id)
+        self.checkTeamOverviewChanges(loser.team_id)
 
-        if shape_hit.is_dead: shape_hitting.killShape()
+        if loser.is_dead: 
+            winner.killShape()
+            self.playSound(random.choice(self.death_sounds))
 
+    def attemptKillfeed(self, winner: Shape, loser: Shape):
+        '''attempt to make a killfeed entry after two shapes deal damage'''
 
+        if not loser.is_dead: return
+
+        # create killfeed element and play extra sounds
+        if 'skull' in winner.powerup_arr:
+            self.addKillfeed(winner, KILL_SKULL, loser)
+            self.playSound(self.shotgun_sound)
+
+            winner.removePowerup('skull')
+
+        elif 'star' in winner.powerup_arr:
+            self.addKillfeed(winner, KILL_STAR, loser)
+
+        elif 'boxing_glove' in winner.powerup_arr:
+            self.addKillfeed(winner, KILL_BOXING_GLOVE, loser)
+            self.playSound(self.punch_sound)
+
+        else: self.addKillfeed(winner, 'kill', loser)
+
+    def attemptResurrect(self, winner: Shape, loser: Shape):
+        '''attempt to resurrect a shape after two shapes deal damage'''
+
+        if not loser.is_dead: return
+
+        # check if any shapes will be resurrected
+        if 'resurrect' in loser.powerup_arr:
+            self.shapeRespawnShape(loser, loser)
+            loser.removePowerup('resurrect')
+
+        elif 'resurrect' in winner.powerup_arr:
+            self.shapeRespawnShape(winner, loser)
+            winner.removePowerup('resurrect')
+
+    def activatePowerups(self, winner: Shape, loser: Shape):
+        # remove any powerups from loser which are lost on incoming damage
+        loser.removePowerup('star')
+        loser.removePowerup('boxing_glove')
+
+        # activate any powerups from winner which are used on outgoing damage
+        if 'cherry' in winner.powerup_arr:
+            winner.removePowerup('cherry')
+            self.healShape(winner, round(winner.max_hp/3))
+
+        if 'laser' in winner.powerup_arr:
+            self.playSound(self.laser_sound)
+
+            winner.removePowerup('laser')
+            self.laser_group.add(Laser(winner, self.laser_images))
+
+        if 'buckshot' in winner.powerup_arr:
+            self.playSound(self.laser_sound)
+
+            winner.removePowerup('buckshot')
+
+            directions = [
+                [0, 30],
+                [21, 21], 
+                [30, 0],
+                [21, -21],
+                [0, -30],
+                [-21, -21],
+                [-30, 0],
+                [-21, 21]
+            ]
+            
+            for direction in directions: self.laser_group.add(Buckshot(winner, direction, self.buckshot_images))
+    
     # RENDERING HELPERS
     
     def determineNumShapesAlive(self, team_id: int):
@@ -1053,6 +1079,8 @@ class Game2:
 
         # draw background here since we want shapes on bottom layer
         self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.oval_surface, (0, 0))
+        self.screen.blit(self.oval_mask, [0, 0])
 
         # draw groups
         self.powerup_group.draw(self.screen)
@@ -1060,6 +1088,7 @@ class Game2:
         self.laser_group.draw(self.screen)
         for shape in itertools.chain(self.team_1_group, self.team_2_group):
             if not shape.is_dead: self.screen.blit(shape.image, shape.rect)
+        self.clouds_group.draw(self.screen)
 
     def drawStatsWindow(self):
         '''update and draw the stats window if necessary'''
@@ -1239,6 +1268,7 @@ class Game2:
             self.drawGameElements()
 
             self.drawScreenElements()
+
 
             self.clock.tick(self.target_fps)
 

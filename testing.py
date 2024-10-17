@@ -26,9 +26,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from createdb import User, Shape as DbShape
 
-RENDER_W = 854
-RENDER_H = 480
-
 def determineCollisionBrokenAlso(self, shape_1: Shape, shape_2: Shape):
     # 1: get relative v and pos
     v1 = numpy.array(shape_1.getV())
@@ -509,13 +506,14 @@ def cleanImages(path, num_images):
 def game2():
     user1 = User("Camille")
     user2 = User("Patrick")
-    shape_data = ShapeData(1, user1, 'triangle', 0, 0, 1, 10, 50, 60, 100, 1, 1, 15, "", "dumbass", "")
-    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 50, 60, 100, 1, 1, 15, "", "dickhead", "")
+    # shape_data = ShapeData(1, user1, 'triangle', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
+    # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 15, "", "dickhead", "")
 
-    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
-    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
+    shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 3, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 3, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
     
     pygame.init()
+    pygame.mixer.pre_init(44100, -16, 2, 512)
     screen = pygame.display.set_mode((1920, 1080))
     Game2(screen, shape_data, shape_data2, user1, user2).play()
 
@@ -532,11 +530,11 @@ def game3():
 def killfeed():
     user1 = User("Camille")
     user2 = User("Patrick")
-    # shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 30, 40, 100, 1, 1, 15, "", "", "")
-    # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 30, 40, 100, 1, 1, 15, "", "", "")
+    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 30, 40, 100, 1, 1, 15, "", "", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 30, 40, 100, 1, 1, 15, "", "", "")
 
-    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
-    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 100, 110, 100, 1, 1, 1, "", "dickhead", "")
+    # shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
+    # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 100, 110, 100, 1, 1, 1, "", "dickhead", "")
 
     pygame.init()
     screen = pygame.display.set_mode((1920, 1080))

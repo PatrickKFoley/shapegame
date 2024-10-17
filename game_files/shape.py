@@ -62,6 +62,9 @@ class Shape(pygame.sprite.Sprite):
             if num_remainders != 0 and shape_id >= shape_data.team_size - num_remainders:
                 self.y = ((shape_id+1) % 5) * self.screen_h / (num_remainders + 1)
 
+            # collection for powerup names
+            self.powerup_arr: list[str] = []
+
         else:
             # copy all data from resurrected model
             self.model_id = resurrected_model.shape_id
@@ -72,6 +75,9 @@ class Shape(pygame.sprite.Sprite):
             self.face_images = resurrected_creator.face_images
             self.hud_images = resurrected_creator.hud_images
             self.healthbar_imgs_full = resurrected_creator.healthbar_imgs_full
+
+            # copy powerups from creator as well
+            self.powerup_arr: list[str] = resurrected_creator.powerup_arr
 
             self.r = resurrected_model.r
             self.m = resurrected_model.m
@@ -123,10 +129,7 @@ class Shape(pygame.sprite.Sprite):
         
         # store powerup data
         self.powerup_data = powerup_data
-        
-        # collection for powerup names
-        self.powerup_arr: list[str] = []
-        self.bomb_timer = -1
+        self.bomb_timer = -999
 
         # get your body image from color data (default for circle)
         self.body_image = self.color_data.circle_image
@@ -182,7 +185,7 @@ class Shape(pygame.sprite.Sprite):
 
     # STATE UPDATE FUNCTIONS
 
-    def update(self):
+    def update(self, mask):
         """update shape object"""
 
         # don't die until your stats are updated for the last time
@@ -196,9 +199,9 @@ class Shape(pygame.sprite.Sprite):
 
         self.renderSelf()
 
-        self.move()
+        self.move(mask)
 
-    def move(self):
+    def move(self, mask):
         """move one step forwards"""
         
         # move shape
@@ -222,8 +225,63 @@ class Shape(pygame.sprite.Sprite):
             self.y = self.r
             self.vy = -1 * self.vy
 
+        a = (1920-460)/2
+        b = 1080/2
+
+        if self.checkOvalCollision(mask): self.reflectOffOval(a, b)
+
         # move sprite
         self.rect.center = self.collision_mask_rect.center = [round(self.x), round(self.y)]
+
+    def calcReflectV(self, nx, ny):
+        dot = self.vx * nx + self.vy * ny
+        vxf = self.vx - 2 * dot * nx / (nx**2 + ny**2)
+        vyf = self.vy - 2 * dot * ny / (nx**2 + ny**2)
+
+        return vxf, vyf
+    
+    def projectToBoundary(self, a, b):
+
+        rel_x = (self.x - 730)
+        rel_y = (self.y - 540)
+        scale = math.sqrt((rel_x**2 / a**2) + (rel_y**2 / b**2))
+        self.x = int(730 + (rel_x / scale))
+        self.y = int(540 + (rel_y / 2))
+
+    def calcNormalAt(self, a, b): return (2 * (self.x - 730) / a**2, 2 * (self.y - 540) / b**2)
+
+    def checkOvalCollision(self, mask):
+        # # Calculate the distance from the entity center to the oval center
+        # vector_to_shape = (self.x - 730, self.y - 540)
+        
+        # # Compute the normalized oval equation for the entity center
+        # distance_ratio = ((self.x - 730)**2 / a**2) + ((self.y - 540)**2 / b**2)
+        
+        # # Check if the distance ratio is greater than or equal to 1 - self.r / distance to oval's boundary
+        # # (i.e., if the entity's edge touches the oval's boundary)
+        # return distance_ratio >= 1 - (self.r / math.sqrt(a**2 + b**2))
+
+        return self.collision_mask.overlap(mask, [int(self.rect.x), int(self.rect.y)])
+    
+    def reflectOffOval(self, a, b):
+        vector_to_shape = (self.x - 730, self.y - 540)
+        distance_to_shape_center = math.sqrt((vector_to_shape[0]**2) + (vector_to_shape[1]**2))
+        direction_to_shape = (vector_to_shape[0] / distance_to_shape_center, vector_to_shape[1] / distance_to_shape_center)
+        contact_point = (self.x - self.r * direction_to_shape[0], self.y - self.r * direction_to_shape[1])
+
+        nx = (2 * (contact_point[0] - 730)) / (a**2)
+        ny = (2 * (contact_point[1] - 540)) / (b**2)
+
+        normal_mag = math.sqrt(nx**2 + ny**2)
+        normalized_norm = (nx / normal_mag, ny / normal_mag)
+
+        dot = (self.vx * normalized_norm[0]) + (self.vy * normalized_norm[1])
+
+        self.vx = self.vx - 2 * dot * normalized_norm[0]
+        self.vy = self.vy - 2 * dot * normalized_norm[1]
+
+        self.x = contact_point[0]
+        self.y = contact_point[1]
 
     def takeDamage(self, amount):
         """reduce shapes health by amount, and check if image needs to be updated"""
