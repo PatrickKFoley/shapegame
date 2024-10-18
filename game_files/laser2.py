@@ -36,10 +36,34 @@ class Laser(pygame.sprite.Sprite):
 
         if not self.real: return
 
+        self.collision_mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
 
-    def update(self):
+    def checkOvalCollision(self, mask, rect):
+        '''returns true if shape will touch bounding oval in the next frame'''
+
+        return self.collision_mask.overlap(mask, [int(rect.x - (self.rect.x + self.vx)), int(rect.y - (self.rect.y + self.vy))])
+    
+    def reflectOffOval(self, a, b):
+        '''determine new velocitiy values after touching the bounding oval'''
+        
+        nx = (self.x - 730) / (a**2)
+        ny = (self.y - 540) / (b**2)
+
+        mag = (nx**2 + ny**2)**0.5
+        nx /= mag
+        ny /= mag
+
+        dot = self.vx * nx + self.vy * ny
+
+        self.vx -= 2 * dot * nx
+        self.vy -= 2 * dot * ny
+
+    def update(self, oval):
+        # determine if you are touching the oval
+        if self.checkOvalCollision(oval[0], oval[1]): self.reflectOffOval(oval[2], oval[3])
+
         self.x += self.vx
         self.y += self.vy
 

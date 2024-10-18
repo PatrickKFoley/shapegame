@@ -79,8 +79,9 @@ class Shape(pygame.sprite.Sprite):
             self.hud_images = resurrected_creator.hud_images
             self.healthbar_imgs_full = resurrected_creator.healthbar_imgs_full
 
-            # copy powerups from creator as well
-            self.powerup_arr: list[str] = resurrected_creator.powerup_arr
+            # copy powerups from creator as well (do not inherit bombs)
+            self.powerup_arr: list[str] = [powerup for powerup in resurrected_creator.powerup_arr if not powerup in ['bomb', 'resurrect']]
+
 
             self.r = resurrected_model.r
             self.m = resurrected_model.m
@@ -207,6 +208,9 @@ class Shape(pygame.sprite.Sprite):
 
     def move(self, oval):
         """move one step forwards"""
+
+        # determine if you are touching the oval
+        if self.checkOvalCollision(oval[0], oval[1]): self.reflectOffOval(oval[2], oval[3])
         
         # move shape
         self.x += self.vx
@@ -228,9 +232,6 @@ class Shape(pygame.sprite.Sprite):
         if self.y < self.r:
             self.y = self.r
             self.vy = -1 * self.vy
-
-        # determine if you are touching the oval
-        if self.checkOvalCollision(oval[0], oval[1]): self.reflectOffOval(oval[2], oval[3])
 
         # move sprite
         self.rect.center = self.collision_mask_rect.center = [round(self.x), round(self.y)]

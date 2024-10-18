@@ -506,7 +506,7 @@ def cleanImages(path, num_images):
 def game2():
     user1 = User("Camille")
     user2 = User("Patrick")
-    shape_data = ShapeData(1, user1, 'triangle', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
+    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
     shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 15, "", "dickhead", "")
 
     # shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
@@ -514,7 +514,9 @@ def game2():
     
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
-    screen = pygame.display.set_mode((1920, 1080))
+    pygame.mixer.set_num_channels(16)
+    pygame.mouse.set_visible(False)
+    screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
     Game2(screen, shape_data, shape_data2, user1, user2).play()
 
 def game3():

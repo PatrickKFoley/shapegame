@@ -361,23 +361,29 @@ class Game2:
 
     def initFortnite(self):
 
-        self.arena_w = (1920-460)
+        # all required numerical data
+        self.arena_w = 1920 - 460
         self.arena_h = 1080
-
-        self.a = int((1920-460) * 1.425)
-        self.b = int(1080 * 1.425)
-
-        self.min_a = int((1920-460) * .6)
-        self.min_b = int(1080 * .6)
-        
+        self.max_a = int(self.arena_w * 1.425)
+        self.max_b = int(self.arena_h * 1.425)
+        self.min_a = int(self.arena_w * .6)
+        self.min_b = int(self.arena_h * .6)
+        self.a = self.max_a
+        self.b = self.max_b
         self.next_a = self.a
         self.next_b = self.b
         
-        self.oval_surface = Surface([self.a, self.b], pygame.SRCALPHA, 32)
+        # draw the full sized oval
+        oval_full = Surface([self.a, self.b], pygame.SRCALPHA, 32)
+        oval_full_rect = oval_full.get_rect()
+        pygame.draw.ellipse(oval_full, 'black', oval_full_rect, width=5)
+
+        # crop the full sized oval to the max size
+        self.oval_surface = Surface([self.arena_w, self.arena_h], pygame.SRCALPHA, 32)
         self.oval_rect = self.oval_surface.get_rect()
+        self.oval_surface.blit(oval_full, [0, 0], [((self.a - self.arena_w)//2), ((self.b - self.arena_h)//2), self.arena_w, self.arena_h])
         
-        pygame.draw.ellipse(self.oval_surface, 'black', self.oval_rect, width=5)
-        
+        # center and get mask
         self.oval_rect.center = [730, 540]
         self.oval_mask = pygame.mask.from_surface(self.oval_surface)
 
@@ -405,7 +411,7 @@ class Game2:
 
         # update groups
         self.powerup_group.update()
-        self.laser_group.update()
+        self.laser_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
         self.clouds_group.update()
         self.team_1_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
         self.team_2_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
@@ -426,20 +432,75 @@ class Game2:
         # detect collisions
         self.detectCollisions()
 
-    def check_fortnite(self): pass
+    def checkFortnite(self):
+        '''redraws the bounding oval if need be'''
+        
+        # if proper size, nothing to be done
+        if self.a == self.next_a or self.b == self.next_b: return
+
+        # shrink or expand oval
+        if self.a < self.next_a: self.a += 1
+        else: self.a -= 1
+        if self.b < self.next_b: self.b += 1
+        else: self.b -= 1
+
+        # redraw oval
+        oval_full = Surface([self.a, self.b], pygame.SRCALPHA, 32)
+        oval_full_rect = oval_full.get_rect()
+        pygame.draw.ellipse(oval_full, 'black', oval_full_rect, width=5)
+
+        # if oval larger than arena, crop it
+        if self.a > self.arena_w:
+            self.oval_surface = Surface([self.arena_w, self.arena_h], pygame.SRCALPHA, 32)
+            self.oval_rect = self.oval_surface.get_rect()
+            self.oval_surface.blit(oval_full, [0, 0], [((self.a - self.arena_w)//2), ((self.b - self.arena_h)//2), self.arena_w, self.arena_h])
+        else:
+            self.oval_surface = oval_full
+            self.oval_rect = oval_full_rect
+
+        # center and get mask
+        self.oval_rect.center = [730, 540]
+        self.oval_mask = pygame.mask.from_surface(self.oval_surface)
+
+    def updateFortnite(self):
+        '''updates the next a and b values of the bounding oval. called when number of shapes changes'''
+
+        # get the number of shapes alive as a percent
+        max_shapes = self.shape_1_data.team_size + self.shape_2_data.team_size
+        num_alive = sum(1 for shape in itertools.chain(self.team_1_group.sprites(), self.team_2_group.sprites()) if not shape.is_dead)
+        percent_alive = num_alive / max_shapes
+
+        # clamp percent to range (0-1)
+        clamped_percent = max(0, min(percent_alive, 1))
+
+        # set next a and b
+        self.next_a = int(self.min_a + clamped_percent * (self.max_a - self.min_a))
+        self.next_b = int(self.min_b + clamped_percent * (self.max_b - self.min_b))
 
     def spawnRandomPowerups(self):
         '''spawn a random powerup every few seconds'''
 
-        seconds_per_powerup = 999
+        seconds_per_powerup = 1
 
         if not self.done and self.frames_played % (seconds_per_powerup * self.target_fps) == 0:
             powerup_name = random.choice(list(self.powerup_data.keys()))
             powerup_image = self.powerup_images_medium[self.powerup_data[powerup_name][1]]
-            xy = [random.randint(20, self.screen_w - 20), random.randint(20, self.screen_h - 20)]
+
+            # select an xy within the bounding oval
+            # 1: select angle 0-2pi
+            theta = random.uniform(0, 2 * math.pi)
+            # 2: generate random radius with uniform distribution within oval
+            r = math.sqrt(random.uniform(0, 0.9))
+            # 3: convert polar coordinates to cartesian coordinates
+            x = (r * (self.a/2) * math.cos(theta)) + 730
+            y = (r * (self.b/2) * math.sin(theta)) + 540
+            # 4: check if xy is outside of the bounds of the arena, if so, place anywhere within
+            if x >= self.arena_w-20 or x <= 20 or y >= self.arena_h-20 or y <= 20:
+                x = random.randint(20, self.arena_w-20)
+                y = random.randint(20, self.arena_h-20)
 
             self.playSound(self.pop_sound)
-            self.powerup_group.add(Powerup(powerup_name, powerup_image, xy))
+            self.powerup_group.add(Powerup(powerup_name, powerup_image, [x, y]))
 
     def checkForCompletion(self):
         '''check if one team is entirely dead. raises self.done and self.pX_win flag'''
@@ -451,11 +512,11 @@ class Game2:
         
         elif all(shape.is_dead for shape in self.team_2_group):
             self.done = True
-            self.p2_win = True
+            self.p1_win = True
 
         if self.done:
             self.playSound(self.win_sound)
-            self.player_win_text = Text(f'{self.user_1.username if self.p1_win else self.user_2.username} wins!', 150, 1220/2, 1080/2, color='black')
+            self.player_win_text = Text(f'{self.user_1.username if self.p1_win else self.user_2.username} wins!', 150, 730, 540, color='black')
 
     def handleInputs(self):
         ''' handle all inputs from user'''
@@ -684,6 +745,7 @@ class Game2:
         
         if loser.is_dead:
             self.clouds_group.add(Clouds(loser, self.cloud_images))
+            self.updateFortnite()
 
     def laserHitShape(self, laser: Laser, shape: Shape):
         if shape.shape_id in laser.ids_collided_with or shape.team_id == laser.team_id: return
@@ -774,6 +836,13 @@ class Game2:
         # add shape to front of stats render queue
         self.shape_rerender_list.append(shape)
         self.shape_rerender_queue.queue.insert(0, shape)
+
+        # update creating shape stats
+        creating_shape.stats.resurrectShape()
+        creating_shape.stats_to_render.append('resurrects')
+
+        # resize the bounding oval
+        self.updateFortnite()
 
     def blowupBomb(self, shape: Shape):
         self.num_active_bombs -= 1
@@ -1274,6 +1343,8 @@ class Game2:
         while self.running:
 
             self.updateGameState()
+
+            self.checkFortnite()
 
             self.checkForCompletion()
 
