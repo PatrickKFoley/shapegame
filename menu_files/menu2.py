@@ -2,14 +2,98 @@ from pygame.locals import *
 import pygame.mouse
 from pygame.sprite import Group
 from pygame.mixer import Sound
+from pygame.transform import smoothscale
+from pygame.surface import Surface
+from pygame.image import load
 import pygame, time, itertools, sys
 
 from createdb import User, Shape as ShapeData
 from screen_elements.text import Text
 from screen_elements.editabletext import EditableText
 from screen_elements.clickabletext import ClickableText
+from game_files.colordata import color_data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker as session_maker
+
+class CollectionShape(pygame.sprite.Sprite):
+    def __init__(self, shape_data: ShapeData, position: int):
+        super().__init__()
+
+        self.shape_data = shape_data
+        self.position = position
+        
+        self.x = 750 + position * 220
+        self.y = 882
+        self.next_x = self.x
+        self.v = 0
+        self.a = 1.5
+
+        self.generateSurfaces()
+
+    def generateSurfaces(self):
+        '''generate the surfaces for window stats, additional info, and shape image'''
+
+        # shape image
+        self.face_image = smoothscale(load(f'shape_images/faces/{self.shape_data.type}/{self.shape_data.face_id}/0.png').convert_alpha(), [190, 190])
+
+        self.image = color_data[self.shape_data.color_id].circle_image
+        if self.shape_data.type == 'triangle':
+            self.image = color_data[self.shape_data.color_id].triangle_image
+        elif self.shape_data.type == 'square':
+            self.image = color_data[self.shape_data.color_id].square_image
+        self.image = smoothscale(self.image, [190, 190])
+
+        self.image.blit(self.face_image, [0, 0])
+
+        self.rect = self.image.get_rect()
+        self.rect.center = [self.x, 1300]
+
+        # stats surface
+        self.stats_surface = Surface([570, 440], pygame.SRCALPHA, 32)
+        self.stats_rect = self.stats_surface.get_rect()
+        self.stats_rect.topleft = [50, 900]
+
+        level = Text('level:', 16, 100, 50, 'topleft')
+
+        self.stats_surface.blit(level.surface, level.rect)
+
+    def moveLeft(self):
+        self.next_x -= 100
+
+    def moveRight(self):
+        self.next_x += 100
+
+    def update(self):
+        # move into place
+        if self.x == self.next_x: return
+
+        # calculate the remaining distance to the target
+        distance = abs(self.x - self.next_x)
+
+        # apply acceleration while far from the target, decelerate when close
+        if distance > 50:
+            self.v += self.a
+        else:
+            self.v = max(1, distance * 0.2)
+
+        # move the window towards the target position, snap in place if position is exceeded
+        if self.x > self.next_x:
+            self.x -= self.v
+
+            if self.x < self.next_x:
+                self.x = self.next_x
+
+        elif self.x < self.next_x:
+            self.x += self.v
+            
+            if self.x > self.next_x:
+                self.x = self.next_x 
+
+        # reset the velocity when the window reaches its target
+        if self.x == self.next_x:
+            self.v = 0
+
+        self.rect.center = [self.x, self.y]
 
 class Menu():
     def __init__(self):
@@ -49,6 +133,7 @@ class Menu():
 
         # sprite groups
         self.simple_shapes = Group()
+        self.collection_shapes = Group()
 
         self.initSounds()
         self.initTexts()
@@ -119,6 +204,11 @@ class Menu():
         self.shapes_background_v = 0
         self.shapes_background_a = 1.5
         self.shapes_background_shown = False
+
+    def initCollectionGroup(self):
+        for count, shape_data in enumerate(self.user.shapes):
+            print(count)
+            self.collection_shapes.add(CollectionShape(shape_data, count))
 
     # PLAY HELPERS
 
@@ -220,6 +310,9 @@ class Menu():
         self.shapes_background_rect.topleft = [0, self.shapes_background_y]
         self.shapes_icon_rect.center = [25, self.shapes_background_y - 25]
 
+        for shape in self.collection_shapes:
+            shape.rect.center = [shape.x, self.shapes_background_y + 220]
+
     def drawScreenElements(self):
         '''draw all elements to the screen'''
 
@@ -229,19 +322,20 @@ class Menu():
         # draw background
         self.screen.blit(self.background, (0, 0))
 
-        # draw sprites
-        self.simple_shapes.draw(self.screen)
-
         # draw text elements
         for element in itertools.chain(self.texts, self.clickables):
             if element not in [None, self.register_clickable, self.bad_credentials_text]:
                 self.screen.blit(element.surface, element.rect)
 
-        # draw icons
-        self.screen.blit(self.shapes_icon_current, self.shapes_icon_rect)
-
         # draw windows
         self.screen.blit(self.shapes_background, self.shapes_background_rect)
+
+        # draw sprites
+        self.simple_shapes.draw(self.screen)
+        self.collection_shapes.draw(self.screen)
+
+        # draw icons
+        self.screen.blit(self.shapes_icon_current, self.shapes_icon_rect)
 
         self.screen.blit(self.cursor, self.cursor_rect)
 
@@ -250,6 +344,8 @@ class Menu():
 
         # the login loop would replace this
         self.user = self.session.query(User).filter(User.username == 'a').one()
+
+        self.initCollectionGroup()
 
         # start the time for accumulator
         self.prev_time = time.time()
@@ -263,6 +359,8 @@ class Menu():
             self.updateMenuState()
 
             self.drawScreenElements()
+
+            self.screen.blit(self.collection_shapes.sprites()[0].stats_surface, self.collection_shapes.sprites()[0].rect)
 
             self.clock.tick(self.target_fps)
 
