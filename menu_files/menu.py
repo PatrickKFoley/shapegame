@@ -37,10 +37,10 @@ class Menu():
 
         # database session
         # bellow is for server db
-        self.engine = create_engine("postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db", echo=False)
-        
+        # self.engine = create_engine("postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db", echo=False)
         # bellow is for local db
-        # self.engine = create_engine("sqlite:///database.db", echo=False)
+        self.engine = create_engine("sqlite:///database.db", echo=False)
+        
         SessionMaker = sessionmaker(bind=self.engine)
         self.session = SessionMaker()
 

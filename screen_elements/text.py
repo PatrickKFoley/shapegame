@@ -1,7 +1,7 @@
 from shared_functions import createText
 
 class Text:
-    def __init__(self, text, size, x, y, align = "center", color = "white"):
+    def __init__(self, text, size, x, y, align = "center", color = "black"):
         self.text = text
         self.size = size
         self.x = x

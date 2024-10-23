@@ -26,9 +26,9 @@ class ClickableText:
         font_small = pygame.font.Font("backgrounds/font.ttf", size)
         font_large = pygame.font.Font("backgrounds/font.ttf", size + 10)
 
-        text_small = font_small.render(text, True, "white")
-        text_unselected = font_large.render(text, True, "white")
-        text_selected = font_large.render(text, True, "lightgray")
+        text_small = font_small.render(text, True, "black")
+        text_unselected = font_large.render(text, True, "black")
+        text_selected = font_large.render(text, True, "darkgray")
         text_rect = text_unselected.get_rect()
 
         return text_unselected, text_selected, text_rect, text_small

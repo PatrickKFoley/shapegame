@@ -20,6 +20,7 @@ from pygame.sprite import Group
 from game_files.shape import Shape
 from game_files.game2 import Game2
 from game_files.game3 import Game3
+from menu_files.menu2 import Menu
 
 
 from sqlalchemy import create_engine
@@ -567,10 +568,53 @@ def killfeed():
     pygame.quit()
     sys.exit()
 
+def generateOvals():
+    pygame.init()
+
+    arena_w = 1920 - 460
+    arena_h = 1080
+    max_a = int(arena_w * 1.7)
+    max_b = int(arena_h * 1.7)
+    min_a = int(arena_w * .6)
+    min_b = int(arena_h * .6)
+    a = max_a
+    b = max_b
+    next_a = a
+    next_b = b
+
+    for i in range(100, 0, -4):
+        percent = i / 100
+        a = int(min_a + percent * (max_a - min_a))
+        b = int(min_b + percent * (max_b - min_b))
+
+        background = pygame.surface.Surface([1920, 1080], pygame.SRCALPHA, 32)
+
+        oval = pygame.surface.Surface([a, b], pygame.SRCALPHA, 32)
+        oval_rect = oval.get_rect()
+        pygame.draw.ellipse(oval, 'red', oval_rect, width=5)
+
+        # [((a - arena_w)//2), ((b - arena_h)//2), arena_w, arena_h]
+        
+        oval_rect.center = [730, 540]
+        background.blit(oval, oval_rect)
+
+
+        pygame.image.save(background, f'testing_files/ovals/{i}.png')
+
+def menu2():
+    pygame.init()
+    pygame.mixer.pre_init(44100, -16, 2, 512)
+    pygame.mouse.set_visible(False)
+    
+    Menu().play()
+    pygame.quit()
+
 # newArt()
 # generateHealthBars()
 # shape2()
 # cleanImages('shape_images/healthbars/triangle/', 18)
-game2()
+# game2()
 # killfeed
 # game3()
+# generateOvals()
+menu2()

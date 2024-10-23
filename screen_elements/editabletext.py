@@ -21,8 +21,8 @@ class EditableText:
         
 
         self.input = pygame_textinput.TextInputVisualizer(self.manager, pygame.font.Font("backgrounds/font.ttf", size))
-        self.input.font_color = "white"
-        self.input.cursor_color = "white"
+        self.input.font_color = "black"
+        self.input.cursor_color = "black"
         self.input.cursor_width = -1
 
         self.surface = pygame.transform.smoothscale(self.input.surface, (self.input.surface.get_size()[0] - 10, self.input.surface.get_size()[1] - 10))
@@ -103,8 +103,8 @@ class EditableText:
         self.manager.cursor_pos = len(self.text)
 
         self.input = pygame_textinput.TextInputVisualizer(self.manager, pygame.font.Font("backgrounds/font.ttf", self.size))
-        self.input.font_color = "white"
-        self.input.cursor_color = "white"
+        self.input.font_color = "black"
+        self.input.cursor_color = "black"
 
         self.rect = self.input.surface.get_rect()
         self.align()
