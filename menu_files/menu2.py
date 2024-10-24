@@ -5,7 +5,7 @@ from pygame.mixer import Sound
 from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
-import pygame, time, itertools, sys, pytz, random
+import pygame, time, itertools, sys, pytz, random, math
 
 from createdb import User, Shape as ShapeData
 from screen_elements.text import Text
@@ -14,7 +14,7 @@ from screen_elements.clickabletext import ClickableText
 from screen_elements.arrow import Arrow
 from screen_elements.button import Button
 from game_files.gamedata import color_data, shape_data as shape_model_data, names, titles
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, delete
 from sqlalchemy.orm import sessionmaker as session_maker, Session
 
 def generateRandomShape(user: User, session: Session):
@@ -37,11 +37,90 @@ def generateRandomShape(user: User, session: Session):
     shape_data = ShapeData(user.id, user, type, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_x, luck, team_size, user.username, name, title)
 
     user.shape_tokens -= 1
+    user.num_shapes += 1
 
     session.add(shape_data)
     session.commit()
 
     return shape_data
+
+class EssenceBar:
+    def __init__(self, user: User):
+        self.user = user
+        self.changing = False
+
+        self.background = load('backgrounds/essence_background.png').convert_alpha()
+        self.foreground_full = load('backgrounds/essence_foreground.png').convert_alpha()
+        self.surface = Surface(self.background.get_size(), pygame.SRCALPHA, 32)
+        self.rect = self.surface.get_rect()
+        self.rect.center = [1250, 100]
+
+        self.surface.blit(self.background, [0, 0])
+
+        self.current_essence = self.user.shape_essence
+        self.current_length = (self.user.shape_essence % 1) * self.surface.get_size()[0]
+        self.next_length = self.current_length
+        self.loops = 0
+        self.width = self.surface.get_size()[1]
+
+        self.surface.blit(self.foreground_full, [0, 0], [0, 0, self.current_length, self.width])
+
+    def update(self): 
+
+        # loop
+        while self.loops > 0:
+            self.next_length = self.surface.get_size()[0]
+                
+            self.surface.fill([0, 0, 0, 0])
+            self.surface.blit(self.background, [0, 0])
+                
+            self.current_length = min(self.current_length + 10, self.next_length)
+            self.surface.blit(self.foreground_full, [0, 0], [0, 0, self.current_length, self.width])
+
+            # if bar is full, empty
+            if self.current_length == self.surface.get_size()[0]:
+                self.current_length = 0
+                self.next_length = 1
+
+                self.loops -= 1
+                self.user.shape_tokens += 1
+                self.user.shape_essence -= 1.0
+                self.update()
+                return True
+
+            return
+
+        # check if the user deleted a shape
+        if self.current_essence != self.user.shape_essence:
+            self.changing = True
+
+            # check if we need to loop the bar
+            if self.user.shape_essence >= 1:
+                self.loops = math.floor(self.user.shape_essence)
+                self.current_essence = self.user.shape_essence
+                return 
+            
+            self.next_length = max((self.user.shape_essence % 1) * self.surface.get_size()[0], 1)
+            self.current_essence = self.user.shape_essence
+
+        if self.current_length != self.next_length:
+
+            self.surface.fill([0, 0, 0, 0])
+            self.surface.blit(self.background, [0, 0])
+                
+            self.current_length = min(self.current_length + 10, self.next_length)
+            self.surface.blit(self.foreground_full, [0, 0], [0, 0, self.current_length, self.width])
+        else: self.changing = False
+
+        # if bar is full, empty
+        if self.current_length == self.surface.get_size()[0]:
+            self.current_length = 0
+            self.next_length = 1
+
+            self.user.shape_tokens += 1
+            self.user.shape_essence -= 1
+
+            return True
 
 class CollectionWindow:
     def __init__(self, user: User, session: Session):
@@ -57,13 +136,37 @@ class CollectionWindow:
         self.rect = self.surface.get_rect()
         self.rect.topleft = [0, 1030]
 
+        # delete shape surface
+        self.delete_surface = load('backgrounds/additional_shape_data.png').convert_alpha()
+        self.delete_rect = self.delete_surface.get_rect()
+        self.delete_rect.center = [1130, 250]
+
+        self.delete_tape = load('backgrounds/tape_0_xl.png').convert_alpha()
+        self.delete_tape_rect = self.delete_tape.get_rect()
+        self.delete_tape_rect.center = [1140, 110]
+
+        self.confirm_text = Text('delete shape?', 80, 1130, 175)
+        self.warning = Text(['this action cannot', 'be undone'], 40, 1130, 240)
+        self.yes_clickable = ClickableText('yes', 100, 1000, 325, color=[0, 200, 0])
+        self.no_clickable = ClickableText('no', 100, 1260, 325, color=[255, 0, 0])
+
         self.shapes_button = Button('shapes', 50, [25, 25])
         self.question_button = Button('question', 40, [590, 131])
+        self.question_button.disable()
         self.add_button = Button('add', 90, [87, 145])
+        self.del_button = Button('trash', 40, [205, 131])
         self.left = Arrow(690, 400, '<-', length=100, width=66)
         self.right = Arrow(810, 400, '->', length=100, width=66)
 
-        self.buttons = [self.shapes_button, self.question_button, self.add_button, self.left, self.right]
+        # disable add button if user has no shape tokens
+        if self.user.shape_tokens == 0: self.add_button.disable()
+
+        self.clickables = [
+            self.shapes_button, self.question_button, 
+            self.add_button,    self.del_button, 
+            self.left,      self.right,
+            self.yes_clickable, self.no_clickable
+        ]
 
         self.background = load('backgrounds/collection_window.png').convert_alpha()
         self.background_rect = self.background.get_rect()
@@ -75,13 +178,16 @@ class CollectionWindow:
 
         self.tape_surface = load('backgrounds/tape_0_xl.png')
         self.tape_rect = self.tape_surface.get_rect()
-        self.tape_rect.center = [1140, 750]
+        self.tape_rect.center = [1140, 110]
 
         self.shape_token_dot = load('backgrounds/shape_token_dot.png').convert_alpha()
         self.shape_token_dot_rect = self.shape_token_dot.get_rect()
         self.shape_token_dot_rect.center = [120, 116]
 
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118)
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118, color=('black' if self.user.shape_tokens > 0 else 'red'))
+
+        # essence bar 
+        self.essence_bar = EssenceBar(self.user)
 
         self.y = 1080
         self.next_y = 1080
@@ -94,6 +200,8 @@ class CollectionWindow:
         self.selected_shape: ShapeData | None = None
         self.collection_shapes = Group()
 
+        self.delete_clicked = False
+
     def initCollectionGroup(self):
         '''create Collection shapes for newly logged in user'''
 
@@ -103,6 +211,15 @@ class CollectionWindow:
             
             # set selected shape if user logs in with shapes
             if count == 0: self.selected_shape = new_shape
+
+        # if user has 1 or 0 shapes, disable delete button and arrows
+        if self.user.num_shapes <= 1:
+            self.del_button.disable()
+            self.right.disable()
+            self.left.disable()
+
+        # if user has at least 1 shape, enable question button
+        if self.user.num_shapes >= 1: self.question_button.enable()
 
     def positionWindow(self):
         # update window positions
@@ -162,26 +279,80 @@ class CollectionWindow:
             shape.moveRight()
 
         # recreate shape tokens text
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118)
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118, color=('black' if self.user.shape_tokens > 0 else 'red'))
+
+        # disable add button if user used last token
+        if self.user.shape_tokens == 0: self.add_button.disable()
+
+        # enable buttons
+        if self.user.num_shapes > 1: 
+            self.del_button.enable()
+            self.right.enable()
+            self.left.enable()
+        if self.user.num_shapes >= 1: self.question_button.enable()
+
+    def deleteSelectedShape(self):
+        # don't let user delete their only shape
+        if self.user.num_shapes == 1: return
+
+        # remove shape from sprites first
+        removed = False
+        for count, sprite in enumerate(self.collection_shapes.sprites()):
+            
+            # found the shape to delete
+            if count == self.selected_index:
+
+                # delete db entry
+                self.user.num_shapes -= 1
+                self.user.shape_essence += sprite.shape_data.level * 0.25
+
+                self.session.execute(delete(ShapeData).where(ShapeData.id == sprite.shape_data.id))
+                self.session.commit()
+
+                # remove from sprite group
+                self.collection_shapes.remove(sprite)
+                self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+
+                removed = True
+
+                # if the right-most shape was deleted, move all shapes to the right
+                if count == self.user.num_shapes:
+                    for sprite in self.collection_shapes.sprites():
+                        sprite.moveRight()
+
+                    self.selected_index -= 1
+                    self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+            
+            elif removed: sprite.moveLeft()
+
+        # close the delete window
+        self.delete_clicked = False
+
+        # if user now has one shape, disable delete button
+        if self.user.num_shapes == 1: 
+            self.del_button.disable()
+            self.right.disable()
+            self.left.disable()
 
     def handleInputs(self, mouse_pos, events):
         mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
 
         # update icons
 
-        for button in self.buttons:
-            button.update(mouse_pos)
+        for clickable in self.clickables:
+            clickable.update(mouse_pos)
 
         # check if the user is hovering over the question mark on collection window
-        if self.question_button.rect.collidepoint(mouse_pos) and self.info_alpha < 254: 
-            self.info_alpha += 15
-            self.info_alpha = min(self.info_alpha, 255)
+        if not self.question_button.disabled:
+            if self.question_button.rect.collidepoint(mouse_pos) and self.info_alpha < 254: 
+                self.info_alpha += 15
+                self.info_alpha = min(self.info_alpha, 255)
 
-        elif self.question_button.rect.collidepoint(mouse_pos) and self.info_alpha == 255: pass
+            elif self.question_button.rect.collidepoint(mouse_pos) and self.info_alpha == 255: pass
 
-        elif self.info_alpha > 0: 
-            self.info_alpha -= 15
-            self.info_alpha = max(self.info_alpha, 0)
+            elif self.info_alpha > 0: 
+                self.info_alpha -= 15
+                self.info_alpha = max(self.info_alpha, 0)
 
         # handle events
         for event in events:
@@ -190,14 +361,14 @@ class CollectionWindow:
             if self.shapes_button.rect.collidepoint(mouse_pos):
                 self.toggle()
 
-            elif self.right.rect.collidepoint(mouse_pos) and self.selected_index != 0:
+            elif self.right.rect.collidepoint(mouse_pos) and self.selected_index != 0 and not self.right.disabled:
                 self.selected_index -= 1
                 self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
 
                 for shape in self.collection_shapes:
                     shape.moveRight()
 
-            elif self.left.rect.collidepoint(mouse_pos) and self.selected_index != len(self.user.shapes)-1:
+            elif self.left.rect.collidepoint(mouse_pos) and self.selected_index != len(self.user.shapes)-1 and not self.left.disabled:
                 self.selected_index += 1
                 self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
 
@@ -207,8 +378,29 @@ class CollectionWindow:
             elif self.add_button.rect.collidepoint(mouse_pos):
                 self.userGenerateShape()
 
+            # show the delete conirmation screen
+            elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
+                self.delete_clicked = not self.delete_clicked
+
+            elif self.delete_clicked and self.yes_clickable.rect.collidepoint(mouse_pos):
+                self.deleteSelectedShape()
+
+            # if user clicks anywhere, close delete screen
+            else:
+                self.delete_clicked = False
+
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
+
+        # update returns true when shape essence amount is altered, needing commit
+        if self.essence_bar.update(): 
+            self.session.commit()
+            self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118, color=('black' if self.user.shape_tokens > 0 else 'red'))
+        
+        if self.essence_bar.changing and not self.del_button.disabled:
+            self.del_button.disable()
+        elif not self.essence_bar.changing and self.del_button.disabled:
+            self.del_button.enable()
 
         self.handleInputs(mouse_pos, events)
 
@@ -228,14 +420,14 @@ class CollectionWindow:
         self.surface.blit(self.background, [0, 50])
 
         # draw buttons
-        for button in self.buttons:
-            self.surface.blit(button.surface, button.rect)
+        [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables if clickable not in [self.yes_clickable, self.no_clickable, self.right, self.left]]
 
         self.surface.blit(self.shape_token_dot, self.shape_token_dot_rect)
 
         # arrows
-        self.surface.blit(self.left.surface, self.left.rect)
-        self.surface.blit(self.right.surface, self.right.rect)
+        if not self.left.disabled:
+            self.surface.blit(self.left.surface, self.left.rect)
+            self.surface.blit(self.right.surface, self.right.rect)
 
         # sprites
         self.collection_shapes.draw(self.surface)
@@ -258,6 +450,21 @@ class CollectionWindow:
 
         # shape tokens
         self.surface.blit(self.shape_token_text.surface, self.shape_token_text.rect)
+
+        # render essence bar
+        self.surface.blit(self.essence_bar.surface, self.essence_bar.rect)
+
+        # render delete surface
+        if self.delete_clicked:
+            self.surface.blit(self.delete_surface, self.delete_rect)
+
+            self.surface.blit(self.confirm_text.surface, self.confirm_text.rect)
+            self.surface.blit(self.warning.surface, self.warning.rect)
+            self.surface.blit(self.yes_clickable.surface, self.yes_clickable.rect)
+            self.surface.blit(self.no_clickable.surface, self.no_clickable.rect)
+
+            # tape overtop writing
+            self.surface.blit(self.delete_tape, self.delete_tape_rect)
 
 class CollectionShape(pygame.sprite.Sprite):
     def __init__(self, shape_data: ShapeData, position: int, session, new = False):
@@ -578,7 +785,7 @@ class Menu():
         '''run the game loop for the main menu'''
 
         # the login loop would replace this
-        self.user = self.session.query(User).filter(User.username == 'pat').one()
+        self.user = self.session.query(User).filter(User.username == 'b').one()
         self.collection_window = CollectionWindow(self.user, self.session)
         self.logged_in_as_text = Text(f'logged in as: {self.user.username}', 35, 1920/2, 20)
         self.texts.append(self.logged_in_as_text)
@@ -591,4 +798,5 @@ class Menu():
 
             self.drawScreenElements()
 
-            self.clock.tick(self.target_fps)
+            # self.clock.tick(self.target_fps)
+            self.clock.tick()

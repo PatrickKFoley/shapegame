@@ -10,13 +10,19 @@ class Arrow:
         self.width = width
         self.growth = growth
         self.growth_amount = 0
+        self.disabled = False
 
         if direction == "->": self.image = pygame.image.load("backgrounds/arrow_right.png").convert_alpha()
         else: self.image = pygame.image.load("backgrounds/arrow_left.png").convert_alpha()
 
         self.buildSurface()
 
+    def disable(self): self.disabled = True
+    def enable(self): self.disabled = False
+
     def update(self, mouse_pos):
+        if self.disabled: return
+
         if self.rect.collidepoint(mouse_pos):
             if self.growth_amount < MAX_GROWTH:
                 self.growth_amount += 1

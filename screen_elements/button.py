@@ -15,7 +15,10 @@ class Button:
 
     def disable(self):
         self.disabled = True
-        self.surface = self.icon_unselected
+        self.surface = self.icon_selected
+
+    def enable(self):
+        self.disabled = False
 
     def update(self, mouse_pos):
         if self.disabled: return

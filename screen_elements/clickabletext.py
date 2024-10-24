@@ -3,12 +3,12 @@ import pygame
 MAX_GROWTH = 6
 
 class ClickableText:
-    def __init__(self, text, size, x, y, alignment = "center"):
+    def __init__(self, text, size, x, y, alignment = "center", color = [0, 0, 0]):
         self.y = y
         self.x = x
         self.text = text
         self.alignment = alignment
-        self.text_unselected, self.text_selected, self.rect, small = self.createText(text, size)
+        self.text_unselected, self.text_selected, self.rect, small = self.createText(text, size, color)
         self.align()
 
         self.length = small.get_size()[0]
@@ -22,13 +22,15 @@ class ClickableText:
     def getText(self): return self.text
 
     @staticmethod
-    def createText(text, size):
+    def createText(text, size, color):
         font_small = pygame.font.Font("backgrounds/font.ttf", size)
         font_large = pygame.font.Font("backgrounds/font.ttf", size + 10)
 
-        text_small = font_small.render(text, True, "black")
-        text_unselected = font_large.render(text, True, "black")
-        text_selected = font_large.render(text, True, "darkgray")
+        light_color = [max(color[0] - 100, 0), max(color[1] - 100, 0), max(color[2] - 100, 0)]
+
+        text_small = font_small.render(text, True, color)
+        text_unselected = font_large.render(text, True, color)
+        text_selected = font_large.render(text, True, light_color)
         text_rect = text_unselected.get_rect()
 
         return text_unselected, text_selected, text_rect, text_small

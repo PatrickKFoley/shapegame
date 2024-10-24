@@ -40,7 +40,8 @@ class User(BaseClass):
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     favorite_id = Column("favorite_id", Integer, nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
-    shape_tokens = Column("shape_tokens", Integer, default=5)
+    shape_tokens = Column("shape_tokens", Integer, default=10)
+    shape_essence = Column("shape_essence", Float, default=0.0)
     num_shapes = Column("num_shapes", Integer, default=0)
 
     notifications: Mapped[List["Notification"]] = relationship(back_populates="owner", cascade="all, delete")
@@ -80,7 +81,7 @@ class Shape(BaseClass):
     team_size = Column("team_size", Integer)
     num_wins = Column("num_wins", Integer, default=0)    
     num_losses = Column("num_losses", Integer, default=0)
-    level = Column("level", Integer, default=1)
+    level = Column("level", Integer, default=8)
     xp = Column("xp", Integer, default=0)
     num_owners = Column("num_owners", Integer, default=1)
 
