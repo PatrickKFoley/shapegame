@@ -311,7 +311,6 @@ class CollectionWindow:
 
                 # remove from sprite group
                 self.collection_shapes.remove(sprite)
-                self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
 
                 removed = True
 
@@ -321,7 +320,8 @@ class CollectionWindow:
                         sprite.moveRight()
 
                     self.selected_index -= 1
-                    self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+                
+                self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
             
             elif removed: sprite.moveLeft()
 
@@ -399,7 +399,7 @@ class CollectionWindow:
         
         if self.essence_bar.changing and not self.del_button.disabled:
             self.del_button.disable()
-        elif not self.essence_bar.changing and self.del_button.disabled:
+        elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1:
             self.del_button.enable()
 
         self.handleInputs(mouse_pos, events)

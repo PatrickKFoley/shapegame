@@ -81,7 +81,7 @@ class Shape(BaseClass):
     team_size = Column("team_size", Integer)
     num_wins = Column("num_wins", Integer, default=0)    
     num_losses = Column("num_losses", Integer, default=0)
-    level = Column("level", Integer, default=8)
+    level = Column("level", Integer, default=1)
     xp = Column("xp", Integer, default=0)
     num_owners = Column("num_owners", Integer, default=1)
 
