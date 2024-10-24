@@ -131,7 +131,7 @@ if __name__ == "__main__":
     session.query(User).delete()
 
     try:
-        user_1 = User("a")
+        user_1 = User("pat")
         user_2 = User("b")
         user_3 = User("c")
         user_4 = User("d")
@@ -145,12 +145,20 @@ if __name__ == "__main__":
         # notification_4 = Notification(4, user_4, "camille wants to play", "INVITE", "b")
         # notification_5 = Notification(4, user_4, "pat wants to play", "INVITE", "b")
 
-        shape_1 = Shape(0, user_1, 'triangle', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
-        shape_2 = Shape(0, user_1, 'circle', 0, 0, 1, 1, 35, 45, 150, 1, 5, 10, 'a', 'giggy', 'novice')
-        shape_3 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        # shape_1 = Shape(0, user_1, 'triangle', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        # shape_2 = Shape(0, user_1, 'circle', 0, 0, 1, 1, 35, 45, 150, 1, 5, 10, 'a', 'giggy', 'novice')
+        # shape_3 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        # shape_4 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        # shape_5 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        # shape_6 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
 
 
-        session.add(shape_1)
+        # session.add(shape_1)
+        # session.add(shape_2)
+        # session.add(shape_3)
+        # session.add(shape_4)
+        # session.add(shape_5)
+        # session.add(shape_6)
         session.add(user_1)
         session.add(user_2)
         session.add(user_3)

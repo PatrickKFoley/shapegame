@@ -19,7 +19,7 @@ from game_files.killfeed2 import Killfeed
 from game_files.clouds2 import Clouds
 from game_files.circledata import *
 from game_files.circledata import colors as color_data
-from game_files.colordata import color_data
+from game_files.gamedata import color_data
 
 ACTION_KILL = 'kill'
 ACTION_HEAL = 'heal'

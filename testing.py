@@ -14,13 +14,13 @@ from screen_elements.notificationswindow import NotificationsWindow
 from createdb import User, Shape as ShapeData
 from game_files.circledata import colors as color_data
 from game_files.circledata import powerup_data
-from game_files.colordata import color_data
+from game_files.gamedata import color_data
 from pygame.sprite import Group
 
 from game_files.shape import Shape
 from game_files.game2 import Game2
 from game_files.game3 import Game3
-from menu_files.menu2 import Menu
+from menu_files.menu2 import Menu, CollectionWindow
 
 
 from sqlalchemy import create_engine
@@ -609,6 +609,46 @@ def menu2():
     Menu().play()
     pygame.quit()
 
+def collectionWindow():
+    # database session
+    # engine = create_engine("postgresql://postgres:postgres@172.105.8.221/root/shapegame/shapegame/database.db", echo=False)
+    engine = create_engine("sqlite:///database.db", echo=False) # local db
+    SessionMaker = sessionmaker(bind=engine)
+    session = SessionMaker()
+
+    user = session.query(User).filter(User.username == "a").one()
+
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
+    friends_window = CollectionWindow(user, session)
+    clock = pygame.time.Clock()
+
+    running = True
+    while running:
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+        screen.fill((255, 255, 255))
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_TAB:
+                    print('tab')
+                    friends_window.toggle()
+
+        friends_window.update(mouse_pos, events)
+        screen.blit(friends_window.surface, friends_window.rect)
+
+        # Update the display
+        pygame.display.flip()
+        clock.tick(60)
+        
+
+    # Quit Pygame
+    pygame.quit()
+    sys.exit()
+
 # newArt()
 # generateHealthBars()
 # shape2()
@@ -618,3 +658,4 @@ def menu2():
 # game3()
 # generateOvals()
 menu2()
+# collectionWindow()

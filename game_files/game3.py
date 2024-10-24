@@ -15,7 +15,7 @@ from game_files.shape2 import Shape
 from game_files.powerup2 import Powerup
 from game_files.circledata import *
 from game_files.circledata import colors as color_data
-from game_files.colordata import color_data
+from game_files.gamedata import color_data
 
 RENDER_W = 854
 RENDER_H = 480

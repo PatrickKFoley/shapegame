@@ -11,8 +11,8 @@ class Arrow:
         self.growth = growth
         self.growth_amount = 0
 
-        if direction == "->": self.image = pygame.image.load("backgrounds/arrow_right.png")
-        else: self.image = pygame.image.load("backgrounds/arrow_left.png")
+        if direction == "->": self.image = pygame.image.load("backgrounds/arrow_right.png").convert_alpha()
+        else: self.image = pygame.image.load("backgrounds/arrow_left.png").convert_alpha()
 
         self.buildSurface()
 
