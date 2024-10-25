@@ -5,7 +5,9 @@ from pygame.mixer import Sound
 from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
-import pygame, time, itertools, sys, pytz, random, math
+import pygame, time, itertools, sys, pytz, random, math, numpy
+from scipy.io import wavfile
+from scipy.signal import resample
 
 from createdb import User, Shape as ShapeData
 from screen_elements.text import Text
@@ -48,44 +50,63 @@ class EssenceBar:
     def __init__(self, user: User):
         self.user = user
         self.changing = False
+        self.frames = 0
 
-        self.background = load('backgrounds/essence_background.png').convert_alpha()
-        self.foreground_full = load('backgrounds/essence_foreground.png').convert_alpha()
-        self.surface = Surface(self.background.get_size(), pygame.SRCALPHA, 32)
-        self.rect = self.surface.get_rect()
-        self.rect.center = [1250, 100]
+        # load all images
+        # extra elements on the front to properly handle empty bar
+        # extra elements on the back to properly line up a 50% full bar
+        self.images: list[Surface] = [Surface([10, 10], pygame.SRCALPHA, 32), Surface([10, 10], pygame.SRCALPHA, 32)]
+        for i in range(25, 0, -1):
+            self.images.append(load(f'backgrounds/shape_essence/shape_essence-{i}.png').convert_alpha())
+        self.images.append(load(f'backgrounds/shape_essence/shape_essence-1.png').convert_alpha())
+        self.images.append(load(f'backgrounds/shape_essence/shape_essence-1.png').convert_alpha())
 
-        self.surface.blit(self.background, [0, 0])
+        self.rect = self.images[0].get_rect()
+        self.rect.center = [40, 180]
+
+        percent = (self.user.shape_essence % 1) * 100
+        self.current_index = min(int(percent * (len(self.images) - 1) / 100), len(self.images) - 1)
+        self.next_index = self.current_index
+        self.current_image = self.images[self.current_index]
 
         self.current_essence = self.user.shape_essence
-        self.current_length = (self.user.shape_essence % 1) * self.surface.get_size()[0]
-        self.next_length = self.current_length
         self.loops = 0
-        self.width = self.surface.get_size()[1]
 
-        self.surface.blit(self.foreground_full, [0, 0], [0, 0, self.current_length, self.width])
+        self.sounds = [
+            Sound(numpy.zeros(80000, dtype=numpy.int16)),
+            Sound(numpy.zeros(80000, dtype=numpy.int16)),
+        ]
+        for i in range(27):
+            sound = Sound(f'sounds/clanks/{i}.wav')
+            sound.set_volume(0.05)
+            self.sounds.append(sound)
+
+        self.pop_sound = Sound('sounds/pop.wav')
+        
 
     def update(self): 
+        max_index = 27
+        frames_per_update = 5
+
+        self.frames += 1
 
         # loop
         while self.loops > 0:
-            self.next_length = self.surface.get_size()[0]
-                
-            self.surface.fill([0, 0, 0, 0])
-            self.surface.blit(self.background, [0, 0])
-                
-            self.current_length = min(self.current_length + 10, self.next_length)
-            self.surface.blit(self.foreground_full, [0, 0], [0, 0, self.current_length, self.width])
+            self.next_index = max_index
+
+            if self.frames % frames_per_update == 0: 
+                self.current_index += 1
+                self.sounds[self.current_index % len(self.sounds)].play()
 
             # if bar is full, empty
-            if self.current_length == self.surface.get_size()[0]:
-                self.current_length = 0
-                self.next_length = 1
+            if self.current_index == self.next_index and self.frames % frames_per_update == 0: 
+                self.pop_sound.play()
+                self.current_index = 0
+                self.next_index = 1
 
                 self.loops -= 1
                 self.user.shape_tokens += 1
-                self.user.shape_essence -= 1.0
-                self.update()
+                self.user.shape_essence -= 1
                 return True
 
             return
@@ -94,31 +115,34 @@ class EssenceBar:
         if self.current_essence != self.user.shape_essence:
             self.changing = True
 
-            # check if we need to loop the bar
+            # check if we need to loop the bar, if so, start looping immediately
             if self.user.shape_essence >= 1:
                 self.loops = math.floor(self.user.shape_essence)
                 self.current_essence = self.user.shape_essence
                 return 
             
-            self.next_length = max((self.user.shape_essence % 1) * self.surface.get_size()[0], 1)
+            percent = (self.user.shape_essence % 1) * 100
+            self.next_index = max(min(int(percent * (len(self.images) - 1) / 100), len(self.images) - 1), 1)
             self.current_essence = self.user.shape_essence
 
-        if self.current_length != self.next_length:
-
-            self.surface.fill([0, 0, 0, 0])
-            self.surface.blit(self.background, [0, 0])
+        # check if image has to change
+        if self.current_index != self.next_index:
+            if self.frames % frames_per_update == 0: 
                 
-            self.current_length = min(self.current_length + 10, self.next_length)
-            self.surface.blit(self.foreground_full, [0, 0], [0, 0, self.current_length, self.width])
+                # change image, play sound
+                self.current_index += 1
+                self.sounds[self.current_index % len(self.sounds)].play()
+
         else: self.changing = False
 
         # if bar is full, empty
-        if self.current_length == self.surface.get_size()[0]:
-            self.current_length = 0
+        if self.current_index == max_index and self.frames % frames_per_update == 0:
+            self.current_index = 0
             self.next_length = 1
 
             self.user.shape_tokens += 1
             self.user.shape_essence -= 1
+            self.pop_sound.play()
 
             return True
 
@@ -132,7 +156,7 @@ class CollectionWindow:
 
     def initCollectionWindow(self):
         '''create the bottom collection window'''
-        self.surface = Surface([1920, 443], pygame.SRCALPHA, 32)
+        self.surface = Surface([1920, 493], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
         self.rect.topleft = [0, 1030]
 
@@ -153,7 +177,7 @@ class CollectionWindow:
         self.shapes_button = Button('shapes', 50, [25, 25])
         self.question_button = Button('question', 40, [590, 131])
         self.question_button.disable()
-        self.add_button = Button('add', 90, [87, 145])
+        self.add_button = Button('add', 90, [81, 226])
         self.del_button = Button('trash', 40, [205, 131])
         self.left = Arrow(690, 400, '<-', length=100, width=66)
         self.right = Arrow(810, 400, '->', length=100, width=66)
@@ -180,11 +204,7 @@ class CollectionWindow:
         self.tape_rect = self.tape_surface.get_rect()
         self.tape_rect.center = [1140, 110]
 
-        self.shape_token_dot = load('backgrounds/shape_token_dot.png').convert_alpha()
-        self.shape_token_dot_rect = self.shape_token_dot.get_rect()
-        self.shape_token_dot_rect.center = [120, 116]
-
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118, color=('black' if self.user.shape_tokens > 0 else 'red'))
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
 
         # essence bar 
         self.essence_bar = EssenceBar(self.user)
@@ -199,8 +219,11 @@ class CollectionWindow:
         self.selected_index = 0
         self.selected_shape: ShapeData | None = None
         self.collection_shapes = Group()
+        self.deleted_shapes = Group()
 
         self.delete_clicked = False
+        
+        self.woosh_sound = Sound('sounds/woosh.wav')
 
     def initCollectionGroup(self):
         '''create Collection shapes for newly logged in user'''
@@ -279,7 +302,7 @@ class CollectionWindow:
             shape.moveRight()
 
         # recreate shape tokens text
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118, color=('black' if self.user.shape_tokens > 0 else 'red'))
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
 
         # disable add button if user used last token
         if self.user.shape_tokens == 0: self.add_button.disable()
@@ -311,6 +334,8 @@ class CollectionWindow:
 
                 # remove from sprite group
                 self.collection_shapes.remove(sprite)
+                sprite.delete()
+                self.deleted_shapes.add(sprite)
 
                 removed = True
 
@@ -364,6 +389,7 @@ class CollectionWindow:
             elif self.right.rect.collidepoint(mouse_pos) and self.selected_index != 0 and not self.right.disabled:
                 self.selected_index -= 1
                 self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+                self.woosh_sound.play()
 
                 for shape in self.collection_shapes:
                     shape.moveRight()
@@ -371,12 +397,14 @@ class CollectionWindow:
             elif self.left.rect.collidepoint(mouse_pos) and self.selected_index != len(self.user.shapes)-1 and not self.left.disabled:
                 self.selected_index += 1
                 self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+                self.woosh_sound.play()
 
                 for shape in self.collection_shapes:
                     shape.moveLeft()
 
             elif self.add_button.rect.collidepoint(mouse_pos):
                 self.userGenerateShape()
+                self.woosh_sound.play()
 
             # show the delete conirmation screen
             elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
@@ -384,6 +412,7 @@ class CollectionWindow:
 
             elif self.delete_clicked and self.yes_clickable.rect.collidepoint(mouse_pos):
                 self.deleteSelectedShape()
+                self.woosh_sound.play()
 
             # if user clicks anywhere, close delete screen
             else:
@@ -395,8 +424,8 @@ class CollectionWindow:
         # update returns true when shape essence amount is altered, needing commit
         if self.essence_bar.update(): 
             self.session.commit()
-            self.shape_token_text = Text(f'{self.user.shape_tokens}', 40, 122, 118, color=('black' if self.user.shape_tokens > 0 else 'red'))
-        
+            self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
+
         if self.essence_bar.changing and not self.del_button.disabled:
             self.del_button.disable()
         elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1:
@@ -405,6 +434,7 @@ class CollectionWindow:
         self.handleInputs(mouse_pos, events)
 
         self.collection_shapes.update()
+        self.deleted_shapes.update()
         
         self.positionWindow()
 
@@ -413,7 +443,7 @@ class CollectionWindow:
     def toggle(self):
         self.opened = not self.opened
 
-        if self.opened: self.next_y = 1080 - self.background.get_size()[1] + 25
+        if self.opened: self.next_y = 1080 - self.background.get_size()[1]
         else: self.next_y = 1080
 
     def renderSurface(self):
@@ -422,8 +452,6 @@ class CollectionWindow:
         # draw buttons
         [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables if clickable not in [self.yes_clickable, self.no_clickable, self.right, self.left]]
 
-        self.surface.blit(self.shape_token_dot, self.shape_token_dot_rect)
-
         # arrows
         if not self.left.disabled:
             self.surface.blit(self.left.surface, self.left.rect)
@@ -431,6 +459,7 @@ class CollectionWindow:
 
         # sprites
         self.collection_shapes.draw(self.surface)
+        self.deleted_shapes.draw(self.surface)
 
         # draw additional info (self.info_alpha increased on hover)
         if self.info_alpha >= 0: 
@@ -452,7 +481,7 @@ class CollectionWindow:
         self.surface.blit(self.shape_token_text.surface, self.shape_token_text.rect)
 
         # render essence bar
-        self.surface.blit(self.essence_bar.surface, self.essence_bar.rect)
+        self.surface.blit(self.essence_bar.images[self.essence_bar.current_index], self.essence_bar.rect)
 
         # render delete surface
         if self.delete_clicked:
@@ -477,6 +506,7 @@ class CollectionShape(pygame.sprite.Sprite):
         
         self.x = 750 + position * 220
         self.y = 250
+        self.next_y = self.y
         self.next_x = self.x
         self.v = 0
         self.a = 1.5
@@ -586,6 +616,16 @@ class CollectionShape(pygame.sprite.Sprite):
 
         if self.image.get_alpha() != self.alpha: self.image.set_alpha(self.alpha)
 
+        # move down 
+        if self.y != self.next_y:
+            self.y += 10
+            self.alpha = max(self.alpha - 20, 0)
+            self.image.set_alpha(self.alpha)
+            self.rect.center = [self.x, self.y]
+
+            if self.alpha == 0:
+                self.kill()
+
         # move into place
         if self.x == self.next_x: return
 
@@ -616,6 +656,9 @@ class CollectionShape(pygame.sprite.Sprite):
             self.v = 0
 
         self.rect.center = [self.x, self.y]
+
+    def delete(self):
+        self.next_y = 1000
 
 class Menu():
     def __init__(self):
@@ -672,7 +715,7 @@ class Menu():
         self.menu_music = Sound("sounds/menu.wav")
         self.close_sound = Sound("sounds/close.wav")
         self.open_sound.set_volume(.5)
-        self.menu_music.set_volume(.5)
+        self.menu_music.set_volume(.25)
         self.close_sound.set_volume(.5)
         self.open_sound.play()
 

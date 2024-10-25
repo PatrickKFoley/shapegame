@@ -11,6 +11,12 @@ from game_files.powerup2 import Powerup
 from screen_elements.friendswindow import FriendsWindow
 from screen_elements.notificationswindow import NotificationsWindow
 
+import numpy as np
+from scipy.io import wavfile
+from scipy.signal import resample
+import librosa
+import soundfile as sf
+
 from createdb import User, Shape as ShapeData
 from game_files.circledata import colors as color_data
 from game_files.circledata import powerup_data
@@ -649,6 +655,29 @@ def collectionWindow():
     pygame.quit()
     sys.exit()
 
+def generateSounds():
+    
+
+    input_filename = "sounds/clanks/0.wav"
+    output_filename_template = "sounds/clanks/{}.wav"
+
+    # Load the original sound file
+    y, sr = librosa.load(input_filename, sr=None)
+
+    # Set the pitch shift interval (in semitones)
+    semitone_increase = 1  # Adjust this for more noticeable shifts
+    num_files = 28
+
+    for i in range(num_files):
+        print(i)
+        # Apply pitch shift by `i * semitone_increase` semitones
+        y_shifted = librosa.effects.pitch_shift(y=y, sr=sr, n_steps=(i * semitone_increase))
+        
+        # Save the output file
+        sf.write(output_filename_template.format(i), y_shifted, sr)
+
+
+
 # newArt()
 # generateHealthBars()
 # shape2()
@@ -656,6 +685,7 @@ def collectionWindow():
 # game2()
 # killfeed
 # game3()
+# generateSounds()
 # generateOvals()
 menu2()
 # collectionWindow()
