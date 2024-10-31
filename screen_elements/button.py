@@ -11,6 +11,9 @@ class Button:
         self.rect = self.surface.get_rect()
         self.rect.center = center
 
+        self.x = center[0]
+        self.y = center[1]
+
         self.disabled = False
 
     def disable(self):

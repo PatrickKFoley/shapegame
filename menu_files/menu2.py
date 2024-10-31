@@ -6,8 +6,6 @@ from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
 import pygame, time, itertools, sys, pytz, random, math, numpy
-from scipy.io import wavfile
-from scipy.signal import resample
 
 from createdb import User, Shape as ShapeData
 from screen_elements.text import Text
@@ -145,6 +143,232 @@ class EssenceBar:
             self.pop_sound.play()
 
             return True
+
+class FriendsWindow:
+    def __init__(self, user: User, session: Session):
+        self.user = user
+        self.session = session
+
+        self.surface = Surface([550, 2160], pygame.SRCALPHA, 32)
+        self.rect = self.surface.get_rect()
+        self.rect.topleft = [-500, 0]
+
+        self.button = Button('friends', 45, [525, 25])
+
+        self.clickables = [
+            self.button,
+        ]
+
+        self.background = load('backgrounds/side_window_long.png').convert_alpha()
+        self.background_rect = self.background.get_rect()
+        self.background_rect.topleft = [0, 0]
+
+        self.x = -500
+        self.next_x = -500
+        self.v = 0
+        self.a = 1.5
+        self.opened = False
+
+        self.y = 0
+        self.y_min = -500
+        self.y_on_click = 0
+        self.mouse_y_on_click = 0
+        self.is_held = False
+
+    def handleInputs(self, mouse_pos, events):
+        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
+        # update icons
+
+        for clickable in self.clickables:
+            clickable.update(rel_mouse_pos)
+
+        # handle events
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN: 
+
+                if self.button.rect.collidepoint(rel_mouse_pos):
+                    self.toggle()
+
+                # if the window is closed the only inputs we want to accept are the open button
+                if not self.opened: return
+
+                if self.rect.collidepoint(mouse_pos):
+                    self.is_held = True
+                    self.y_on_click = int(self.y)
+                    self.mouse_y_on_click = mouse_pos[1]
+
+            elif event.type == MOUSEBUTTONUP:
+                if self.rect.collidepoint(mouse_pos):
+                    self.is_held = False
+
+    def toggle(self):
+        self.opened = not self.opened
+
+        if self.opened: self.next_x = 0
+        else: self.next_x = -500
+
+    def update(self, mouse_pos, events):
+        '''update position of the collection window'''
+
+
+        self.handleInputs(mouse_pos, events)
+
+        # update elements
+        
+        self.positionWindow(mouse_pos)
+
+        self.renderSurface()
+
+    def positionWindow(self, mouse_pos):
+        # update window positions
+        if self.x != self.next_x:
+        
+            # calculate the remaining distance to the target
+            distance = abs(self.x - self.next_x)
+
+            # apply acceleration while far from the target, decelerate when close
+            if distance > 50:
+                self.v += self.a
+            else:
+                self.v = max(1, distance * 0.2)
+
+            # move the window towards the target position, snap in place if position is exceeded
+            if self.x > self.next_x:
+
+                self.x = max(self.x - self.v, self.next_x)
+
+            elif self.x < self.next_x:
+
+                self.x = min(self.x + self.v, self.next_x)
+
+            # reset the velocity when the window reaches its target
+            if self.x == self.next_x:
+                self.v = 0
+
+        if self.is_held:
+            self.y = max(self.y_min, min(mouse_pos[1] - self.mouse_y_on_click + self.y_on_click, 0))
+            self.button.rect.center = [self.button.x, self.button.y - self.y]
+
+        self.rect.topleft = [self.x, self.y]
+
+    def renderSurface(self):
+        self.surface.fill((0, 0, 0, 0))
+        self.surface.blit(self.background, [0, 0])
+
+        [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables]
+
+class NotificationsWindow:
+    def __init__(self, user: User, session: Session):
+        self.user = user
+        self.session = session
+
+        self.surface = Surface([550, 2160], pygame.SRCALPHA, 32)
+        self.rect = self.surface.get_rect()
+        self.rect.topleft = [1920-50, 0]
+
+        self.button = Button('mail', 45, [25, 25])
+
+        self.clickables = [
+            self.button,
+        ]
+
+        self.background = load('backgrounds/side_window_long.png').convert_alpha()
+        self.background_rect = self.background.get_rect()
+        self.background_rect.topleft = [0, 0]
+
+        self.x = 1920 - 50
+        self.next_x = 1920 - 50
+        self.v = 0
+        self.a = 1.5
+        self.opened = False
+
+        self.y = 0
+        self.y_min = -500
+        self.y_on_click = 0
+        self.mouse_y_on_click = 0
+        self.is_held = False
+
+    def handleInputs(self, mouse_pos, events):
+        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
+        # update icons
+
+        for clickable in self.clickables:
+            clickable.update(rel_mouse_pos)
+
+        # handle events
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN: 
+                print('event')
+
+                if self.button.rect.collidepoint(rel_mouse_pos):
+                    self.toggle()
+
+                # if the window is closed the only inputs we want to accept are the open button
+                if not self.opened: return
+
+                if self.rect.collidepoint(mouse_pos):
+                    self.is_held = True
+                    self.y_on_click = int(self.y)
+                    self.mouse_y_on_click = mouse_pos[1]
+
+            elif event.type == MOUSEBUTTONUP:
+                if self.rect.collidepoint(mouse_pos):
+                    self.is_held = False
+
+    def toggle(self):
+        self.opened = not self.opened
+
+        if self.opened: self.next_x = 1920 - 550
+        else: self.next_x = 1920 - 50
+
+    def update(self, mouse_pos, events):
+        '''update position of the collection window'''
+
+        self.handleInputs(mouse_pos, events)
+
+        # update elements
+        
+        self.positionWindow(mouse_pos)
+
+        self.renderSurface()
+
+    def positionWindow(self, mouse_pos):
+        # update window positions
+        if self.x != self.next_x:
+        
+            # calculate the remaining distance to the target
+            distance = abs(self.x - self.next_x)
+
+            # apply acceleration while far from the target, decelerate when close
+            if distance > 50:
+                self.v += self.a
+            else:
+                self.v = max(1, distance * 0.2)
+
+            # move the window towards the target position, snap in place if position is exceeded
+            if self.x > self.next_x:
+
+                self.x = max(self.x - self.v, self.next_x)
+
+            elif self.x < self.next_x:
+
+                self.x = min(self.x + self.v, self.next_x)
+
+            # reset the velocity when the window reaches its target
+            if self.x == self.next_x:
+                self.v = 0
+
+        if self.is_held:
+            self.y = max(self.y_min, min(mouse_pos[1] - self.mouse_y_on_click + self.y_on_click, 0))
+            self.button.rect.center = [self.button.x, self.button.y - self.y]
+
+        self.rect.topleft = [self.x, self.y]
+
+    def renderSurface(self):
+        self.surface.fill((0, 0, 0, 0))
+        self.surface.blit(self.background, [50, 0])
+
+        [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables]
 
 class CollectionWindow:
     def __init__(self, user: User, session: Session):
@@ -386,7 +610,10 @@ class CollectionWindow:
             if self.shapes_button.rect.collidepoint(mouse_pos):
                 self.toggle()
 
-            elif self.right.rect.collidepoint(mouse_pos) and self.selected_index != 0 and not self.right.disabled:
+            # if the window is closed the only inputs we want to accept are the open button
+            if not self.opened: return
+
+            if self.right.rect.collidepoint(mouse_pos) and self.selected_index != 0 and not self.right.disabled:
                 self.selected_index -= 1
                 self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
                 self.woosh_sound.play()
@@ -406,7 +633,7 @@ class CollectionWindow:
                 self.userGenerateShape()
                 self.woosh_sound.play()
 
-            # show the delete conirmation screen
+            # show the delete confirmation screen
             elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
                 self.delete_clicked = not self.delete_clicked
 
@@ -664,8 +891,8 @@ class Menu():
     def __init__(self):
         # load cursor and background
         self.screen = pygame.display.set_mode((1920, 1080))
-        self.background = pygame.image.load("backgrounds/BG1.png").convert_alpha()
-        self.cursor = pygame.transform.smoothscale(pygame.image.load("backgrounds/cursor.png").convert_alpha(), (12, 12))
+        self.background = load("backgrounds/BG1.png").convert_alpha()
+        self.cursor = smoothscale(load("backgrounds/cursor.png").convert_alpha(), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
@@ -700,6 +927,8 @@ class Menu():
         self.simple_shapes = Group()
 
         self.collection_window: CollectionWindow | None = None
+        self.friends_window: FriendsWindow | None = None
+        self.notifications_window: NotificationsWindow | None = None
 
         self.initSounds()
         self.initTexts()
@@ -729,18 +958,16 @@ class Menu():
         self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3)
         self.play_text = Text("play", 100, 1920/2, 4*1080/5)
         self.bad_credentials_text = Text("user not found!", 150, 1920/2, 800)
-        self.your_shapes_text = Text('your shapes', 40, 55, 1035, 'topleft')
 
         self.texts: list[Text] = []
         self.texts.append(self.title_text)
         self.texts.append(self.play_text)
         self.texts.append(self.bad_credentials_text)
-        self.texts.append(self.your_shapes_text)
 
         # create all interactive elements
         self.network_match_clickable = ClickableText("network match", 50, 1920/2 - 200, 975)
         self.local_match_clickable = ClickableText("local match", 50, 1920/2 + 200, 975)
-        self.exit_clickable = ClickableText("exit", 50, 1870, 1045)
+        self.exit_button = Button("exit", 45, [1920 - 25, 1080 - 25])
         self.register_clickable = ClickableText("register", 50, 1920 / 2, 1050)
         self.username_editable = EditableText("Username: ", 60, 1920/2, 950)
         self.connect_to_player_editable = EditableText("Connect to user: ", 30, 0, 0, "topleft")
@@ -749,7 +976,7 @@ class Menu():
         self.clickables: list[ClickableText] = []
         self.clickables.append(self.network_match_clickable)
         self.clickables.append(self.local_match_clickable)
-        self.clickables.append(self.exit_clickable)
+        self.clickables.append(self.exit_button)
         self.clickables.append(self.register_clickable)
 
     # PLAY HELPERS
@@ -765,7 +992,7 @@ class Menu():
 
             self.click_sound.play()
 
-            if self.exit_clickable.rect.collidepoint(mouse_pos):
+            if self.exit_button.rect.collidepoint(mouse_pos) and not any(window.opened for window in [self.notifications_window, self.collection_window]):
                 self.close_sound.play()
                 self.exit_clicked = True
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
@@ -806,6 +1033,8 @@ class Menu():
         # update sprites
         self.simple_shapes.update()
         self.collection_window.update(mouse_pos, events)
+        self.friends_window.update(mouse_pos, events)
+        self.notifications_window.update(mouse_pos, events)
 
     def drawScreenElements(self):
         '''draw all elements to the screen'''
@@ -822,6 +1051,8 @@ class Menu():
                 self.screen.blit(element.surface, element.rect)
 
         self.screen.blit(self.collection_window.surface, self.collection_window.rect)
+        self.screen.blit(self.friends_window.surface, self.friends_window.rect)
+        self.screen.blit(self.notifications_window.surface, self.notifications_window.rect)
         self.screen.blit(self.cursor, self.cursor_rect)
 
     def play(self):
@@ -829,9 +1060,12 @@ class Menu():
 
         # the login loop would replace this
         self.user = self.session.query(User).filter(User.username == 'b').one()
-        self.collection_window = CollectionWindow(self.user, self.session)
         self.logged_in_as_text = Text(f'logged in as: {self.user.username}', 35, 1920/2, 20)
         self.texts.append(self.logged_in_as_text)
+        
+        self.collection_window = CollectionWindow(self.user, self.session)
+        self.friends_window = FriendsWindow(self.user, self.session)
+        self.notifications_window = NotificationsWindow(self.user, self.session)
 
         # start the time for accumulator
         self.prev_time = time.time()
