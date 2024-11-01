@@ -146,7 +146,7 @@ if __name__ == "__main__":
         # notification_4 = Notification(4, user_4, "camille wants to play", "INVITE", "b")
         # notification_5 = Notification(4, user_4, "pat wants to play", "INVITE", "b")
 
-        # shape_1 = Shape(0, user_1, 'triangle', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        shape_1 = Shape(0, user_1, 'triangle', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
         # shape_2 = Shape(0, user_1, 'circle', 0, 0, 1, 1, 35, 45, 150, 1, 5, 10, 'a', 'giggy', 'novice')
         # shape_3 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
         # shape_4 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
@@ -154,12 +154,13 @@ if __name__ == "__main__":
         # shape_6 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
 
 
-        # session.add(shape_1)
+        session.add(shape_1)
         # session.add(shape_2)
         # session.add(shape_3)
         # session.add(shape_4)
         # session.add(shape_5)
         # session.add(shape_6)
+        
         session.add(user_1)
         session.add(user_2)
         session.add(user_3)
@@ -175,6 +176,10 @@ if __name__ == "__main__":
         user_1.friends.append(user_7)
 
         session.commit()
+        
+        session.query(User).filter(User.id == user_1.id).update({User.favorite_id: shape_1.id})
+        session.commit()
+
     except Exception as e:
         session.rollback()
         print(e)

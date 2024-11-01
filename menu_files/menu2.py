@@ -7,7 +7,7 @@ from pygame.surface import Surface
 from pygame.image import load
 import pygame, time, itertools, sys, pytz, random, math, numpy
 
-from createdb import User, Shape as ShapeData
+from createdb import User, Shape as ShapeData, Notification
 from screen_elements.text import Text
 from screen_elements.editabletext import EditableText
 from screen_elements.clickabletext import ClickableText
@@ -144,17 +144,76 @@ class EssenceBar:
 
             return True
 
+class FriendSprite(pygame.sprite.Sprite):
+    def __init__(self, friend: User, position: int, session: Session):
+        super().__init__()
+
+        self.user = friend
+        self.position = position
+        self.session = session
+
+        height = 124
+
+        self.x = 0
+        self.y = int(150 + position * 164.4)
+
+        self.image = Surface([500, height], pygame.SRCALPHA, 32)
+        self.image.fill((0, 0, 0, 100))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [0, self.y]
+
+        try:
+            self.shape = self.session.query(ShapeData).where(ShapeData.id == self.user.favorite_id).one()
+            self.shape_image = smoothscale(load(f'shape_images/backgrounds/{self.shape.type}/{color_data[self.shape.color_id].name}.png'), [height, height])
+            self.username_text = Text(f'{self.user.username}', 60, 250, 15, 'topleft', color_data[self.shape.color_id].text_color)
+
+            face_image = smoothscale(load(f'shape_images/faces/{self.shape.type}/{self.shape.face_id}/0.png'), [height, height])
+
+        except Exception as e:
+            print(e)
+            self.shape_image = smoothscale(load('shape_images/backgrounds/circle/black.png'), [height, height])
+            self.username_text = Text(f'{self.user.username}', 60, 250, 15, 'topleft',)
+
+
+        self.challenge_button = Button('swords', 40, [250, 92])
+        challenge_text = Text('challenge', 30, 325, 90)
+        
+        self.image.blit(self.username_text.surface, self.username_text.rect)
+        self.image.blit(self.shape_image, [100, 0])
+        self.image.blit(face_image, [100, 0])
+        self.image.blit(self.challenge_button.surface, self.challenge_button.rect)
+        self.image.blit(challenge_text.surface, challenge_text.rect)
+
 class FriendsWindow:
     def __init__(self, user: User, session: Session):
         self.user = user
         self.session = session
 
+        self.friends_group = Group()
+
+        for friend in self.user.friends:
+            self.friends_group.add(FriendSprite(friend, len(self.friends_group.sprites()), self.session))
+
         self.surface = Surface([550, 2160], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
         self.rect.topleft = [-500, 0]
 
-        self.button = Button('friends', 45, [525, 25])
+        self.frames_flag_raised = 0
+        self.already_following_flag = False
+        self.bad_credentials_flag = False
+        self.thats_you_flag = False
 
+        self.header = Text('followed players', 40, 230, 50)
+        self.already_following = Text('already following!', 30, 95, 85, 'topleft')
+        self.bad_credentials = Text('user not found!', 30, 95, 85, 'topleft')
+        self.thats_you = Text('thats you, silly :3', 30, 95, 85, 'topleft')
+        self.search_editable = EditableText('follow player: ', 30, 95, 85, 'topleft')
+
+        self.texts = [
+            self.header
+        ]
+
+        self.button = Button('friends', 45, [525, 25])
         self.clickables = [
             self.button,
         ]
@@ -178,9 +237,11 @@ class FriendsWindow:
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
         # update icons
+        # print(mouse_pos)
 
-        for clickable in self.clickables:
-            clickable.update(rel_mouse_pos)
+        self.button.update(rel_mouse_pos)
+
+        self.search_editable.hovered = self.search_editable.rect.collidepoint(rel_mouse_pos)
 
         # handle events
         for event in events:
@@ -197,9 +258,54 @@ class FriendsWindow:
                     self.y_on_click = int(self.y)
                     self.mouse_y_on_click = mouse_pos[1]
 
+                if self.search_editable.rect.collidepoint(rel_mouse_pos):
+                    self.search_editable.select()
+                else:
+                    self.search_editable.deselect()
+
             elif event.type == MOUSEBUTTONUP:
                 if self.rect.collidepoint(mouse_pos):
                     self.is_held = False
+
+            elif event.type == KEYDOWN:
+                if event.key == K_RETURN and (self.search_editable.selected or self.search_editable.hovered):
+                    # try to add the user as a friend
+                    username = self.search_editable.getText()
+
+                    # lower flags
+                    self.already_friends_flag = False
+                    self.bad_credentials_flag = False
+                    self.thats_you_flag = False
+
+                    # query db for user
+                    try:
+                        searched_user = self.session.query(User).filter(User.username == username).one()
+                    except Exception as e:
+                        self.bad_credentials_flag = True
+                        print(f"Could not add friend, none found: {e}")
+                        return
+                
+                    # raise flags
+                    self.already_friends_flag = any(friend.username == username for friend in self.user.friends)
+                    self.thats_you_flag = searched_user.username == self.user.username
+                    if self.already_friends_flag or self.thats_you_flag: return
+
+                    # create friend sprite
+                    self.friends_group.add(FriendSprite(searched_user, len(self.friends_group.sprites()), self.session))
+
+
+                    # add searched user to user following
+                    try:
+                        searched_user = self.session.query(User).filter(User.username == username).one()
+                        self.session.add(Notification(searched_user.id, searched_user, f'{self.user.username} now follows you', "FOLLOWER", self.user.username))
+                        self.user.friends.append(searched_user)
+                        self.session.commit()
+                        print('added')
+
+                    except Exception as e:
+                        self.session.rollback()
+                        print(f'Error adding a friend: {e}')
+                        return
 
     def toggle(self):
         self.opened = not self.opened
@@ -210,8 +316,18 @@ class FriendsWindow:
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
 
+        if any([self.already_following_flag, self.thats_you_flag, self.bad_credentials_flag]):
+            self.frames_flag_raised += 1
+            
+            if self.frames_flag_raised == 180:
+                self.frames_flag_raised = 0
+                self.already_following_flag, self.bad_credentials_flag, self.thats_you_flag = False, False, False
+
+        self.search_editable.update(events)
 
         self.handleInputs(mouse_pos, events)
+
+        self.friends_group.update()
 
         # update elements
         
@@ -256,6 +372,16 @@ class FriendsWindow:
         self.surface.blit(self.background, [0, 0])
 
         [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables]
+        [self.surface.blit(text.surface, text.rect) for text in self.texts]
+
+        if not any([self.already_following_flag, self.thats_you_flag, self.bad_credentials_flag]):
+            self.surface.blit(self.search_editable.surface, self.search_editable.rect)
+
+        if self.already_following_flag: self.surface.blit(self.already_following.surface, self.already_following.rect)
+        if self.bad_credentials_flag: self.surface.blit(self.bad_credentials.surface, self.bad_credentials.rect)
+        if self.thats_you_flag: self.surface.blit(self.thats_you.surface, self.thats_you.rect)
+
+        self.friends_group.draw(self.surface)
 
 class NotificationsWindow:
     def __init__(self, user: User, session: Session):
@@ -298,7 +424,6 @@ class NotificationsWindow:
         # handle events
         for event in events:
             if event.type == MOUSEBUTTONDOWN: 
-                print('event')
 
                 if self.button.rect.collidepoint(rel_mouse_pos):
                     self.toggle()
