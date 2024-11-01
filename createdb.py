@@ -1,10 +1,14 @@
 from typing import List
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float, DateTime, Table, Boolean
 from sqlalchemy_utils import database_exists, create_database
-from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry
+from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry, Session
 import random, os, datetime
 
+from game_files.gamedata import color_data, shape_data as shape_model_data, names, titles
+
 BaseClass = declarative_base()
+
+
 
 friends = Table(
     "friends", BaseClass.metadata,
@@ -112,6 +116,33 @@ class Shape(BaseClass):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
 
+def generateRandomShape(user: User, session: Session):
+    '''returns randomly generated ShapeData'''
+
+    type = random.choices(['circle', 'triangle', 'square'], weights=[40, 40, 20], k=1)[0]
+    face_id = 0
+    color_id = random.randint(0, len(color_data)-1)
+    density = 1
+    velocity = shape_model_data[type].velocity + random.randint(-3, 3)
+    radius_min = shape_model_data[type].radius_min + random.randint(-10, 10)
+    radius_max = shape_model_data[type].radius_max + random.randint(-10, 10)
+    health = shape_model_data[type].health + random.randint(-50, 50)
+    dmg_x = round(shape_model_data[type].dmg_multiplier + (random.random() * random.choice([-1, 1])), 1)
+    luck = shape_model_data[type].luck + random.randint(-5, 5)
+    team_size = shape_model_data[type].team_size + random.randint(-3, 3)
+    name = random.choice(names)
+    title = titles[0]
+
+    shape_data = Shape(user.id, user, type, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_x, luck, team_size, user.username, name, title)
+
+    # user.shape_tokens -= 1
+    # user.num_shapes += 1
+
+    # session.add(shape_data)
+    # session.commit()
+
+    return shape_data
+
 if __name__ == "__main__":
     # string for server database connection
     # connection_string = "postgresql://postgres:postgres@localhost/root/shapegame/shapegame/database.db"
@@ -133,12 +164,11 @@ if __name__ == "__main__":
 
     try:
         user_1 = User("pat")
-        user_2 = User("b")
-        user_3 = User("c")
-        user_4 = User("d")
-        user_5 = User("e")
-        user_6 = User("f")
-        user_7 = User("g")
+        user_2 = User("camille")
+        user_3 = User("aiden")
+        user_4 = User("kyra")
+        user_5 = User("zack")
+        user_6 = User("squiggigydig")
 
         # notification_1 = Notification(4, user_4, "aiden now follows you", "FRIEND", "a")
         # notification_2 = Notification(4, user_4, "camille now follows you", "FRIEND", "b")
@@ -146,20 +176,20 @@ if __name__ == "__main__":
         # notification_4 = Notification(4, user_4, "camille wants to play", "INVITE", "b")
         # notification_5 = Notification(4, user_4, "pat wants to play", "INVITE", "b")
 
-        shape_1 = Shape(0, user_1, 'triangle', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
-        # shape_2 = Shape(0, user_1, 'circle', 0, 0, 1, 1, 35, 45, 150, 1, 5, 10, 'a', 'giggy', 'novice')
-        # shape_3 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
-        # shape_4 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
-        # shape_5 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
-        # shape_6 = Shape(0, user_1, 'square', 0, 0, 1, 1, 30, 40, 100, 1, 5, 10, 'a', 'blit', 'novice')
+        shape_1 = generateRandomShape(user_1, session)
+        shape_2 = generateRandomShape(user_2, session)
+        shape_3 = generateRandomShape(user_3, session)
+        shape_4 = generateRandomShape(user_4, session)
+        shape_5 = generateRandomShape(user_5, session)
+        shape_6 = generateRandomShape(user_6, session)
 
 
         session.add(shape_1)
-        # session.add(shape_2)
-        # session.add(shape_3)
-        # session.add(shape_4)
-        # session.add(shape_5)
-        # session.add(shape_6)
+        session.add(shape_2)
+        session.add(shape_3)
+        session.add(shape_4)
+        session.add(shape_5)
+        session.add(shape_6)
         
         session.add(user_1)
         session.add(user_2)
@@ -167,17 +197,20 @@ if __name__ == "__main__":
         session.add(user_4)
         session.add(user_5)
         session.add(user_6)
-        session.add(user_7)
-        user_1.friends.append(user_2)
-        user_1.friends.append(user_3)
-        user_1.friends.append(user_4)
-        user_1.friends.append(user_5)
-        user_1.friends.append(user_6)
-        user_1.friends.append(user_7)
+        # user_1.friends.append(user_2)
+        # user_1.friends.append(user_3)
+        # user_1.friends.append(user_4)
+        # user_1.friends.append(user_5)
+        # user_1.friends.append(user_6)
 
         session.commit()
         
         session.query(User).filter(User.id == user_1.id).update({User.favorite_id: shape_1.id})
+        session.query(User).filter(User.id == user_2.id).update({User.favorite_id: shape_2.id})
+        session.query(User).filter(User.id == user_3.id).update({User.favorite_id: shape_3.id})
+        session.query(User).filter(User.id == user_4.id).update({User.favorite_id: shape_4.id})
+        session.query(User).filter(User.id == user_5.id).update({User.favorite_id: shape_5.id})
+        session.query(User).filter(User.id == user_6.id).update({User.favorite_id: shape_6.id})
         session.commit()
 
     except Exception as e:

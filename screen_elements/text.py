@@ -1,7 +1,7 @@
 from shared_functions import createText
 
 class Text:
-    def __init__(self, text, size, x, y, align = "center", color = "black"):
+    def __init__(self, text, size, x, y, align = "center", color = "black", max_width = None):
         self.text = text
         self.size = size
         self.x = x
@@ -14,6 +14,13 @@ class Text:
         self.align = align
 
         self.surface, self.rect = createText(self.text, self.size, self.color)
+
+        if max_width != None:
+            while self.surface.get_size()[0] > max_width:
+                self.size -= 1
+                self.y += 0.5
+                self.surface, self.rect = createText(self.text, self.size, self.color)
+        
         self.position()
 
     def position(self):
