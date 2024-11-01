@@ -7,14 +7,14 @@ from pygame.surface import Surface
 from pygame.image import load
 import pygame, time, itertools, sys, pytz, random, math, numpy
 
-from createdb import User, Shape as ShapeData, Notification, friends
+from createdb import User, Shape as ShapeData, Notification, friends, GamePlayed
 from screen_elements.text import Text
 from screen_elements.editabletext import EditableText
 from screen_elements.clickabletext import ClickableText
 from screen_elements.arrow import Arrow
 from screen_elements.button import Button
 from game_files.gamedata import color_data, shape_data as shape_model_data, names, titles
-from sqlalchemy import create_engine, func, delete
+from sqlalchemy import create_engine, func, delete, select, case
 from sqlalchemy.orm import sessionmaker as session_maker, Session
 
 def generateRandomShape(user: User, session: Session):
@@ -145,10 +145,11 @@ class EssenceBar:
             return True
 
 class FriendSprite(pygame.sprite.Sprite):
-    def __init__(self, friend: User, position: int, session: Session, name_tags: list[Surface], current_length = None,):
+    def __init__(self, user: User,friend: User, position: int, session: Session, name_tags: list[Surface], current_length = None,):
         super().__init__()
 
-        self.user = friend
+        self.user = user
+        self.friend = friend
         self.position = position
         self.session = session
 
@@ -171,47 +172,95 @@ class FriendSprite(pygame.sprite.Sprite):
         self.rerender_icons = False
 
         try:
-            self.shape = self.session.query(ShapeData).where(ShapeData.id == self.user.favorite_id).one()
+            self.shape = self.session.query(ShapeData).where(ShapeData.id == self.friend.favorite_id).one()
             self.shape_image = smoothscale(load(f'shape_images/backgrounds/{self.shape.type}/{color_data[self.shape.color_id].name}.png').convert_alpha(), [100, 100])
-            self.username_text = Text(f'{self.user.username}', 60, 133, 40, 'topleft', color_data[self.shape.color_id].text_color, 200)
+            self.username_text = Text(f'{self.friend.username}', 60, 133, 40, 'topleft', color_data[self.shape.color_id].text_color, 200)
 
             self.face_image = smoothscale(load(f'shape_images/faces/{self.shape.type}/{self.shape.face_id}/0.png').convert_alpha(), [100, 100])
 
         except:
             self.shape_image = smoothscale(load('shape_images/backgrounds/circle/black.png').convert_alpha(), [100, 100])
-            self.username_text = Text(f'{self.user.username}', 60, 133, 40, 'topleft', max_width=200)
+            self.username_text = Text(f'{self.friend.username}', 60, 133, 40, 'topleft', max_width=200)
             self.face_image = Surface([1, 1])
 
 
-        self.challenge_button = Button('swords', 30, [150, 125])
-        self.info_button = Button('question', 30, [230, 125])
-        self.delete_button = Button('trash', 30, [310, 125])
+        self.challenge_button = Button('swords', 35, [150, 125])
+        self.info_button = Button('question', 35, [230, 125])
+        self.delete_button = Button('trash', 35, [310, 125])
 
         self.buttons = [
             self.challenge_button, self.info_button, self.delete_button
         ]
 
         self.renderSurface()
+        self.renderInfo()
+
+    def renderInfo(self):
+        self.info_hovered = False
+        self.info_alpha = 0
+        self.info_y = 180
+
+        self.info_surface = Surface([450, 250], pygame.SRCALPHA, 32)
+        self.info_rect = self.info_surface.get_rect()
+        self.info_rect.center = [self.x, self.y + self.info_y]
+        
+        background = load('backgrounds/killfeed_larger.png').convert_alpha()
+        tape_surface = smoothscale(load('backgrounds/tape_0_xl.png').convert_alpha(), (410, 90))
+        tape_rect = tape_surface.get_rect()
+        tape_rect.center = 225, 35
+
+        max_level = self.session.execute(select(func.max(ShapeData.level)).where(ShapeData.owner_id == self.friend.id)).scalar()
+        wins_losses = self.session.execute(
+            select(
+                func.count(case((GamePlayed.winner_id == self.user.id, 1))).label("wins"),
+                func.count(case((GamePlayed.winner_id == self.friend.id, 1))).label("losses")
+            ).where(
+                ((GamePlayed.player1_id == self.user.id) & (GamePlayed.player2_id == self.friend.id)) | 
+                ((GamePlayed.player1_id == self.friend.id) & (GamePlayed.player2_id == self.user.id))
+            )
+        ).one()
+        win_loss = 'n/a' if wins_losses.wins + wins_losses.losses == 0 else f'{round(wins_losses.wins / (wins_losses.wins + wins_losses.losses) * 100)}%'
+
+        texts = [
+            Text('joined on:', 28, 150, 66),
+            Text(f'{self.friend.date_joined.strftime("%d-%m-%Y")}', 26, 290, 66),
+            Text(f'wins: {self.friend.num_wins}           shapes: {self.friend.num_shapes}', 28, 225, 115),
+            Text(f'max level: {max_level}', 28, 225, 140),
+            Text(f'your win %:  {win_loss}', 28, 225, 190),
+        ]
+        
+        self.info_surface.blit(background, [25, 20])
+        [text.draw(self.info_surface) for text in texts]
+        self.info_surface.blit(tape_surface, tape_rect)
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x + self.width/2, mouse_pos[1] - self.y + self.height/2]
 
         [button.update(rel_mouse_pos) for button in self.buttons]
-        # check hover
         
+        # check hover
         if any(button.rect.collidepoint(rel_mouse_pos) for button in self.buttons) and not self.rerender_icons:
             self.rerender_icons = True
-
         elif self.rerender_icons: self.rerender_icons = False
-
         else:
             self.rerender_icons = True
 
+        # check info hover
+        if self.info_button.rect.collidepoint(rel_mouse_pos):
+            self.info_hovered = True
+            self.info_alpha = min(self.info_alpha + 15, 255)
+            self.info_surface.set_alpha(self.info_alpha)
+        elif self.info_alpha > 0:
+            self.info_alpha = max(self.info_alpha - 15, 0)
+            self.info_surface.set_alpha(self.info_alpha)
+        else: 
+            self.info_hovered = False
         
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if self.challenge_button.rect.collidepoint(rel_mouse_pos):
                     print('START GAME')
+                
                 elif self.delete_button.rect.collidepoint(rel_mouse_pos):
                     self.next_x -= 1000
 
@@ -220,7 +269,7 @@ class FriendSprite(pygame.sprite.Sprite):
         self.handleInputs(mouse_pos, events)
 
         if self.rerender_icons:
-            self.renderSurface()
+            self.renderIcons()
 
         if self.x != self.next_x:
 
@@ -232,6 +281,7 @@ class FriendSprite(pygame.sprite.Sprite):
             self.x -= self.v
             self.alpha -= 15
             self.rect.center = [self.x, self.y]
+            self.info_rect.center = [self.x, self.y + self.info_y]
             
 
             if self.alpha <= 0:
@@ -244,35 +294,35 @@ class FriendSprite(pygame.sprite.Sprite):
             self.image.set_alpha(self.alpha)
 
         # move into place
-        if self.y == self.next_y: return
+        if self.y != self.next_y:
+            # calculate the remaining distance to the target
+            distance = abs(self.y - self.next_y)
 
-        # calculate the remaining distance to the target
-        distance = abs(self.y - self.next_y)
+            # apply acceleration while far from the target, decelerate when close
+            if distance > 50:
+                self.v += self.a
+            else:
+                self.v = max(1, distance * 0.2)
 
-        # apply acceleration while far from the target, decelerate when close
-        if distance > 50:
-            self.v += self.a
-        else:
-            self.v = max(1, distance * 0.2)
-
-        # move the window towards the target position, snap in place if position is exceeded
-        if self.y > self.next_y:
-            self.y -= self.v
-
-            if self.y < self.next_y:
-                self.y = self.next_y
-
-        elif self.y < self.next_y:
-            self.y += self.v
-            
+            # move the window towards the target position, snap in place if position is exceeded
             if self.y > self.next_y:
-                self.y = self.next_y 
+                self.y -= self.v
 
-        # reset the velocity when the window reaches its target
-        if self.y == self.next_y:
-            self.v = 0
+                if self.y < self.next_y:
+                    self.y = self.next_y
 
-        self.rect.center = [self.x, self.y]
+            elif self.y < self.next_y:
+                self.y += self.v
+                
+                if self.y > self.next_y:
+                    self.y = self.next_y 
+
+            # reset the velocity when the window reaches its target
+            if self.y == self.next_y:
+                self.v = 0
+
+            self.rect.center = [self.x, self.y]
+            self.info_rect.center = [self.x, self.y + self.info_y]
 
     def renderSurface(self):
         self.image.blit(self.background, [0, 0])
@@ -283,11 +333,18 @@ class FriendSprite(pygame.sprite.Sprite):
         self.image.blit(self.info_button.surface, self.info_button.rect)
         self.image.blit(self.delete_button.surface, self.delete_button.rect)
 
+    def renderIcons(self):
+        self.image.blit(self.challenge_button.surface, self.challenge_button.rect)
+        self.image.blit(self.info_button.surface, self.info_button.rect)
+        self.image.blit(self.delete_button.surface, self.delete_button.rect)
+
     def moveUp(self):
         self.next_y -= 175
 
     def moveDown(self):
         self.next_y += 175
+
+
 
 class FriendsWindow:
     def __init__(self, user: User, session: Session):
@@ -300,7 +357,7 @@ class FriendsWindow:
             self.name_tags.append(load(f'backgrounds/hello_stickers/{i}.png'))
 
         for friend in self.user.friends:
-            self.friends_group.add(FriendSprite(friend, len(self.friends_group.sprites()), self.session, self.name_tags))
+            self.friends_group.add(FriendSprite(self.user, friend, len(self.friends_group.sprites()), self.session, self.name_tags))
 
         self.surface = Surface([550, 2160], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
@@ -354,7 +411,7 @@ class FriendsWindow:
             if sprite.update(rel_mouse_pos, events): 
                 sprite_died = True
                 
-                self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.user.id)))
+                self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
                 self.session.commit()
 
 
@@ -408,7 +465,7 @@ class FriendsWindow:
                     if self.already_friends_flag or self.thats_you_flag: return
 
                     # create friend sprite
-                    sprite = FriendSprite(searched_user, -1, self.session, self.name_tags, len(self.friends_group))
+                    sprite = FriendSprite(self.user, searched_user, -1, self.session, self.name_tags, len(self.friends_group))
                     sprites_copy = self.friends_group.sprites()
                     self.friends_group.empty()
                     self.friends_group.add(sprite)
@@ -504,6 +561,9 @@ class FriendsWindow:
         if self.thats_you_flag: self.surface.blit(self.thats_you.surface, self.thats_you.rect)
 
         self.friends_group.draw(self.surface)
+        [self.surface.blit(sprite.info_surface, sprite.info_rect) for sprite in self.friends_group.sprites() if sprite.info_hovered]
+
+
 
 class NotificationsWindow:
     def __init__(self, user: User, session: Session):
@@ -616,6 +676,8 @@ class NotificationsWindow:
         self.surface.blit(self.background, [50, 0])
 
         [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables]
+
+
 
 class CollectionWindow:
     def __init__(self, user: User, session: Session):
@@ -969,6 +1031,8 @@ class CollectionWindow:
             # tape overtop writing
             self.surface.blit(self.delete_tape, self.delete_tape_rect)
 
+
+
 class CollectionShape(pygame.sprite.Sprite):
     def __init__(self, shape_data: ShapeData, position: int, session, new = False):
         super().__init__()
@@ -1133,6 +1197,8 @@ class CollectionShape(pygame.sprite.Sprite):
 
     def delete(self):
         self.next_y = 1000
+
+
 
 class Menu():
     def __init__(self):

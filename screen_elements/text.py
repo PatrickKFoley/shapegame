@@ -36,3 +36,6 @@ class Text:
         self.y = self.y_scroll + self.y_init
         self.position()
 
+    def draw(self, surface):
+        surface.blit(self.surface, self.rect)
+

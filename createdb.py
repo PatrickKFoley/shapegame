@@ -8,7 +8,44 @@ from game_files.gamedata import color_data, shape_data as shape_model_data, name
 
 BaseClass = declarative_base()
 
+# Games Played Table
+class GamePlayed(BaseClass):
+    __tablename__ = "games_played"
 
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Players involved
+    player1_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    player2_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Shapes used by each player
+    shape1_id = Column(Integer, ForeignKey("shapes.id"), nullable=False)
+    shape2_id = Column(Integer, ForeignKey("shapes.id"), nullable=False)
+    
+    # Winner of the game
+    winner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Timestamp for when the entry was created
+    time = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    
+    # Relationships
+    player1 = relationship("User", foreign_keys=[player1_id])
+    player2 = relationship("User", foreign_keys=[player2_id])
+    shape1 = relationship("Shape", foreign_keys=[shape1_id])
+    shape2 = relationship("Shape", foreign_keys=[shape2_id])
+    winner = relationship("User", foreign_keys=[winner_id])
+
+    def __init__(self, player1_id, player2_id, shape1_id, shape2_id, winner_id):
+        self.player1_id = player1_id
+        self.player2_id = player2_id
+        self.shape1_id = shape1_id
+        self.shape2_id = shape2_id
+        self.winner_id = winner_id
+
+    def __repr__(self):
+        return (f"<GamePlayed(player1_id={self.player1_id}, player2_id={self.player2_id}, "
+                f"shape1_id={self.shape1_id}, shape2_id={self.shape2_id}, "
+                f"winner_id={self.winner_id}, time={self.time})>")
 
 friends = Table(
     "friends", BaseClass.metadata,
@@ -47,6 +84,8 @@ class User(BaseClass):
     shape_tokens = Column("shape_tokens", Integer, default=10)
     shape_essence = Column("shape_essence", Float, default=0.0)
     num_shapes = Column("num_shapes", Integer, default=0)
+    num_wins = Column("num_wins", Integer, default=0)
+    date_joined = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     notifications: Mapped[List["Notification"]] = relationship(back_populates="owner", cascade="all, delete")
     shapes: Mapped[List["Shape"]] = relationship(back_populates="owner", cascade="all, delete")
@@ -135,11 +174,11 @@ def generateRandomShape(user: User, session: Session):
 
     shape_data = Shape(user.id, user, type, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_x, luck, team_size, user.username, name, title)
 
-    # user.shape_tokens -= 1
-    # user.num_shapes += 1
+    user.shape_tokens -= 1
+    user.num_shapes += 1
 
-    # session.add(shape_data)
-    # session.commit()
+    session.add(shape_data)
+    session.commit()
 
     return shape_data
 
@@ -176,21 +215,6 @@ if __name__ == "__main__":
         # notification_4 = Notification(4, user_4, "camille wants to play", "INVITE", "b")
         # notification_5 = Notification(4, user_4, "pat wants to play", "INVITE", "b")
 
-        shape_1 = generateRandomShape(user_1, session)
-        shape_2 = generateRandomShape(user_2, session)
-        shape_3 = generateRandomShape(user_3, session)
-        shape_4 = generateRandomShape(user_4, session)
-        shape_5 = generateRandomShape(user_5, session)
-        shape_6 = generateRandomShape(user_6, session)
-
-
-        session.add(shape_1)
-        session.add(shape_2)
-        session.add(shape_3)
-        session.add(shape_4)
-        session.add(shape_5)
-        session.add(shape_6)
-        
         session.add(user_1)
         session.add(user_2)
         session.add(user_3)
@@ -204,6 +228,13 @@ if __name__ == "__main__":
         # user_1.friends.append(user_6)
 
         session.commit()
+
+        shape_1 = generateRandomShape(user_1, session)
+        shape_2 = generateRandomShape(user_2, session)
+        shape_3 = generateRandomShape(user_3, session)
+        shape_4 = generateRandomShape(user_4, session)
+        shape_5 = generateRandomShape(user_5, session)
+        shape_6 = generateRandomShape(user_6, session)
         
         session.query(User).filter(User.id == user_1.id).update({User.favorite_id: shape_1.id})
         session.query(User).filter(User.id == user_2.id).update({User.favorite_id: shape_2.id})
@@ -211,6 +242,9 @@ if __name__ == "__main__":
         session.query(User).filter(User.id == user_4.id).update({User.favorite_id: shape_4.id})
         session.query(User).filter(User.id == user_5.id).update({User.favorite_id: shape_5.id})
         session.query(User).filter(User.id == user_6.id).update({User.favorite_id: shape_6.id})
+        session.commit()
+
+        session.add(GamePlayed(user_1.id, user_2.id, shape_1.id, shape_2.id, user_1.id))
         session.commit()
 
     except Exception as e:
