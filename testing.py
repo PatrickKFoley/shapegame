@@ -3,13 +3,10 @@ from pygame.locals import *
 import sys
 import math
 import random
-from game_files.game import Game
 from createdb import Shape
-from game_files.circledata import *
+from code.game.circledata import *
 from threading import Thread
-from game_files.powerup2 import Powerup
-from screen_elements.friendswindow import FriendsWindow
-from screen_elements.notificationswindow import NotificationsWindow
+from code.game.powerup2 import Powerup
 
 import numpy as np
 from scipy.io import wavfile
@@ -18,15 +15,14 @@ import librosa
 import soundfile as sf
 
 from createdb import User, Shape as ShapeData
-from game_files.circledata import colors as color_data
-from game_files.circledata import powerup_data
-from game_files.gamedata import color_data
+from code.game.circledata import colors as color_data
+from code.game.circledata import powerup_data
+from code.game.gamedata import color_data
 from pygame.sprite import Group
 
-from game_files.shape import Shape
-from game_files.game2 import Game2
-from game_files.game3 import Game3
-from menu_files.menu2 import Menu, CollectionWindow
+from code.game.shape import Shape
+from code.game.game2 import Game2
+from code.menu.menu2 import Menu, CollectionWindow
 
 
 from sqlalchemy import create_engine
@@ -687,7 +683,7 @@ def generateSounds():
 # game3()
 # generateSounds()
 # generateOvals()
-menu2()
+# menu2()
 # collectionWindow()
 
 

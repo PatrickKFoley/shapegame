@@ -1,9 +1,9 @@
 import pygame, random
-from game_files.circledata import *
+from code.game.circledata import *
 from createdb import User, Shape
 
 def createText(text, size, color = "white"):
-    font = pygame.font.Font("backgrounds/font.ttf", size) 
+    font = pygame.font.Font("assets/misc/font.ttf", size) 
 
     if type(text) == type("string"):
         text_surface = font.render(text, True, color)

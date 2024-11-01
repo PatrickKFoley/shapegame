@@ -4,7 +4,7 @@ from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry, Session
 import random, os, datetime
 
-from game_files.gamedata import color_data, shape_data as shape_model_data, names, titles
+from code.game.gamedata import color_data, shape_data as shape_model_data, names, titles
 
 BaseClass = declarative_base()
 
@@ -155,7 +155,7 @@ class Shape(BaseClass):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
 
-def generateRandomShape(user: User, session: Session):
+def generateRandomShape(user: User, session):
     '''returns randomly generated ShapeData'''
 
     type = random.choices(['circle', 'triangle', 'square'], weights=[40, 40, 20], k=1)[0]
