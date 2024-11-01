@@ -218,7 +218,7 @@ class FriendsWindow:
             self.button,
         ]
 
-        self.background = load('backgrounds/side_window_long.png').convert_alpha()
+        self.background = load('backgrounds/green_notebook.png').convert_alpha()
         self.background_rect = self.background.get_rect()
         self.background_rect.topleft = [0, 0]
 
