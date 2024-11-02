@@ -144,6 +144,7 @@ class EssenceBar:
 
             return True
 
+
 class CollectionShape(pygame.sprite.Sprite):
     def __init__(self, shape_data: ShapeData, position: int, session, new = False):
         super().__init__()
@@ -258,10 +259,10 @@ class CollectionShape(pygame.sprite.Sprite):
     def update(self):
         # adjust transparency
         if self.next_x < 750 and self.x < 750 and self.alpha > 0:
-            self.alpha = max(self.alpha - 10 - abs(self.v), 0)
+            self.alpha = max(self.alpha - 10 - abs(min(self.v, 25)), 0)
 
         elif self.next_x > 530 and self.x >= 530 and self.alpha < 255:
-            self.alpha = min(self.alpha + 10 + abs(self.v), 255)
+            self.alpha = min(self.alpha + 10 + abs(min(self.v, 25)), 255)
 
         if self.image.get_alpha() != self.alpha: self.image.set_alpha(self.alpha)
 
@@ -308,6 +309,7 @@ class CollectionShape(pygame.sprite.Sprite):
 
     def delete(self):
         self.next_y = 1000
+
 
 class Selection(pygame.sprite.Sprite):
     def __init__(self, shape: ShapeData, position: int, num_shapes: int):
@@ -386,8 +388,6 @@ class Selection(pygame.sprite.Sprite):
             self.image.blit(shape_image, rect)
         
         
-        
-
 class Selector:
     def __init__(self, shapes: list[ShapeData], center: list[int]):
         self.shapes = shapes
@@ -407,6 +407,7 @@ class Selector:
             self.selections.add(Selection(shape, count, self.num_shapes))
         
     def addShape(self, shape: ShapeData):
+        self.selections.sprites()[self.selected_index].selected = False
         self.selected_index = 0
         self.num_shapes += 1
         
@@ -461,7 +462,6 @@ class Selector:
         self.selections.update()
         
         
-
 class CollectionWindow:
     def __init__(self, user: User, session: Session):
         self.user = user
@@ -497,8 +497,6 @@ class CollectionWindow:
         self.question_button.disable()
         self.add_button = Button('add', 90, [81, 226])
         self.del_button = Button('trash', 40, [205, 131])
-        self.left = Arrow(690, 400, '<-', length=100, width=66)
-        self.right = Arrow(810, 400, '->', length=100, width=66)
 
         # disable add button if user has no shape tokens
         if self.user.shape_tokens == 0: self.add_button.disable()
@@ -506,7 +504,6 @@ class CollectionWindow:
         self.clickables = [
             self.shapes_button, self.question_button, 
             self.add_button,    self.del_button, 
-            self.left,      self.right,
             self.yes_clickable, self.no_clickable
         ]
 
@@ -556,8 +553,6 @@ class CollectionWindow:
         # if user has 1 or 0 shapes, disable delete button and arrows
         if self.user.num_shapes <= 1:
             self.del_button.disable()
-            self.right.disable()
-            self.left.disable()
 
         # if user has at least 1 shape, enable question button
         if self.user.num_shapes >= 1: self.question_button.enable()
@@ -628,8 +623,7 @@ class CollectionWindow:
         # enable buttons
         if self.user.num_shapes > 1: 
             self.del_button.enable()
-            self.right.enable()
-            self.left.enable()
+
         if self.user.num_shapes >= 1: self.question_button.enable()
         
         # add shape to selector
@@ -677,8 +671,6 @@ class CollectionWindow:
         # if user now has one shape, disable delete button
         if self.user.num_shapes == 1: 
             self.del_button.disable()
-            self.right.disable()
-            self.left.disable()
 
     def handleInputs(self, mouse_pos, events):
         mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
@@ -709,22 +701,6 @@ class CollectionWindow:
 
             # if the window is closed the only inputs we want to accept are the open button
             if not self.opened: return
-
-            if self.right.rect.collidepoint(mouse_pos) and self.selected_index != 0 and not self.right.disabled:
-                self.selected_index -= 1
-                self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
-                self.woosh_sound.play()
-
-                for shape in self.collection_shapes:
-                    shape.moveRight()
-
-            elif self.left.rect.collidepoint(mouse_pos) and self.selected_index != len(self.user.shapes)-1 and not self.left.disabled:
-                self.selected_index += 1
-                self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
-                self.woosh_sound.play()
-
-                for shape in self.collection_shapes:
-                    shape.moveLeft()
 
             elif self.add_button.rect.collidepoint(mouse_pos):
                 self.userGenerateShape()
@@ -792,12 +768,7 @@ class CollectionWindow:
         self.surface.blit(self.background, [0, 50])
 
         # draw buttons
-        [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables if clickable not in [self.yes_clickable, self.no_clickable, self.right, self.left]]
-
-        # arrows
-        if not self.left.disabled:
-            self.surface.blit(self.left.surface, self.left.rect)
-            self.surface.blit(self.right.surface, self.right.rect)
+        [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables if clickable not in [self.yes_clickable, self.no_clickable]]
 
         # sprites
         self.collection_shapes.draw(self.surface)
