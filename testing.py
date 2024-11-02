@@ -683,7 +683,7 @@ def generateSounds():
 # game3()
 # generateSounds()
 # generateOvals()
-# menu2()
+menu2()
 # collectionWindow()
 
 
