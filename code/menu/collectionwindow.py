@@ -257,11 +257,11 @@ class CollectionShape(pygame.sprite.Sprite):
 
     def update(self):
         # adjust transparency
-        if self.next_x < 750 and self.alpha > 0:
-            self.alpha = max(self.alpha - 10, 0)
+        if self.next_x < 750 and self.x < 750 and self.alpha > 0:
+            self.alpha = max(self.alpha - 10 - abs(self.v), 0)
 
-        elif self.next_x > 530 and self.alpha < 255:
-            self.alpha = min(self.alpha + 10, 255)
+        elif self.next_x > 530 and self.x >= 530 and self.alpha < 255:
+            self.alpha = min(self.alpha + 10 + abs(self.v), 255)
 
         if self.image.get_alpha() != self.alpha: self.image.set_alpha(self.alpha)
 
@@ -309,6 +309,159 @@ class CollectionShape(pygame.sprite.Sprite):
     def delete(self):
         self.next_y = 1000
 
+class Selection(pygame.sprite.Sprite):
+    def __init__(self, shape: ShapeData, position: int, num_shapes: int):
+        super().__init__()
+        
+        self.shape_type = shape.type
+        self.shape = shape
+        self.position = position
+        self.num_shapes = num_shapes
+        
+        self.surface_size = 40
+        self.min_size = 25
+        self.max_size = 35
+        
+        self.selected = position == 0
+        self.hovered = False
+        self.size = self.max_size if self.selected else self.min_size
+        self.next_size = self.size
+        
+        self.image = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
+        self.selected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
+        self.unselected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
+        self.rect = self.image.get_rect()
+        
+        width = num_shapes * 50
+        self.x = (position + 1)* (width / (num_shapes + 1))
+        self.rect.center = [self.x, 30]
+        
+        if self.shape_type == 'triangle':
+            pygame.draw.polygon(self.selected_surface, 'black', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
+            pygame.draw.polygon(self.unselected_surface, 'gray', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
+        
+        elif self.shape_type == 'square':
+            self.selected_surface.fill('black')
+            self.unselected_surface.fill('gray')
+        
+        elif self.shape_type == 'circle':
+            pygame.draw.circle(self.selected_surface, 'black', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
+            pygame.draw.circle(self.unselected_surface, 'gray', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
+
+        shape_image = smoothscale(self.selected_surface if self.selected or self.hovered else self.unselected_surface, [self.size, self.size])
+        rect = shape_image.get_rect()
+        rect.center = self.surface_size/2, self.surface_size/2
+        self.image.blit(shape_image, rect)
+
+    def update(self):
+        
+        # check if a shape was added
+        width = self.num_shapes * 50
+        if self.x != (self.position + 1)* (width / (self.num_shapes + 1)): 
+            self.x = (self.position + 1)* (width / (self.num_shapes + 1))
+            
+            self.rect.center = self.x, 30
+        
+        # shrink to unselected size if not hovered or selected
+        if not self.hovered and not self.selected and self.next_size != 25:
+            self.next_size = self.min_size
+        
+        # change size to match status
+        if self.size != self.next_size:
+            # print(self.position, self.size, self.next_size)
+            # print('changing size')
+            
+            # grow
+            if self.size < self.next_size:
+                self.size = min(self.size + 1, self.next_size)
+            # shrink
+            else:
+                self.size = max(self.size - 1, self.next_size)
+                
+            # reset surface
+            self.image = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
+            shape_image = smoothscale(self.selected_surface if self.selected or self.hovered else self.unselected_surface, [self.size, self.size])
+            rect = shape_image.get_rect()
+            rect.center = self.surface_size/2, self.surface_size/2
+            self.image.blit(shape_image, rect)
+        
+        
+        
+
+class Selector:
+    def __init__(self, shapes: list[ShapeData], center: list[int]):
+        self.shapes = shapes
+        self.num_shapes = len(shapes)
+        self.center = center
+        self.selected_index = 0
+        
+        self.w = self.num_shapes * 50
+        
+        self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
+        self.surface.fill((255, 255, 255))
+        self.rect = self.surface.get_rect()
+        self.rect.center = center
+        self.selections = Group()
+        
+        for count, shape in enumerate(self.shapes):
+            self.selections.add(Selection(shape, count, self.num_shapes))
+        
+    def addShape(self, shape: ShapeData):
+        self.selected_index = 0
+        self.num_shapes += 1
+        
+        self.w = self.num_shapes * 50
+        self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
+        self.surface.fill((255, 255, 255))
+        self.rect = self.surface.get_rect()
+        self.rect.center = self.center
+        
+        
+        for sprite in self.selections.sprites():
+            sprite.position += 1
+            sprite.num_shapes += 1
+        
+        selections_copy = self.selections.sprites()
+        
+        self.selections.empty()
+        self.selections.add(Selection(shape, 0, self.num_shapes))
+        self.selections.add(selections_copy)
+        
+    def update(self, mouse_pos, events):
+        rel_mouse_pos = [mouse_pos[0] - self.rect.x, mouse_pos[1] - self.rect.y]
+        
+        for sprite in self.selections.sprites():
+            if sprite.rect.collidepoint(rel_mouse_pos):
+                sprite.hovered = True
+                sprite.next_size = sprite.max_size
+            else:
+                sprite.hovered = False
+        
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN and event.button == 1:
+                for sprite in self.selections.sprites():
+                    if sprite.rect.collidepoint(rel_mouse_pos):
+                        # print('select')
+                        print(sprite.position)
+                        self.selected_index = sprite.position
+                        
+                        sprite.selected = True
+                        sprite.next_size = sprite.max_size
+                        
+                        for sprite2 in self.selections.sprites():
+                            if sprite.position != sprite2.position: 
+                                # print('ya')
+                                sprite2.selected = False
+                                sprite2.hovered = False
+                        
+        
+        
+        self.surface.fill('white')
+        self.selections.draw(self.surface)
+        self.selections.update()
+        
+        
+
 class CollectionWindow:
     def __init__(self, user: User, session: Session):
         self.user = user
@@ -316,6 +469,8 @@ class CollectionWindow:
 
         self.initCollectionWindow()
         self.initCollectionGroup()
+        
+        self.selector = Selector(self.user.shapes, [1200, 400])
 
     def initCollectionWindow(self):
         '''create the bottom collection window'''
@@ -476,6 +631,9 @@ class CollectionWindow:
             self.right.enable()
             self.left.enable()
         if self.user.num_shapes >= 1: self.question_button.enable()
+        
+        # add shape to selector
+        self.selector.addShape(shape_data)
 
     def deleteSelectedShape(self):
         # don't let user delete their only shape
@@ -586,6 +744,23 @@ class CollectionWindow:
 
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
+        rel_mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
+        
+        # check if the selector has changed
+        if self.selected_index != self.selector.selected_index:
+            while (self.selected_index > self.selector.selected_index):
+                # move right, index -
+                self.selected_index -= 1
+                for sprite in self.collection_shapes.sprites():
+                    sprite.moveRight()
+                    
+            while (self.selected_index < self.selector.selected_index):
+                # move right, index -
+                self.selected_index += 1
+                for sprite in self.collection_shapes.sprites():
+                    sprite.moveLeft()
+                    
+            self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
 
         # update returns true when shape essence amount is altered, needing commit
         if self.essence_bar.update(): 
@@ -601,6 +776,7 @@ class CollectionWindow:
 
         self.collection_shapes.update()
         self.deleted_shapes.update()
+        self.selector.update(rel_mouse_pos, events)
         
         self.positionWindow()
 
@@ -660,3 +836,6 @@ class CollectionWindow:
 
             # tape overtop writing
             self.surface.blit(self.delete_tape, self.delete_tape_rect)
+            
+        # render selector
+        self.surface.blit(self.selector.surface, self.selector.rect)
