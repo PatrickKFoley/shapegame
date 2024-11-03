@@ -52,7 +52,7 @@ class Menu():
         # database session
         # self.engine = create_engine("postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db", echo=False) # server db
         self.engine = create_engine("sqlite:///database.db", echo=False) # local db
-        SessionMaker = session_maker(bind=self.engine)
+        SessionMaker = session_maker(bind=self.engine, autoflush=False)
         self.session = SessionMaker()
 
         # sprite groups

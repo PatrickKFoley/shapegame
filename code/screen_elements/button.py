@@ -15,6 +15,11 @@ class Button:
         self.y = center[1]
 
         self.disabled = False
+        self.selected = False
+
+    def select(self): self.select = True
+    
+    def deselect(slf): self.select = False
 
     def disable(self):
         self.disabled = True
@@ -26,4 +31,4 @@ class Button:
     def update(self, mouse_pos):
         if self.disabled: return
 
-        self.surface = self.icon_selected if self.rect.collidepoint(mouse_pos) else self.icon_unselected
+        self.surface = self.icon_selected if self.rect.collidepoint(mouse_pos) or self.selected else self.icon_unselected
