@@ -186,7 +186,7 @@ class CollectionShape(pygame.sprite.Sprite):
 
         text1 = Text(str(self.position+1), 40, 475, 280)
         text2 = Text('/', 40, 490, 300)
-        text3 = Text(str(self.num_shapes), 40, 515, 310)
+        text3 = Text(str(self.num_shapes), 40, 515, 310, color=('red' if self.num_shapes==30 else 'black'))
 
         self.texts.append(text1)
         self.texts.append(text2)
