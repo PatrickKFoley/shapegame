@@ -1,19 +1,16 @@
 from pygame.locals import *
 from pygame.sprite import Group
 from pygame.mixer import Sound
-from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
-import pygame, itertools, pytz, math, numpy, random
+import pygame, itertools
 from sqlalchemy import func, delete
 from sqlalchemy.orm import Session
 
 from createdb import User, Shape as ShapeData, generateRandomShape
 from ...screen_elements.text import Text
 from ...screen_elements.clickabletext import ClickableText
-from ...screen_elements.arrow import Arrow
 from ...screen_elements.button import Button
-from ...game.gamedata import color_data, shape_data as shape_model_data, names, titles
 
 from .collectionshape import CollectionShape
 from .selector import Selector
@@ -50,6 +47,7 @@ class CollectionWindow:
         self.no_clickable = ClickableText('no', 100, 1260, 325, color=[255, 0, 0])
 
         self.shapes_button = Button('shapes', 50, [25, 25])
+        self.shapes_button.draw(self.surface)
         self.question_button = Button('question', 40, [780, 131])
         self.question_button.disable()
         self.add_button = Button('add', 90, [81, 226])
@@ -89,6 +87,7 @@ class CollectionWindow:
         self.v = 0
         self.a = 1.5
         self.opened = False
+        self.fully_closed = True
         self.info_alpha = 0
 
         self.selected_index = 0
@@ -166,6 +165,10 @@ class CollectionWindow:
                 self.v = 0
 
             self.rect.topleft = [0, self.y - 50]
+
+            # determine closed status
+            if self.y == 1080:
+                self.fully_closed = True
 
     def userGenerateShape(self):
         '''handle the user adding a shape to their collection'''
@@ -327,9 +330,26 @@ class CollectionWindow:
 
         self.session.commit()
 
+    def idle(self, mouse_pos, events):
+        ''' replaces update() when window is fully closed
+            only accepts inputs to and draws toggle button
+        '''
+
+        self.shapes_button.update(mouse_pos)
+        self.surface.blit(self.shapes_button.surface, self.shapes_button.rect)
+
+        for event in events: 
+            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.shapes_button.rect.collidepoint(mouse_pos):
+                self.toggle()
+
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
         rel_mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
+
+        # if the window is fully closed, idle
+        if self.fully_closed:
+            self.idle(rel_mouse_pos, events)
+            return
         
         # check if the selector has changed
         if self.selected_index != self.selector.selected_index:
@@ -376,7 +396,9 @@ class CollectionWindow:
     def toggle(self):
         self.opened = not self.opened
 
-        if self.opened: self.next_y = 1080 - self.background.get_size()[1]
+        if self.opened: 
+            self.fully_closed = False
+            self.next_y = 1080 - self.background.get_size()[1]
         else: self.next_y = 1080
 
     def renderSurface(self):

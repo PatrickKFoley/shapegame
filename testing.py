@@ -22,7 +22,7 @@ from pygame.sprite import Group
 
 from code.game.shape import Shape
 from code.game.game2 import Game2
-from code.menu.menu2 import Menu, CollectionWindow
+from code.menu.menu import Menu, CollectionWindow
 
 
 from sqlalchemy import create_engine

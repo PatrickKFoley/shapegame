@@ -19,7 +19,10 @@ class Button:
 
     def select(self): self.select = True
     
-    def deselect(slf): self.select = False
+    def deselect(self): self.select = False
+
+    def draw(self, surface: Surface):
+        surface.blit(self.surface, self.rect)
 
     def disable(self):
         self.disabled = True

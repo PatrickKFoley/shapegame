@@ -17,6 +17,32 @@ class NotificationsWindow:
         self.user = user
         self.session = session
 
+        self.x = 1920 - 50
+        self.next_x = 1920 - 50
+        self.v = 0
+        self.a = 1.5
+        self.opened = False
+        self.fully_closed = True
+
+        self.y = 0
+        self.y_min = self.y
+        self.next_y_min = self.y_min
+        self.y_on_click = 0
+        self.mouse_y_on_click = 0
+        self.is_held = False
+
+        self.initAssets()
+        # self.initGroup()
+        self.initSurface()
+
+    def initAssets(self):
+        self.background = load('assets/backgrounds/green_notebook.png').convert_alpha()
+        self.background_rect = self.background.get_rect()
+        self.background_rect.topleft = [0, 0]
+
+        self.woosh_sound = Sound('assets/sounds/woosh.wav')
+
+    def initSurface(self):
         self.surface = Surface([550, 2160], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
         self.rect.topleft = [1920-50, 0]
@@ -27,28 +53,12 @@ class NotificationsWindow:
             self.button,
         ]
 
-        self.background = load('assets/backgrounds/side_window_long.png').convert_alpha()
-        self.background_rect = self.background.get_rect()
-        self.background_rect.topleft = [0, 0]
-
-        self.x = 1920 - 50
-        self.next_x = 1920 - 50
-        self.v = 0
-        self.a = 1.5
-        self.opened = False
-
-        self.y = 0
-        self.y_min = -500
-        self.y_on_click = 0
-        self.mouse_y_on_click = 0
-        self.is_held = False
+    def updateScreenElements(self, rel_mouse_pos, events):
+        for clickable in self.clickables:
+            clickable.update(rel_mouse_pos)
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
-        # update icons
-
-        for clickable in self.clickables:
-            clickable.update(rel_mouse_pos)
 
         # handle events
         for event in events:
@@ -56,9 +66,6 @@ class NotificationsWindow:
 
                 if self.button.rect.collidepoint(rel_mouse_pos):
                     self.toggle()
-
-                # if the window is closed the only inputs we want to accept are the open button
-                if not self.opened: return
 
                 if self.rect.collidepoint(mouse_pos):
                     self.is_held = True
@@ -72,22 +79,57 @@ class NotificationsWindow:
     def toggle(self):
         self.opened = not self.opened
 
-        if self.opened: self.next_x = 1920 - 550
+        if self.opened: 
+            self.fully_closed = False
+            self.next_x = 1920 - 550
         else: self.next_x = 1920 - 50
+
+    def idle(self, mouse_pos, events):
+        ''' replaces update() when window is fully closed
+            only accepts inputs to and draws toggle button
+        '''
+
+        self.button.update(mouse_pos)
+        self.surface.blit(self.button.surface, self.button.rect)
+
+        for event in events: 
+            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos):
+                self.toggle()
+
 
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
+        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
+
+        # if the window is fully closed, idle
+        if self.fully_closed:
+            self.idle(rel_mouse_pos, events)
+            return
+
+        
+        self.updateScreenElements(rel_mouse_pos, events)
 
         self.handleInputs(mouse_pos, events)
 
-        # update elements
-        
+        # self.handleRaisedFlags()
+
         self.positionWindow(mouse_pos)
 
         self.renderSurface()
 
     def positionWindow(self, mouse_pos):
         # update window positions
+        if self.y_min != self.next_y_min:
+
+            if self.y_min < self.next_y_min:
+                self.y_min = min(self.y_min + 20, self.next_y_min)
+
+            else: self.y_min = self.next_y_min
+
+        if self.y < self.y_min:
+            self.y = min(self.y + 20, self.next_y_min)
+            self.rect.topleft = [self.x, self.y]
+
         if self.x != self.next_x:
         
             # calculate the remaining distance to the target
