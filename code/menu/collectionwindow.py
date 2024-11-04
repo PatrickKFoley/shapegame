@@ -144,13 +144,13 @@ class EssenceBar:
 
             return True
 
-
 class CollectionShape(pygame.sprite.Sprite):
-    def __init__(self, shape_data: ShapeData, position: int, session, new = False):
+    def __init__(self, shape_data: ShapeData, position: int, num_shapes: int, session, new = False):
         super().__init__()
 
         self.shape_data = shape_data
         self.position = position
+        self.num_shapes = num_shapes
         self.session = session
         self.new = new
         
@@ -164,6 +164,37 @@ class CollectionShape(pygame.sprite.Sprite):
         self.alpha = 0 if new else 255
 
         self.generateSurfaces()
+
+    def reposition(self, position: int, num_shapes: int):
+        self.position = position
+        self.num_shapes = num_shapes
+        self.x = self.x_selected + position * 220
+        self.next_x = self.x
+
+        self.rect.center = self.x, self.y
+
+        self.redrawPosition(position, num_shapes)
+
+    def redrawPosition(self, position: int, num_shapes: int):
+        self.position = position
+        self.num_shapes = num_shapes
+
+        # erase last three elements of texts
+        self.eraseTextFromBackground(self.stats_surface, self.texts.pop())
+        self.eraseTextFromBackground(self.stats_surface, self.texts.pop())
+        self.eraseTextFromBackground(self.stats_surface, self.texts.pop())
+
+        text1 = Text(str(self.position+1), 40, 475, 280)
+        text2 = Text('/', 40, 490, 300)
+        text3 = Text(str(self.num_shapes), 40, 515, 310)
+
+        self.texts.append(text1)
+        self.texts.append(text2)
+        self.texts.append(text3)
+
+        text1.draw(self.stats_surface)
+        text2.draw(self.stats_surface)
+        text3.draw(self.stats_surface)
 
     def generateSurfaces(self):
         '''generate the surfaces for window stats, additional info, and shape image'''
@@ -189,10 +220,18 @@ class CollectionShape(pygame.sprite.Sprite):
         d_dmg = round(self.shape_data.dmg_multiplier - shape_model_data[self.shape_data.type].dmg_multiplier, 1)
         d_luck = round(self.shape_data.luck - shape_model_data[self.shape_data.type].luck, 1)
         d_ts = round(self.shape_data.team_size - shape_model_data[self.shape_data.type].team_size, 1)
+
+        # format strings for differences
+        d_v_s = f'{d_v}' if d_v < 0 else f'+{d_v}'
+        d_r_s = f'{d_r}' if d_r < 0 else f'+{d_r}'
+        d_hp_s = f'{d_hp}' if d_hp < 0 else f'+{d_hp}'
+        d_dmg_s = f'{d_dmg}' if d_dmg < 0 else f'+{d_dmg}'
+        d_luck_s = f'{d_luck}' if d_luck < 0 else f'+{d_luck}'
+        d_ts_s = f'{d_ts}' if d_ts < 0 else f'+{d_ts}'
         
-        texts = [
+        self.texts = [
             # name
-            Text(f'{self.shape_data.title} {self.shape_data.name}', 60, 245, 45, color=color_data[self.shape_data.color_id].text_color),
+            Text(f'{self.shape_data.title} {self.shape_data.name}', 60, 245, 45, color=color_data[self.shape_data.color_id].text_color, outline_color='black'),
 
             # labels
             Text('level:', 40, 193, 90, 'topright'),
@@ -215,15 +254,20 @@ class CollectionShape(pygame.sprite.Sprite):
             Text(f'{self.shape_data.team_size}', 30, 213, 279, 'topleft'),
 
             # addition/subtraction
-            Text(str(d_v) if d_v < 0 else f'+{d_v}', 30, 400, 128, 'topright', 'red' if d_v < 0 else 'green'),
-            Text(str(d_r) if d_r < 0 else f'+{d_r}', 30, 400, 157, 'topright', 'red' if d_r < 0 else 'green'),
-            Text(str(d_hp) if d_v < 0 else f'+{d_hp}', 30, 400, 188, 'topright', 'red' if d_hp < 0 else 'green'),
-            Text(str(d_dmg) if d_v < 0 else f'+{d_dmg}', 30, 400, 219, 'topright', 'red' if d_dmg < 0 else 'green'),
-            Text(str(d_luck) if d_v < 0 else f'+{d_luck}', 30, 400, 249, 'topright', 'red' if d_luck < 0 else 'green'),
-            Text(str(d_ts) if d_ts < 0 else f'+{d_ts}', 30, 400, 279, 'topright', 'red' if d_ts < 0 else 'green'),
+            Text(d_v_s, 30, 400, 128, 'topright', 'red' if d_v < 0 else 'green'),
+            Text(d_r_s, 30, 400, 157, 'topright', 'red' if d_r < 0 else 'green'),
+            Text(d_hp_s, 30, 400, 188, 'topright', 'red' if d_hp < 0 else 'green'),
+            Text(d_dmg_s, 30, 400, 219, 'topright', 'red' if d_dmg < 0 else 'green'),
+            Text(d_luck_s, 30, 400, 249, 'topright', 'red' if d_luck < 0 else 'green'),
+            Text(d_ts_s, 30, 400, 279, 'topright', 'red' if d_ts < 0 else 'green'),
+
+            # position KEEP THESE AS LAST 3 ELEMENTS
+            Text(str(self.position+1), 40, 475, 280),
+            Text('/', 40, 490, 300),
+            Text(str(self.num_shapes), 40, 515, 310)
         ]
 
-        for text in texts:
+        for text in self.texts:
             self.stats_surface.blit(text.surface, text.rect)
 
         # additional info
@@ -251,6 +295,20 @@ class CollectionShape(pygame.sprite.Sprite):
 
         self.info_surface.set_alpha(0)
         
+    def eraseTextFromBackground(self, background: Surface, text: Text):
+        '''erase the given text from the given background by setting all pixels beneath the text's rect to transparent '''
+        
+        if text == None: return
+
+        x_offset, y_offset = text.rect.topleft
+
+        for x in range(text.rect.width):
+            for y in range(text.rect.height):
+                x_abs, y_abs = x_offset + x, y_offset + y
+                background.set_at((x_abs, y_abs), (0, 0, 0, 0))
+
+        del text
+
     def moveLeft(self):
         self.next_x -= 220
 
@@ -311,6 +369,8 @@ class CollectionShape(pygame.sprite.Sprite):
     def delete(self):
         self.next_y = 1000
 
+MIN_W = 75
+MAX_W = 1030
 
 class Selection(pygame.sprite.Sprite):
     def __init__(self, shape: ShapeData, position: int, num_shapes: int):
@@ -335,7 +395,7 @@ class Selection(pygame.sprite.Sprite):
         self.unselected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
         self.rect = self.image.get_rect()
         
-        width = max(self.num_shapes * 50, 75)
+        width = min(max(self.num_shapes * 50, MIN_W), MAX_W)
         self.x = (position + 1)* (width / (num_shapes + 1))
         self.rect.center = [self.x, 30]
         
@@ -359,7 +419,7 @@ class Selection(pygame.sprite.Sprite):
     def update(self):
         
         # check if a shape was added
-        width = max(self.num_shapes * 50, 75)
+        width = min(max(self.num_shapes * 50, MIN_W), MAX_W)
         if self.x != (self.position + 1)* (width / (self.num_shapes + 1)): 
             self.x = (self.position + 1)* (width / (self.num_shapes + 1))
             
@@ -371,8 +431,8 @@ class Selection(pygame.sprite.Sprite):
         
         # change size to match status
         if self.size != self.next_size:
-            # print(self.position, self.size, self.next_size)
-            # print('changing size')
+            # # print(self.position, self.size, self.next_size)
+            # # print('changing size')
             
             # grow
             if self.size < self.next_size:
@@ -388,16 +448,15 @@ class Selection(pygame.sprite.Sprite):
             rect.center = self.surface_size/2, self.surface_size/2
             self.image.blit(shape_image, rect)
         
-        
 class Selector:
-    def __init__(self, shapes: list[ShapeData], center: list[int]):
+    def __init__(self, shapes: list[CollectionShape], center: list[int]):
         self.shapes = shapes
         self.num_shapes = len(shapes)
         self.center = center
         self.topleft = [850, 377]
         self.selected_index = 0
         
-        self.w = max(max(self.num_shapes * 50, 75), 75)
+        self.w = min(max(self.num_shapes * 50, MIN_W), MAX_W)
         self.h = 60
         self.next_w = self.w
         
@@ -410,7 +469,7 @@ class Selector:
         self.selections = Group()
         
         for count, shape in enumerate(self.shapes):
-            self.selections.add(Selection(shape, count, self.num_shapes))
+            self.selections.add(Selection(shape.shape_data, count, self.num_shapes))
         
     def addShape(self, shape: ShapeData):
         self.selections.sprites()[self.selected_index].selected = False
@@ -433,6 +492,9 @@ class Selector:
         
         removed_shape = self.selections.sprites()[self.selected_index]
         for sprite in self.selections.sprites():
+            sprite: Selection
+
+            sprite.num_shapes -= 1
             if sprite.position > removed_shape.position:
                 sprite.position -= 1
         self.selections.remove(removed_shape)
@@ -445,12 +507,10 @@ class Selector:
         new_selected.selected = True
         new_selected.next_size = new_selected.max_size
         
-        
-        
         self.redrawSurface()
         
     def redrawSurface(self):
-        self.next_w = max(self.num_shapes * 50, 75)
+        self.next_w = min(max(self.num_shapes * 50, MIN_W), MAX_W)
         self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
         # self.surface.fill((255, 255, 255))
         self.rect = self.surface.get_rect()
@@ -473,8 +533,8 @@ class Selector:
             if event.type == MOUSEBUTTONDOWN and event.button == 1:
                 for sprite in self.selections.sprites():
                     if sprite.rect.collidepoint(rel_mouse_pos):
-                        # print('select')
-                        print(sprite.position)
+                        # # print('select')
+                        # print(sprite.position)
                         self.selected_index = sprite.position
                         
                         sprite.selected = True
@@ -482,7 +542,7 @@ class Selector:
                         
                         for sprite2 in self.selections.sprites():
                             if sprite.position != sprite2.position: 
-                                # print('ya')
+                                # # print('ya')
                                 sprite2.selected = False
                                 sprite2.hovered = False
                         
@@ -502,7 +562,6 @@ class Selector:
         self.selections.draw(self.surface)
         self.selections.update()
         
-        
 class CollectionWindow:
     def __init__(self, user: User, session: Session):
         self.user = user
@@ -511,7 +570,7 @@ class CollectionWindow:
         self.initCollectionWindow()
         self.initCollectionGroup()
         
-        self.selector = Selector(self.user.shapes, [1200, 400])
+        self.selector = Selector(self.collection_shapes, [1200, 400])
 
     def initCollectionWindow(self):
         '''create the bottom collection window'''
@@ -551,6 +610,7 @@ class CollectionWindow:
         ]
 
         self.background = load('assets/backgrounds/collection_window.png').convert_alpha()
+        self.background_hearts = load('assets/backgrounds/collection_window_hearts.png').convert_alpha()
         self.background_rect = self.background.get_rect()
         self.background_rect.topleft = [0, 1080]
         
@@ -586,21 +646,37 @@ class CollectionWindow:
     def initCollectionGroup(self):
         '''create Collection shapes for newly logged in user'''
 
+        # create sprites
         for count, shape_data in enumerate(self.user.shapes):
-            new_shape = CollectionShape(shape_data, count, self.session)
+            new_shape = CollectionShape(shape_data, count, self.user.num_shapes, self.session)
             self.collection_shapes.add(new_shape)
-            
-            # set selected shape if user logs in with shapes
-            if count == 0: 
-                self.selected_shape = new_shape
-                self.heart_button.selected = self.selected_shape.shape_data.id = self.user.favorite_id
 
-        # if user has 1 or 0 shapes, disable delete button and arrows
+        # sort favorite shape to the front of the list
+        for sprite in self.collection_shapes.sprites(): 
+            sprite: CollectionShape
+            if sprite.shape_data.id == self.user.favorite_id:
+
+                # sort list
+                self.collection_shapes.remove(sprite)
+                collection_copy = self.collection_shapes.sprites()
+                self.collection_shapes.empty()
+                self.collection_shapes.add(sprite)
+                self.collection_shapes.add(collection_copy)
+
+                # reposition sprites
+                [sprite.reposition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
+                break
+
+        # if user has 1 or 0 shapes, disable delete button
         if self.user.num_shapes <= 1:
             self.del_button.disable()
 
-        # if user has at least 1 shape, enable question button
-        if self.user.num_shapes >= 1: self.question_button.enable()
+        # if user has at least 1 shape, enable question button, set selected shape, toggle heart button
+        if self.user.num_shapes >= 1: 
+            self.question_button.enable()
+
+            self.selected_shape = self.collection_shapes.sprites()[0]
+            self.heart_button.selected = self.selected_shape.shape_data.id = self.user.favorite_id
 
     def positionWindow(self):
         # update window positions
@@ -636,7 +712,7 @@ class CollectionWindow:
 
     def userGenerateShape(self):
         '''handle the user adding a shape to their collection'''
-        if self.user.shape_tokens == 0: return
+        if self.user.shape_tokens == 0 or self.user.num_shapes == 30: return
 
         # move all shapes to original position
         while self.selected_index != 0:
@@ -649,7 +725,7 @@ class CollectionWindow:
         shape_data = generateRandomShape(self.user, self.session)
 
         # add new collection shape to the front of the list
-        new_shape = CollectionShape(shape_data, -1, self.session, True)
+        new_shape = CollectionShape(shape_data, -1, self.user.num_shapes, self.session, True)
         collection_shapes_copy = self.collection_shapes.sprites()
         self.collection_shapes.empty()
         self.collection_shapes.add(itertools.chain([new_shape, collection_shapes_copy]))
@@ -674,7 +750,11 @@ class CollectionWindow:
         # add shape to selector
         self.selector.addShape(shape_data)
         
+        # toggle heart button
         self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
+
+        # reposition shapes
+        [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
 
     def deleteSelectedShape(self):
         # don't let user delete their only shape
@@ -683,6 +763,7 @@ class CollectionWindow:
         # remove shape from sprites first
         removed = False
         for count, sprite in enumerate(self.collection_shapes.sprites()):
+            sprite: CollectionShape
             
             # found the shape to delete
             if count == self.selected_index and not removed:
@@ -705,14 +786,17 @@ class CollectionWindow:
 
                 # if the right-most shape was deleted, move all shapes to the right
                 if count == self.user.num_shapes:
-                    print()
                     for sprite in self.collection_shapes.sprites():
                         sprite.moveRight()
 
                     self.selected_index -= 1
                 
                 self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
-                self.heart_button.select = self.selected_shape.shape_data.id == self.user.favorite_id
+
+                # if user deleted their favorite shape, mark next new selected shape as favorite 
+                if sprite.shape_data.id == self.user.favorite_id:
+                    self.markSelectedFavorite()
+                self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
                 
                 
             
@@ -725,6 +809,8 @@ class CollectionWindow:
         if self.user.num_shapes == 1: 
             self.del_button.disable()
 
+        # reposition shapes
+        [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
 
     def handleInputs(self, mouse_pos, events):
         mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
@@ -789,7 +875,7 @@ class CollectionWindow:
         
         # check if the selector has changed
         if self.selected_index != self.selector.selected_index:
-            print(self.selected_index, self.selector.selected_index)
+            # # print(self.selected_index, self.selector.selected_index)
             while (self.selected_index > self.selector.selected_index):
                 # move right, index -
                 self.selected_index -= 1
@@ -802,8 +888,8 @@ class CollectionWindow:
                 for sprite in self.collection_shapes.sprites():
                     sprite.moveLeft()
                     
-            print(self.selected_index, self.selector.selected_index)
-            print(self.collection_shapes.sprites())
+            # print(self.selected_index, self.selector.selected_index)
+            # print(self.collection_shapes.sprites())
             self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
             
             self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
@@ -835,7 +921,7 @@ class CollectionWindow:
         else: self.next_y = 1080
 
     def renderSurface(self):
-        self.surface.blit(self.background, [0, 50])
+        self.surface.blit(self.background_hearts if self.selected_shape.shape_data.id == self.user.favorite_id else self.background, [0, 50])
 
         # draw buttons
         [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables if clickable not in [self.yes_clickable, self.no_clickable]]
@@ -880,4 +966,3 @@ class CollectionWindow:
         if self.selected_shape != None: 
             self.surface.blit(self.selected_shape.info_surface, self.selected_shape.info_rect)
             self.surface.blit(self.selected_shape.stats_surface, self.selected_shape.stats_rect)
-

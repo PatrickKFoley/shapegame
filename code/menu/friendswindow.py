@@ -45,7 +45,7 @@ class FriendSprite(pygame.sprite.Sprite):
         try:
             self.shape = self.session.query(ShapeData).where(ShapeData.id == self.friend.favorite_id).one()
             self.shape_image = smoothscale(load(f'assets/shapes/backgrounds/{self.shape.type}/{color_data[self.shape.color_id].name}.png').convert_alpha(), [100, 100])
-            self.username_text = Text(f'{self.friend.username}', 60, 133, 40, 'topleft', color_data[self.shape.color_id].text_color, 200)
+            self.username_text = Text(f'{self.friend.username}', 60, 133, 40, 'topleft', color_data[self.shape.color_id].text_color, 200, 'black')
 
             self.face_image = smoothscale(load(f'assets/shapes/faces/{self.shape.type}/{self.shape.face_id}/0.png').convert_alpha(), [100, 100])
 
