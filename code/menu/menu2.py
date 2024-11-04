@@ -12,7 +12,7 @@ from ..screen_elements.editabletext import EditableText
 from ..screen_elements.clickabletext import ClickableText
 from ..screen_elements.button import Button
 from ..game.gamedata import color_data, shape_data as shape_model_data, names, titles
-from .collectionwindow import CollectionWindow
+from .collection_window.collectionwindow import CollectionWindow
 from .friendswindow import FriendsWindow
 from .notificationswindow import NotificationsWindow
 from sqlalchemy import create_engine, func, delete, select, case
