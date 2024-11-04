@@ -404,8 +404,10 @@ class Selection(pygame.sprite.Sprite):
             pygame.draw.polygon(self.unselected_surface, 'gray', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
         
         elif self.shape_type == 'square':
-            self.selected_surface.fill('black')
-            self.unselected_surface.fill('gray')
+            # self.selected_surface.fill('black')
+            # self.unselected_surface.fill('gray')
+            pygame.draw.rect(self.selected_surface, 'black', [0, 0, self.surface_size, self.surface_size], border_radius=10)
+            pygame.draw.rect(self.unselected_surface, 'gray', [0, 0, self.surface_size, self.surface_size], border_radius=10)
         
         elif self.shape_type == 'circle':
             pygame.draw.circle(self.selected_surface, 'black', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
