@@ -665,18 +665,18 @@ class CollectionWindow:
 
                 # reposition sprites
                 [sprite.reposition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
+                
+                # disable delete button
+                self.selected_shape = sprite
+                self.del_button.disable()
                 break
 
         # if user has 1 or 0 shapes, disable delete button
         if self.user.num_shapes <= 1:
             self.del_button.disable()
 
-        # if user has at least 1 shape, enable question button, set selected shape, toggle heart button
         if self.user.num_shapes >= 1: 
             self.question_button.enable()
-
-            self.selected_shape = self.collection_shapes.sprites()[0]
-            self.heart_button.selected = self.selected_shape.shape_data.id = self.user.favorite_id
 
     def positionWindow(self):
         # update window positions
@@ -752,6 +752,7 @@ class CollectionWindow:
         
         # toggle heart button
         self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
+        self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
 
         # reposition shapes
         [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
@@ -797,6 +798,7 @@ class CollectionWindow:
                 if sprite.shape_data.id == self.user.favorite_id:
                     self.markSelectedFavorite()
                 self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
+                self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
                 
                 
             
@@ -864,7 +866,9 @@ class CollectionWindow:
     def markSelectedFavorite(self):
         
         self.heart_button.selected = True
+        self.del_button.disable()
         
+        self.del_button.disable() 
         self.session.query(User).filter(User.id == self.user.id).update({User.favorite_id: self.selected_shape.shape_data.id})
 
         self.session.commit()
@@ -893,6 +897,7 @@ class CollectionWindow:
             self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
             
             self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
+            self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
 
         # update returns true when shape essence amount is altered, needing commit
         if self.essence_bar.update(): 
@@ -901,7 +906,7 @@ class CollectionWindow:
 
         if self.essence_bar.changing and not self.del_button.disabled:
             self.del_button.disable()
-        elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1:
+        elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1 and not self.selected_shape.shape_data.id == self.user.favorite_id:
             self.del_button.enable()
 
         self.handleInputs(mouse_pos, events)
