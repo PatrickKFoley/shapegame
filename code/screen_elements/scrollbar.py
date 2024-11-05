@@ -15,20 +15,21 @@ Y_TOP = 1080 - 10 - HEIGHT
 
 CLOSED_X_L = 450
 OPENED_X_L = 525
-CLOSED_X_R = 525
-OPENED_X_R = 450
+CLOSED_X_R = 100
+OPENED_X_R = 25
 
 class ScrollBar:
-    def __init__(self, hooks, direction = 'left'):
+    def __init__(self, hooks, side = 'left'):
         
         self.window_x = hooks['x']
         self.window_next_x = hooks['next_x']
         self.window_y = hooks['y']
         self.y_min = hooks['y_min']
         self.next_y_min = hooks['next_y_min']
+        self.side = side
 
-        self.opened_x = OPENED_X_L if direction == 'left' else OPENED_X_R
-        self.closed_x = CLOSED_X_L if direction == 'left' else CLOSED_X_R
+        self.opened_x = OPENED_X_L if side == 'left' else OPENED_X_R
+        self.closed_x = CLOSED_X_L if side == 'left' else CLOSED_X_R
         self.x = self.closed_x
         self.next_x = self.x
         self.disabled = self.y_min == 0
@@ -52,7 +53,7 @@ class ScrollBar:
 
         # toggle scrollbar position if window moved
         if self.window_x != self.window_next_x:
-            if self.window_next_x < 0: self.next_x = self.closed_x
+            if (self.window_next_x < 0 and self.side == 'left') or (self.window_next_x >= 1920-50 and self.side == 'right'): self.next_x = self.closed_x
             else: self.next_x = self.opened_x
 
         # move horizontally if needed

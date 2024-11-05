@@ -37,7 +37,12 @@ class EditableText:
     def getText(self):
         return self.input.value[len(self.text):]
 
-    def update(self, events):
+    def draw(self, surface):
+        surface.blit(self.surface, self.rect)
+
+    def update(self, events, rel_mouse_pos):
+        self.hovered = self.rect.collidepoint(rel_mouse_pos)  
+        
         if self.selected or self.hovered:
             self.input.update(events)
             self.input_selected.update(events)

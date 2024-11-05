@@ -135,10 +135,6 @@ class Menu():
                     if window.opened and not window.isButtonHovered(mouse_pos):
                         window.toggle()
 
-
-
-
-
     def updateMenuState(self):
         '''progress the menu state by one tick'''
 

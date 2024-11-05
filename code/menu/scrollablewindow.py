@@ -54,7 +54,7 @@ class ScrollableWindow:
 
         self.woosh_sound = Sound('assets/sounds/woosh.wav')
 
-        self.button = Button(self.icon_name, 45, [25, 25])
+        self.button = Button(self.icon_name, 45, [25, 25] if self.side == 'right' else [525, 25])
         self.clickables = [
             self.button
         ]
@@ -70,13 +70,12 @@ class ScrollableWindow:
         if self.y_min <= -1080:
             self.len_x += self.y_min // -1080
 
-        print()
         self.surface = Surface([550, self.surface_l * self.len_x], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
-        self.rect.topleft = [1920-50, 0]
+        self.rect.topleft = [self.x, 0]
 
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
-        self.scrollbar = ScrollBar(scrollbar_hooks)
+        self.scrollbar = ScrollBar(scrollbar_hooks, self.side)
 
     def addSprite(self, sprite: pygame.sprite.Sprite):
         self.group.add(sprite)
@@ -93,13 +92,18 @@ class ScrollableWindow:
             self.surface = Surface([550, 2160 * self.len_x], pygame.SRCALPHA, 32)
             self.rect = self.surface.get_rect()
             self.rect.topleft = cur_pos
+            
+        self.y_min = min(-(450 + len(self.group.sprites()) * 175 - 1080), 0)
+        self.next_y_min = self.y_min
 
-    def removeFriend(self, sprite: FriendSprite):
+    def removeSprite(self, sprite: FriendSprite ):
         self.woosh_sound.play()
-        self.next_y_min = min(-(450 + (len(self.friends_group.sprites())-1) * 175 - 1080), 0) 
+        self.next_y_min = min(-(450 + (len(self.group.sprites())-1) * 175 - 1080), 0) 
         
-        self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
-        self.session.commit() 
+        
+        if type(sprite) == FriendSprite:
+            self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
+            self.session.commit() 
 
     def updateScrollBar(self):
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
@@ -136,7 +140,7 @@ class ScrollableWindow:
             if sprite.update(rel_mouse_pos, events): 
                 sprite_died = True
 
-                self.removeFriend(sprite)
+                self.removeSprite(sprite)
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
@@ -170,7 +174,7 @@ class ScrollableWindow:
         
         self.updateGroup(rel_mouse_pos, events)
         self.updateScrollBar()
-        [editable.update(events) for editable in self.editables]
+        [editable.update(events, rel_mouse_pos) for editable in self.editables]
         [clickable.update(rel_mouse_pos) for clickable in self.clickables]
 
         # inputs
@@ -234,19 +238,20 @@ class ScrollableWindow:
             self.rect.topleft = [self.x, self.y]
     
     def renderSurface(self):
-        print('drawing')
         self.surface.fill((0, 0, 0, 0))
         self.scrollbar.draw(self.surface)
-        self.surface.blit(self.background, [50, 0])
+        self.surface.blit(self.background, [50, 0] if self.side == 'right' else [0, 0])
 
         # if the surface is longer than 1 image, repeat it
         if self.len_x > 1:
             for i in range(1, self.len_x):
-                self.surface.blit(self.background_extension, [0, self.surface_l * (i)])
+                self.surface.blit(self.background_extension, [0 if self.side == 'left' else 50, self.surface_l * (i)])
 
         [clickable.draw(self.surface) for clickable in self.clickables]
         [editable.draw(self.surface) for editable in self.editables]
         [text.draw(self.surface) for text in self.texts]
+        
+        self.group.draw(self.surface)
 
     def isButtonHovered(self, mouse_pos):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
