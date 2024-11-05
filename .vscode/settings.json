@@ -46,5 +46,8 @@
         "topright",
         "tryagain",
         "unclick"
+    ],
+    "cSpell.ignoreWords": [
+        "editables"
     ]
 }

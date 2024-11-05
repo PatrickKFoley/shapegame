@@ -81,7 +81,7 @@ class User(BaseClass):
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     favorite_id = Column("favorite_id", Integer, nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
-    shape_tokens = Column("shape_tokens", Integer, default=10)
+    shape_tokens = Column("shape_tokens", Integer, default=50)
     shape_essence = Column("shape_essence", Float, default=0.0)
     num_shapes = Column("num_shapes", Integer, default=0)
     num_wins = Column("num_wins", Integer, default=0)
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         user_3 = User("aiden")
         user_4 = User("kyra")
         user_5 = User("zack")
-        user_6 = User("squiggigydig")
+
 
         # notification_1 = Notification(4, user_4, "aiden now follows you", "FRIEND", "a")
         # notification_2 = Notification(4, user_4, "camille now follows you", "FRIEND", "b")
@@ -220,7 +220,10 @@ if __name__ == "__main__":
         session.add(user_3)
         session.add(user_4)
         session.add(user_5)
-        session.add(user_6)
+
+        for i in range(10):
+            session.add(User(f'{i}'))
+
         # user_1.friends.append(user_2)
         # user_1.friends.append(user_3)
         # user_1.friends.append(user_4)
@@ -234,14 +237,12 @@ if __name__ == "__main__":
         shape_3 = generateRandomShape(user_3, session)
         shape_4 = generateRandomShape(user_4, session)
         shape_5 = generateRandomShape(user_5, session)
-        shape_6 = generateRandomShape(user_6, session)
         
         session.query(User).filter(User.id == user_1.id).update({User.favorite_id: shape_1.id})
         session.query(User).filter(User.id == user_2.id).update({User.favorite_id: shape_2.id})
         session.query(User).filter(User.id == user_3.id).update({User.favorite_id: shape_3.id})
         session.query(User).filter(User.id == user_4.id).update({User.favorite_id: shape_4.id})
         session.query(User).filter(User.id == user_5.id).update({User.favorite_id: shape_5.id})
-        session.query(User).filter(User.id == user_6.id).update({User.favorite_id: shape_6.id})
         session.commit()
 
         session.add(GamePlayed(user_1.id, user_2.id, shape_1.id, shape_2.id, user_1.id))

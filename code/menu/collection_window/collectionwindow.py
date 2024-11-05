@@ -46,8 +46,8 @@ class CollectionWindow:
         self.yes_clickable = ClickableText('yes', 100, 1000, 325, color=[0, 200, 0])
         self.no_clickable = ClickableText('no', 100, 1260, 325, color=[255, 0, 0])
 
-        self.shapes_button = Button('shapes', 50, [25, 25])
-        self.shapes_button.draw(self.surface)
+        self.button = Button('shapes', 50, [25, 25])
+        self.button.draw(self.surface)
         self.question_button = Button('question', 40, [780, 131])
         self.question_button.disable()
         self.add_button = Button('add', 90, [81, 226])
@@ -58,7 +58,7 @@ class CollectionWindow:
         if self.user.shape_tokens == 0: self.add_button.disable()
 
         self.clickables = [
-            self.shapes_button, self.question_button, 
+            self.button, self.question_button, 
             self.add_button,    self.del_button, 
             self.yes_clickable, self.no_clickable,
             self.heart_button
@@ -295,7 +295,7 @@ class CollectionWindow:
         for event in events:
             if event.type != MOUSEBUTTONDOWN: return
 
-            if self.shapes_button.rect.collidepoint(mouse_pos):
+            if self.button.rect.collidepoint(mouse_pos):
                 self.toggle()
 
             # if the window is closed the only inputs we want to accept are the open button
@@ -335,11 +335,11 @@ class CollectionWindow:
             only accepts inputs to and draws toggle button
         '''
 
-        self.shapes_button.update(mouse_pos)
-        self.surface.blit(self.shapes_button.surface, self.shapes_button.rect)
+        self.button.update(mouse_pos)
+        self.surface.blit(self.button.surface, self.button.rect)
 
         for event in events: 
-            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.shapes_button.rect.collidepoint(mouse_pos):
+            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos):
                 self.toggle()
 
     def update(self, mouse_pos, events):
@@ -447,3 +447,8 @@ class CollectionWindow:
         if self.selected_shape != None: 
             self.surface.blit(self.selected_shape.info_surface, self.selected_shape.info_rect)
             self.surface.blit(self.selected_shape.stats_surface, self.selected_shape.stats_rect)
+
+    def isButtonHovered(self, mouse_pos):
+        rel_mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
+
+        return self.button.rect.collidepoint(rel_mouse_pos)

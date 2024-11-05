@@ -2,24 +2,31 @@ from pygame.locals import *
 import pygame.mouse
 from pygame.sprite import Group
 from pygame.mixer import Sound
+import pygame.sprite
 from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
-import pygame
+import pygame, random, math
 
-from createdb import User
-from ..screen_elements.scrollbar import ScrollBar
+from createdb import User, Shape as ShapeData, Notification, friends, GamePlayed
+from ..screen_elements.text import Text
+from ..screen_elements.editabletext import EditableText
 from ..screen_elements.button import Button
-from sqlalchemy import create_engine, func, delete, select, case
+from ..screen_elements.scrollbar import ScrollBar
+from ..game.gamedata import color_data
+from friends_window.friendsprite import FriendSprite
+from sqlalchemy import func, delete, select, case
 from sqlalchemy.orm import Session
 
-class NotificationsWindow:
-    def __init__(self, user: User, session: Session):
+class ScrollableWindow:
+    def __init__(self, user: User, session: Session, side = 'left'):
         self.user = user
         self.session = session
+        self.side = side
 
-        self.x = 1920 - 50
-        self.next_x = 1920 - 50
+        self.closed_x = -500 if self.side == 'left' else 1920 - 50
+        self.x = self.closed_x
+        self.next_x = self.x
         self.v = 0
         self.a = 1.5
         self.opened = False
@@ -32,26 +39,26 @@ class NotificationsWindow:
         self.mouse_y_on_click = 0
         self.is_held = False
 
-        self.initAssets()
-        # self.initGroup()
-        self.initSurface()
-
     def initAssets(self):
-        self.background = load('assets/backgrounds/blue_notebook.png').convert_alpha()
-        self.background_extension = load('assets/backgrounds/blue_notebook_extension.png').convert_alpha()
+        self.notebook_color = 'green' if self.side == 'left' else 'blue'
+        self.icon_name = 'friends' if self.side == 'left' else 'mail'
+
+        self.background = load(f'assets/backgrounds/{self.notebook_color}_notebook.png').convert_alpha()
+        self.background_extension = load(f'assets/backgrounds/{self.notebook_color}_notebook_extension.png').convert_alpha()
         self.background_rect = self.background.get_rect()
         self.background_rect.topleft = [0, 0]
 
         self.woosh_sound = Sound('assets/sounds/woosh.wav')
 
-    def initGroup(self):
-        self.friends_group = Group()
-    
-        # for friend in self.user.friends:
-        #     self.friends_group.add(FriendSprite(self.user, friend, len(self.friends_group.sprites()), self.session, self.name_tags))
+        self.button = Button(self.icon_name, 45, [25, 25])
+        self.clickables = [
+            self.button
+        ]
 
-        # self.y_min = min(-(450 + len(self.friends_group.sprites()) * 175 - 1080), 0)
-        # self.next_y_min = self.y_min
+        self.editables: list[EditableText] = []
+        self.texts: list[Text] = []
+
+        self.group = Group()
 
     def initSurface(self):
         self.surface_l = 2160
@@ -63,16 +70,11 @@ class NotificationsWindow:
         self.rect = self.surface.get_rect()
         self.rect.topleft = [1920-50, 0]
 
-        self.button = Button('mail', 45, [25, 25])
-
-        self.clickables = [
-            self.button,
-        ]
-
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
         self.scrollbar = ScrollBar(scrollbar_hooks)
 
-    def addSprite(self):
+    def addSprite(self, sprite: pygame.sprite.Sprite):
+        self.group.add(sprite)
 
         # check if the surface needs to be extended
         len_x = 1
@@ -87,34 +89,16 @@ class NotificationsWindow:
             self.rect = self.surface.get_rect()
             self.rect.topleft = cur_pos
 
+    def removeFriend(self, sprite: FriendSprite):
+        self.woosh_sound.play()
+        self.next_y_min = min(-(450 + (len(self.friends_group.sprites())-1) * 175 - 1080), 0) 
+        
+        self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
+        self.session.commit() 
+
     def updateScrollBar(self):
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
         self.scrollbar.update(scrollbar_hooks)
-
-    def updateScreenElements(self, rel_mouse_pos, events):
-        for clickable in self.clickables:
-            clickable.update(rel_mouse_pos)
-
-        self.updateScrollBar()
-
-    def handleInputs(self, mouse_pos, events):
-        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
-
-        # handle events
-        for event in events:
-            if event.type == MOUSEBUTTONDOWN: 
-
-                if self.button.rect.collidepoint(rel_mouse_pos):
-                    self.toggle()
-
-                if self.rect.collidepoint(mouse_pos):
-                    self.is_held = True
-                    self.y_on_click = int(self.y)
-                    self.mouse_y_on_click = mouse_pos[1]
-
-            elif event.type == MOUSEBUTTONUP:
-                if self.rect.collidepoint(mouse_pos):
-                    self.is_held = False
 
     def toggle(self):
         self.opened = not self.opened
@@ -125,6 +109,7 @@ class NotificationsWindow:
         else: self.next_x = 1920 - 50
 
     def idle(self, mouse_pos, events):
+    
         ''' replaces update() when window is fully closed
             only accepts inputs to and draws toggle button
         '''
@@ -133,8 +118,20 @@ class NotificationsWindow:
         self.surface.blit(self.button.surface, self.button.rect)
 
         for event in events: 
+            
             if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos):
                 self.toggle()
+
+    def updateGroup(self, rel_mouse_pos, events):
+
+        sprite_died = False
+        for sprite in self.friends_group.sprites():
+            if sprite_died: sprite.moveUp()
+
+            if sprite.update(rel_mouse_pos, events): 
+                sprite_died = True
+
+                self.removeFriend(sprite)
 
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
@@ -144,17 +141,15 @@ class NotificationsWindow:
         if self.fully_closed:
             self.idle(rel_mouse_pos, events)
             return
-
         
-        self.updateScreenElements(rel_mouse_pos, events)
+        self.updateScrollBar()
+        [editable.update(events) for editable in self.editables]
+        [clickable.update(rel_mouse_pos) for clickable in self.clickables]
 
-        self.handleInputs(mouse_pos, events)
+        # inputs
+        # raised flags
 
-        # self.handleRaisedFlags()
-
-        self.positionWindow(mouse_pos)
-
-        self.renderSurface()
+        self.positionWindow()
 
     def positionWindow(self, mouse_pos):
         # update window positions
@@ -163,7 +158,7 @@ class NotificationsWindow:
             if self.y_min < self.next_y_min:
                 self.y_min = min(self.y_min + 20, self.next_y_min)
 
-            else: self.y_min = self.next_y_min
+            else: self.y_min = max(self.y_min - 20, self.next_y_min)
 
         if self.y < self.y_min:
             self.y = min(self.y + 20, self.next_y_min)
@@ -196,12 +191,20 @@ class NotificationsWindow:
             if self.x == self.next_x:
                 self.v = 0
 
+            self.rect.topleft = [self.x, self.y]
+
+            # determine closed status
+            if self.x == self.closed_x:
+                self.fully_closed = True
+
         if self.is_held:
             self.y = max(self.y_min, min(mouse_pos[1] - self.mouse_y_on_click + self.y_on_click, 0))
+            
+            self.updateScrollBar()
             self.button.rect.center = [self.button.x, self.button.y - self.y]
 
-        self.rect.topleft = [self.x, self.y]
-
+            self.rect.topleft = [self.x, self.y]
+    
     def renderSurface(self):
         self.surface.fill((0, 0, 0, 0))
         self.scrollbar.draw(self.surface)
@@ -212,9 +215,7 @@ class NotificationsWindow:
             for i in range(1, self.len_x):
                 self.surface.blit(self.background_extension, [0, self.surface_l * (i)])
 
-        [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables]
+        [clickable.draw(self.surface) for clickable in self.clickables]
+        [editable.draw(self.surface) for editable in self.editables]
+        [text.draw(self.surface) for text in self.texts]
 
-    def isButtonHovered(self, mouse_pos):
-        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
-
-        return self.button.rect.collidepoint(rel_mouse_pos)

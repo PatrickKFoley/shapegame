@@ -13,7 +13,7 @@ from ..screen_elements.clickabletext import ClickableText
 from ..screen_elements.button import Button
 from ..game.gamedata import color_data, shape_data as shape_model_data, names, titles
 from .collection_window.collectionwindow import CollectionWindow
-from .friendswindow import FriendsWindow
+from .friends_window.friendswindow import FriendsWindow
 from .notificationswindow import NotificationsWindow
 from sqlalchemy import create_engine, func, delete, select, case
 from sqlalchemy.orm import sessionmaker as session_maker, Session
@@ -128,6 +128,16 @@ class Menu():
                 self.close_sound.play()
                 self.exit_clicked = True
                 pygame.mixer.Sound.fadeout(self.menu_music, 1000)
+
+            windows = [self.notifications_window, self.collection_window, self.friends_window]
+            if any(window.isButtonHovered(mouse_pos) for window in windows):
+                for window in windows:
+                    if window.opened and not window.isButtonHovered(mouse_pos):
+                        window.toggle()
+
+
+
+
 
     def updateMenuState(self):
         '''progress the menu state by one tick'''
