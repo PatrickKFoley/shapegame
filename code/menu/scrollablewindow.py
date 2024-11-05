@@ -14,7 +14,7 @@ from ..screen_elements.editabletext import EditableText
 from ..screen_elements.button import Button
 from ..screen_elements.scrollbar import ScrollBar
 from ..game.gamedata import color_data
-from friends_window.friendsprite import FriendSprite
+from .friends_window.friendsprite import FriendSprite
 from sqlalchemy import func, delete, select, case
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ class ScrollableWindow:
         self.side = side
 
         self.closed_x = -500 if self.side == 'left' else 1920 - 50
+        self.opened_x = 0 if self.side == 'left' else 1920 - 550
         self.x = self.closed_x
         self.next_x = self.x
         self.v = 0
@@ -38,6 +39,9 @@ class ScrollableWindow:
         self.y_on_click = 0
         self.mouse_y_on_click = 0
         self.is_held = False
+        
+        self.initAssets()
+        self.initSurface()
 
     def initAssets(self):
         self.notebook_color = 'green' if self.side == 'left' else 'blue'
@@ -66,6 +70,7 @@ class ScrollableWindow:
         if self.y_min <= -1080:
             self.len_x += self.y_min // -1080
 
+        print()
         self.surface = Surface([550, self.surface_l * self.len_x], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
         self.rect.topleft = [1920-50, 0]
@@ -105,8 +110,8 @@ class ScrollableWindow:
 
         if self.opened: 
             self.fully_closed = False
-            self.next_x = 1920 - 550
-        else: self.next_x = 1920 - 50
+            self.next_x = self.opened_x
+        else: self.next_x = self.closed_x
 
     def idle(self, mouse_pos, events):
     
@@ -125,13 +130,32 @@ class ScrollableWindow:
     def updateGroup(self, rel_mouse_pos, events):
 
         sprite_died = False
-        for sprite in self.friends_group.sprites():
+        for sprite in self.group.sprites():
             if sprite_died: sprite.moveUp()
 
             if sprite.update(rel_mouse_pos, events): 
                 sprite_died = True
 
                 self.removeFriend(sprite)
+
+    def handleInputs(self, mouse_pos, events):
+        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
+        
+        # handle events
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN: 
+
+                if self.button.rect.collidepoint(rel_mouse_pos):
+                    self.toggle()
+
+                if self.rect.collidepoint(mouse_pos):
+                    self.is_held = True
+                    self.y_on_click = int(self.y)
+                    self.mouse_y_on_click = mouse_pos[1]
+
+            elif event.type == MOUSEBUTTONUP:
+                if self.rect.collidepoint(mouse_pos):
+                    self.is_held = False
 
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
@@ -142,6 +166,9 @@ class ScrollableWindow:
             self.idle(rel_mouse_pos, events)
             return
         
+        self.handleInputs(mouse_pos, events)
+        
+        self.updateGroup(rel_mouse_pos, events)
         self.updateScrollBar()
         [editable.update(events) for editable in self.editables]
         [clickable.update(rel_mouse_pos) for clickable in self.clickables]
@@ -149,7 +176,8 @@ class ScrollableWindow:
         # inputs
         # raised flags
 
-        self.positionWindow()
+        self.positionWindow(mouse_pos)
+        self.renderSurface()
 
     def positionWindow(self, mouse_pos):
         # update window positions
@@ -206,6 +234,7 @@ class ScrollableWindow:
             self.rect.topleft = [self.x, self.y]
     
     def renderSurface(self):
+        print('drawing')
         self.surface.fill((0, 0, 0, 0))
         self.scrollbar.draw(self.surface)
         self.surface.blit(self.background, [50, 0])
@@ -219,3 +248,7 @@ class ScrollableWindow:
         [editable.draw(self.surface) for editable in self.editables]
         [text.draw(self.surface) for text in self.texts]
 
+    def isButtonHovered(self, mouse_pos):
+        rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
+
+        return self.button.rect.collidepoint(rel_mouse_pos)
