@@ -14,7 +14,7 @@ from ..screen_elements.button import Button
 from ..game.gamedata import color_data, shape_data as shape_model_data, names, titles
 from .collection_window.collectionwindow import CollectionWindow
 from .friends_window.friendswindow import FriendsWindow
-from .notificationswindow import NotificationsWindow
+from .notifications_window.notificationswindow import NotificationsWindow
 from sqlalchemy import create_engine, func, delete, select, case
 from sqlalchemy.orm import sessionmaker as session_maker, Session
 

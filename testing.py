@@ -1,5 +1,6 @@
 import pygame, numpy
 from pygame.locals import *
+from pygame.image import load
 import sys
 import math
 import random
@@ -672,7 +673,81 @@ def generateSounds():
         # Save the output file
         sf.write(output_filename_template.format(i), y_shifted, sr)
 
+def envelope():
+    pygame.init()
+    screen = pygame.display.set_mode((1920, 1080))
 
+    foregrounds = []
+    backgrounds = []
+
+    for i in range(7):
+        foregrounds.append(load(f'assets/backgrounds/envelope/foreground_{i}.png').convert_alpha())
+        backgrounds.append(load(f'assets/backgrounds/envelope/background_{i}.png').convert_alpha())
+
+    paper = load('assets/backgrounds/envelope/paper.png')
+    paper_rect = paper.get_rect()
+    paper_rect.center = 200, 200
+    opened = False
+
+    foreground_i = 0
+    background_i = 0
+
+    b_rect = backgrounds[background_i].get_rect()
+    b_rect.center = 200, 200
+    f_rect = foregrounds[foreground_i].get_rect()
+    f_rect.center = 200, 200
+
+    frames = 0
+    
+    clock = pygame.time.Clock()
+
+    running = True
+    while running:
+        frames += 1
+        screen.fill((133, 133, 133, 0))
+
+        events = pygame.event.get()
+        mouse_pos = pygame.mouse.get_pos()
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+
+        if frames % 5 == 0 and not opened:
+            if foreground_i < 6:
+                foreground_i += 1
+            elif background_i < 6:
+                background_i += 1
+
+                if background_i == 6:
+                    opened = True
+
+        if frames % 5 == 0 and opened:
+            if foreground_i != 0: 
+                if background_i > 0:
+                    background_i -= 1
+                elif background_i == 0 and foreground_i > 0:
+                    foreground_i -= 1
+
+                if foreground_i == 0:
+                    opened = False
+
+
+        # if background_i == 6 == foreground_i and paper_rect.y > -130:
+        #     paper_rect.y -= 3
+
+        screen.blit(backgrounds[background_i], b_rect)
+        screen.blit(paper, paper_rect)
+        screen.blit(foregrounds[foreground_i], f_rect)
+
+        # Update the display
+        pygame.display.flip()
+        clock.tick(60)
+        
+
+    # Quit Pygame
+    pygame.quit()
+    sys.exit()
 
 # newArt()
 # generateHealthBars()
@@ -684,6 +759,7 @@ def generateSounds():
 # generateSounds()
 # generateOvals()
 menu2()
+# envelope()
 # collectionWindow()
 
 

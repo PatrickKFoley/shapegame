@@ -19,7 +19,7 @@ class FriendSprite(pygame.sprite.Sprite):
 
     # INIT
 
-    def __init__(self, user: User,friend: User, position: int, session: Session, name_tags: list[Surface], current_length = None):
+    def __init__(self, user: User, friend: User, position: int, session: Session, name_tags: list[Surface], current_length = None):
         super().__init__()
 
         self.user = user
@@ -188,20 +188,12 @@ class FriendSprite(pygame.sprite.Sprite):
 
             # move the window towards the target position, snap in place if position is exceeded
             if self.y > self.next_y:
-                self.y -= self.v
-
-                if self.y < self.next_y:
-                    self.y = self.next_y
-
+                self.y = max(self.y - self.v, self.next_y)
             elif self.y < self.next_y:
-                self.y += self.v
-                
-                if self.y > self.next_y:
-                    self.y = self.next_y 
+                self.y = min(self.y + self.v, self.next_y)
 
             # reset the velocity when the window reaches its target
-            if self.y == self.next_y:
-                self.v = 0
+            if self.y == self.next_y: self.v = 0
 
             self.rect.center = [self.x, self.y]
             self.info_rect.center = [self.x, self.y + self.info_y]

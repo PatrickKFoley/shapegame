@@ -65,9 +65,9 @@ class Notification(BaseClass):
     message = Column("message", String, nullable=False)
     additional = Column("additional", String)
 
-    def __init__(self, owner_id, owner, message, type, additional = ""):
-        self.owner_id = owner_id
+    def __init__(self, owner, message, type, additional = ""):
         self.owner = owner
+        self.owner_id = self.owner.id
         self.message = message
         self.type = type
         self.additional = additional
@@ -209,11 +209,11 @@ if __name__ == "__main__":
         user_5 = User("zack")
 
 
-        # notification_1 = Notification(4, user_4, "aiden now follows you", "FRIEND", "a")
-        # notification_2 = Notification(4, user_4, "camille now follows you", "FRIEND", "b")
-        # notification_3 = Notification(4, user_4, "thisnameislong now follows you", "FRIEND", "b")
-        # notification_4 = Notification(4, user_4, "camille wants to play", "INVITE", "b")
-        # notification_5 = Notification(4, user_4, "pat wants to play", "INVITE", "b")
+        notification_1 = Notification(user_1, "aiden now follows you", "FRIEND", "a")
+        notification_2 = Notification(user_1, "camille now follows you", "FRIEND", "b")
+        notification_3 = Notification(user_1, "thisnameislong now follows you", "FRIEND", "b")
+        notification_4 = Notification(user_1, "camille wants to play", "INVITE", "b")
+        notification_5 = Notification(user_1, "pat wants to play", "INVITE", "b")
 
         session.add(user_1)
         session.add(user_2)

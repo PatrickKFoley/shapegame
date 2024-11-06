@@ -150,7 +150,6 @@ class FriendsWindow(ScrollableWindow):
         super().update(mouse_pos, events)
         self.handleRaisedFlags()
         
-
     def renderSurface(self):
         super().renderSurface()
 
