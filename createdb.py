@@ -52,28 +52,30 @@ friends = Table(
     Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
     Column("friend_id", Integer, ForeignKey("users.id"), primary_key=True)
 )
-
+    
 class Notification(BaseClass):
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     owner_id: Mapped[int] = mapped_column("owner_id", Integer, ForeignKey("users.id"))
-    owner: Mapped["User"] = relationship(back_populates="notifications")
+    sender_id: Mapped[int] = mapped_column("sender_id", Integer, ForeignKey("users.id"))
+
+    # Relationships
+    owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], back_populates="notifications_owned")
+    sender: Mapped["User"] = relationship("User", foreign_keys=[sender_id], back_populates="notifications_sent")
 
     new = Column("new", Boolean, default=True)
     type = Column("type", String, nullable=False)
-    message = Column("message", String, nullable=False)
-    additional = Column("additional", String)
 
-    def __init__(self, owner, message, type, additional = ""):
+    def __init__(self, owner, sender, type):
         self.owner = owner
+        self.sender = sender
         self.owner_id = self.owner.id
-        self.message = message
+        self.sender_id = self.sender.id
         self.type = type
-        self.additional = additional
 
     def __repr__(self):
-        return f'({self.id}) {self.owner_id}, {self.message}'
+        return f'Notification(id={self.id}, type="{self.type}", owner_id={self.owner_id}, sender_id={self.sender_id})'
 
 class User(BaseClass):
     __tablename__ = "users"
@@ -87,7 +89,9 @@ class User(BaseClass):
     num_wins = Column("num_wins", Integer, default=0)
     date_joined = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
 
-    notifications: Mapped[List["Notification"]] = relationship(back_populates="owner", cascade="all, delete")
+    # notifications: Mapped[List["Notification"]] = relationship(back_populates="owner", cascade="all, delete")
+    notifications_owned = relationship("Notification", foreign_keys="Notification.owner_id", back_populates="owner", cascade="all, delete")
+    notifications_sent = relationship("Notification", foreign_keys="Notification.sender_id", back_populates="sender", cascade="all, delete")
     shapes: Mapped[List["Shape"]] = relationship(back_populates="owner", cascade="all, delete")
     friends: Mapped[List["User"]] = relationship("User", secondary=friends,
                                                  primaryjoin=id==friends.c.user_id,
@@ -208,13 +212,6 @@ if __name__ == "__main__":
         user_4 = User("kyra")
         user_5 = User("zack")
 
-
-        notification_1 = Notification(user_1, "aiden now follows you", "FRIEND", "a")
-        notification_2 = Notification(user_1, "camille now follows you", "FRIEND", "b")
-        notification_3 = Notification(user_1, "thisnameislong now follows you", "FRIEND", "b")
-        notification_4 = Notification(user_1, "camille wants to play", "INVITE", "b")
-        notification_5 = Notification(user_1, "pat wants to play", "INVITE", "b")
-
         session.add(user_1)
         session.add(user_2)
         session.add(user_3)
@@ -231,6 +228,10 @@ if __name__ == "__main__":
         # user_1.friends.append(user_6)
 
         session.commit()
+        
+        
+        session.add(Notification(user_1, user_2, "FRIEND"))
+        session.add(Notification(user_1, user_2, "CHALLENGE"))
 
         shape_1 = generateRandomShape(user_1, session)
         shape_2 = generateRandomShape(user_2, session)

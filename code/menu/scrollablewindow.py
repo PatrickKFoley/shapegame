@@ -15,6 +15,7 @@ from ..screen_elements.button import Button
 from ..screen_elements.scrollbar import ScrollBar
 from ..game.gamedata import color_data
 from .friends_window.friendsprite import FriendSprite
+from .notifications_window.notificationsprite import NotificationSprite
 from sqlalchemy import func, delete, select, case
 from sqlalchemy.orm import Session
 
@@ -96,7 +97,7 @@ class ScrollableWindow:
         self.y_min = min(-(450 + len(self.group.sprites()) * 175 - 1080), 0)
         self.next_y_min = self.y_min
 
-    def removeSprite(self, sprite: FriendSprite ):
+    def removeSprite(self, sprite: FriendSprite | NotificationSprite ):
         self.woosh_sound.play()
         self.next_y_min = min(-(450 + (len(self.group.sprites())-1) * 175 - 1080), 0) 
         
@@ -104,6 +105,10 @@ class ScrollableWindow:
         if type(sprite) == FriendSprite:
             self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
             self.session.commit() 
+            
+        if type(sprite) == NotificationSprite:
+            self.session.execute(delete(Notification).where((Notification.id == sprite.notification.id)))
+            self.session.commit()
 
     def updateScrollBar(self):
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}

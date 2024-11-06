@@ -22,8 +22,16 @@ class NotificationsWindow(ScrollableWindow):
         self.initGroup()
 
     def initGroup(self):
-        for notification in self.user.notifications:
-            self.addSprite(NotificationSprite(self.user, notification, len(self.group.sprites()), self.session))
+        self.name_tags = []
+        for i in range(4):
+            self.name_tags.append(load(f'assets/backgrounds/hello_stickers/{i}.png'))
+            
+        self.challenge_tags = []
+        for i in range(4):
+            self.challenge_tags.append(load(f'assets/backgrounds/challenge_stickers/{i}.png'))
+        
+        for notification in self.user.notifications_owned:
+            self.addSprite(NotificationSprite(self.user, notification, len(self.group.sprites()), self.session, self.name_tags if notification.type == 'FRIEND' else self.challenge_tags))
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
