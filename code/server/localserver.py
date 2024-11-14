@@ -1,9 +1,10 @@
 import socket, pickle, random
 from _thread import *
-from menu_files.network_pregame_files.pregame import Pregame
-from game_files.game import Game
+# from menu_files.network_pregame_files.pregame import Pregame
+from playerselections import PlayerSelections
+# from game_files.game import Game
 from createdb import User, Shape
-from game_files.circledata import *
+# from game_files.circledata import *
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -214,7 +215,7 @@ while True:
     game_id = (id_count - 1) // 2
 
     if id_count % 2 == 1:
-        pregames[game_id] = Pregame(game_id)
+        pregames[game_id] = PlayerSelections(game_id)
         print("Creating a new game...")
     else:
         pregames[game_id].ready = True

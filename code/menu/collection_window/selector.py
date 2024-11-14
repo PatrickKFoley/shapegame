@@ -96,6 +96,8 @@ class Selector:
         self.center = center
         self.topleft = [850, 377]
         self.selected_index = 0
+
+        self.disabled = False
         
         self.w = min(max(self.num_shapes * 50, MIN_W), MAX_W)
         self.h = 60
@@ -160,33 +162,47 @@ class Selector:
         pygame.draw.rect(self.surface, 'black', [0, 0, self.w, self.h], border_radius=10)
         pygame.draw.rect(self.surface, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
 
-    def update(self, mouse_pos, events):
-        rel_mouse_pos = [mouse_pos[0] - self.rect.x, mouse_pos[1] - self.rect.y]
-        
-        for sprite in self.selections.sprites():
-            if sprite.rect.collidepoint(rel_mouse_pos):
-                sprite.hovered = True
-                sprite.next_size = sprite.max_size
-            else:
+    def setSelected(self, selected_index):
+        self.selected_index = selected_index
+
+        for idx, sprite in enumerate(self.selections.sprites()):
+            if idx != self.selected_index:
+                sprite.selected = False
                 sprite.hovered = False
-        
-        for event in events:
-            if event.type == MOUSEBUTTONDOWN and event.button == 1:
-                for sprite in self.selections.sprites():
-                    if sprite.rect.collidepoint(rel_mouse_pos):
-                        # # print('select')
-                        # print(sprite.position)
-                        self.selected_index = sprite.position
-                        
-                        sprite.selected = True
-                        sprite.next_size = sprite.max_size
-                        
-                        for sprite2 in self.selections.sprites():
-                            if sprite.position != sprite2.position: 
-                                # # print('ya')
-                                sprite2.selected = False
-                                sprite2.hovered = False
-                        
+            
+            else:
+                sprite.selected = True
+                sprite.next_size = sprite.max_size
+
+    def update(self, mouse_pos, events):
+
+        if self.disabled: return
+
+        # if no inputs are provided, this is the opponent's selector
+        if mouse_pos != None:
+            rel_mouse_pos = [mouse_pos[0] - self.rect.x, mouse_pos[1] - self.rect.y]
+            
+            for sprite in self.selections.sprites():
+                if sprite.rect.collidepoint(rel_mouse_pos):
+                    sprite.hovered = True
+                    sprite.next_size = sprite.max_size
+                else:
+                    sprite.hovered = False
+            
+            for event in events:
+                if event.type == MOUSEBUTTONDOWN and event.button == 1:
+                    for sprite in self.selections.sprites():
+                        if sprite.rect.collidepoint(rel_mouse_pos):
+                            self.selected_index = sprite.position
+                            
+                            sprite.selected = True
+                            sprite.next_size = sprite.max_size
+                            
+                            for sprite2 in self.selections.sprites():
+                                if sprite.position != sprite2.position: 
+                                    sprite2.selected = False
+                                    sprite2.hovered = False
+                            
         if self.w != self.next_w:
             if self.w < self.next_w:
                 self.w = min(self.w + 5, self.next_w)
@@ -196,7 +212,6 @@ class Selector:
             self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
             self.rect = self.surface.get_rect()
             self.rect.topleft = self.topleft
-            # self.rect.center = self.center
         
         pygame.draw.rect(self.surface, 'black', [0, 0, self.w, self.h], border_radius=10)
         pygame.draw.rect(self.surface, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)

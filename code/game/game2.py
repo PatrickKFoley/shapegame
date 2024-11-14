@@ -8,6 +8,8 @@ import pygame.sprite
 from ..screen_elements.clickabletext import ClickableText
 from ..screen_elements.doublecheckbox import DoubleCheckbox
 from ..screen_elements.text import Text
+from ..screen_elements.button import Button
+from sharedfunctions import clearSurfaceBeneath
 
 from createdb import User, Shape as ShapeData
 
@@ -42,7 +44,17 @@ KILL_BUCKSHOT = 'kill_buckshot'
 class Game2:
     def __init__(self, screen: Surface, shape_1_data: ShapeData, shape_2_data: ShapeData, user_1: User, user_2: User, seed = False, player_simulated = False, server_simulated = False):
         # seed randomness
-        if seed != False: random.seed(seed)
+        if seed != False: 
+            random.seed(seed)
+
+        print(
+            'playing game:',
+            f'seed: {seed}\n',
+            f'player 1: {user_1.id}',
+            f'player 2: {user_2.id}\n',
+            f'shape 1: {shape_1_data.id},'
+            f'shape 2: {shape_2_data.id}\n'
+        )
         
         self.screen = screen
         self.shape_1_data = shape_1_data
@@ -149,16 +161,15 @@ class Game2:
 
         # load background and update display
         self.background = pygame.image.load('assets/backgrounds/grid_paper_w_sides_2.png').convert_alpha()
-        self.title_text = Text('shapegame', 150, 1920/2, 1080/10)
-        self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.title_text.surface, self.title_text.rect)
+        self.background_clear = pygame.image.load('assets/backgrounds/BG1.png').convert_alpha()
+        self.background_clear.set_alpha(0)
         pygame.display.update()
 
         # necessary variables for playing game
         self.clock = pygame.time.Clock()
 
         # create screen elements
-        self.exit_clickable = ClickableText('back', 50, 1860, 1045)
+        self.exit_clickable = Button("exit", 45, [1920 - 25, 1080 - 25])
         self.clickables = [self.exit_clickable]
 
         # load and center cursor
@@ -222,6 +233,7 @@ class Game2:
 
     def loadImages(self):
         '''load all images into their containers'''
+        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3)
 
         def getHealthbarImages(shape_data: ShapeData):
             '''load and return an array of healthbar images for the given shape'''
@@ -341,6 +353,25 @@ class Game2:
         self.click_sound = pygame.mixer.Sound("assets/sounds/click.wav")
         self.close_sound = pygame.mixer.Sound("assets/sounds/close.wav")
 
+        self.sounds = [
+            self.choir_sound,
+            self.explosion_sound,
+            self.fuse_sound,
+            self.heal_sound,
+            self.laser_hit_sound,
+            self.laser_sound,
+            self.pop_sound,
+            self.punch_sound,
+            self.shotgun_sound,
+            self.twinkle_sound,
+            self.win_sound,
+            self.wind_sound,
+            self.click_sound,
+            self.close_sound,
+        ]
+
+        [self.sounds.append(sound) for sound in itertools.chain(self.death_sounds, self.collision_sounds, self.game_sounds)]
+
         self.choir_sound.set_volume(.25)
         self.explosion_sound.set_volume(.1)
         self.fuse_sound.set_volume(.05)
@@ -361,30 +392,91 @@ class Game2:
     def initFortnite(self):
 
         # all required numerical data
-        self.arena_w = 1920 - 460
-        self.arena_h = 1080
-        self.max_a = int(self.arena_w * 1.425)
-        self.max_b = int(self.arena_h * 1.425)
-        self.min_a = int(self.arena_w * .6)
-        self.min_b = int(self.arena_h * .6)
-        self.a = self.max_a
-        self.b = self.max_b
-        self.next_a = self.a
-        self.next_b = self.b
-        
-        # draw the full sized oval
-        oval_full = Surface([self.a, self.b], pygame.SRCALPHA, 32)
-        oval_full_rect = oval_full.get_rect()
-        pygame.draw.ellipse(oval_full, 'black', oval_full_rect, width=5)
+        self.f_r_max = 910
+        self.f_r_min = 350
+        self.f_r = self.f_r_max
+        self.f_r_next = self.f_r
 
-        # crop the full sized oval to the max size
-        self.oval_surface = Surface([self.arena_w, self.arena_h], pygame.SRCALPHA, 32)
-        self.oval_rect = self.oval_surface.get_rect()
-        self.oval_surface.blit(oval_full, [0, 0], [((self.a - self.arena_w)//2), ((self.b - self.arena_h)//2), self.arena_w, self.arena_h])
-        
-        # center and get mask
-        self.oval_rect.center = [730, 540]
-        self.oval_mask = pygame.mask.from_surface(self.oval_surface)
+        # draw the full sized boundary_circle
+        boundary_circle_surface = Surface([self.f_r*2, self.f_r*2], pygame.SRCALPHA, 32)
+        boundary_circle_rect = boundary_circle_surface.get_rect()
+        pygame.draw.ellipse(boundary_circle_surface, (0, 0, 0, 100), boundary_circle_rect, width=5)
+        boundary_circle_rect.center = [730, 540]
+
+        # crop the full sized boundary_circle to the max size
+        self.boundary_circle_surface = Surface([self.screen_w, self.screen_h], pygame.SRCALPHA, 32)
+        self.boundary_circle_surface.blit(boundary_circle_surface, boundary_circle_rect)
+        self.boundary_circle_rect = self.boundary_circle_surface.get_rect()
+        self.boundary_circle_rect.center = [730, 540]
+    
+    def transitionIn(self):
+
+        self.team_overview_surface.set_alpha(0)
+        self.background.set_alpha(0)
+        self.title_text.turnOff()
+
+        for sprite in itertools.chain(self.team_1_group, self.team_2_group):
+            sprite.image.set_alpha(0)
+            sprite.stuck = True
+
+        # fade from clear background to background with office supplies
+        while self.frames_played < 60:
+            self.updateGameState()
+            self.drawGameElements()
+            self.drawScreenElements()
+            self.clock.tick(self.target_fps)
+
+            cur_a = self.background.get_alpha()
+            if cur_a < 255:
+                next_a = min(cur_a + 10, 255)
+                self.background.set_alpha(next_a)
+
+        # fade team overview and teams in
+        while self.frames_played < 120:
+
+            self.updateGameState()
+            self.drawGameElements()
+            self.drawScreenElements()
+            self.clock.tick(self.target_fps)
+
+            cur_a = self.team_overview_surface.get_alpha()
+            if cur_a < 255:
+                next_a = min(cur_a + 10, 255)
+
+                self.team_overview_surface.set_alpha(next_a)
+                for sprite in itertools.chain(self.team_1_group, self.team_2_group):
+                    sprite.image.set_alpha(next_a)
+
+        for sprite in itertools.chain(self.team_1_group, self.team_2_group):
+            sprite.stuck = False
+
+        self.prev_time = time.time()
+
+    def transitionOut(self):
+
+        if self.player_win_text: self.player_win_text.turnOff()
+        self.title_text.turnOn()
+
+        pause_start = time.time()
+        while time.time() - pause_start < 1:
+
+            self.updateGameState()
+
+            cur_a = self.background_clear.get_alpha()
+            if cur_a < 255:
+                cur_a = min(cur_a + 10, 255)
+                self.background_clear.set_alpha(cur_a)
+
+            cur_a = self.team_overview_surface.get_alpha()
+            if cur_a > 0:
+                cur_a = max(cur_a - 15, 0)
+                self.team_overview_surface.set_alpha(cur_a)
+
+            self.drawScreenElements()
+            self.screen.blit(self.background_clear, [0, 0])
+            self.screen.blit(self.cursor, self.cursor_rect)
+            self.exit_clickable.draw(self.screen)
+            self.clock.tick(self.target_fps)
 
     # GAME STATE UPDATE FUNCTIONS
 
@@ -404,19 +496,20 @@ class Game2:
 
     def updateGameElements(self):
         '''update all game elements (shapes, powerups, killfeed), separate from drawGameElements for easier simulation'''
+        self.title_text.update()
+        if self.player_win_text: self.player_win_text.update()
 
         # spawn powerups
         self.spawnRandomPowerups()
 
         # update groups
         self.powerup_group.update()
-        self.laser_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
+        self.laser_group.update(self.f_r)
         self.clouds_group.update()
-        self.team_1_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
-        self.team_2_group.update([self.oval_mask, self.oval_rect, self.a, self.b])
+        self.team_1_group.update(self.f_r)
+        self.team_2_group.update(self.f_r)
 
         # update killfeed elements
-        cycle_killfeeds = False
         num_cycles = 0
         for killfeed in self.killfeed_group.sprites():
             ret = killfeed.update()
@@ -431,38 +524,34 @@ class Game2:
         # detect collisions
         self.detectCollisions()
 
+        self.checkFortnite()
+
     def checkFortnite(self):
-        '''redraws the bounding oval if need be'''
+        '''redraws the bounding boundary_circle if need be'''
+        # if self.frames_played % 5 == 0 and self.f_r > 500: self.f_r -= 1
+        # return
+
+        if self.f_r == self.f_r_next: return
+
+        if self.f_r < self.f_r_next and self.frames_played % 5 == 0: 
+            self.f_r += 1
+        elif self.frames_played % 5 == 0: 
+            self.f_r -= 1
         
-        # if proper size, nothing to be done
-        if self.a == self.next_a or self.b == self.next_b: return
+        # redraw boundary_circle
+        boundary_circle_surface = Surface([self.f_r*2, self.f_r*2], pygame.SRCALPHA, 32)
+        boundary_circle_rect = boundary_circle_surface.get_rect()
+        pygame.draw.ellipse(boundary_circle_surface, (0, 0, 0, 100), boundary_circle_rect, width=5)
+        boundary_circle_rect.center = [730, 540]
 
-        # shrink or expand oval
-        if self.a < self.next_a: self.a += 1
-        else: self.a -= 1
-        if self.b < self.next_b: self.b += 1
-        else: self.b -= 1
-
-        # redraw oval
-        oval_full = Surface([self.a, self.b], pygame.SRCALPHA, 32)
-        oval_full_rect = oval_full.get_rect()
-        pygame.draw.ellipse(oval_full, 'black', oval_full_rect, width=5)
-
-        # if oval larger than arena, crop it
-        if self.a > self.arena_w:
-            self.oval_surface = Surface([self.arena_w, self.arena_h], pygame.SRCALPHA, 32)
-            self.oval_rect = self.oval_surface.get_rect()
-            self.oval_surface.blit(oval_full, [0, 0], [((self.a - self.arena_w)//2), ((self.b - self.arena_h)//2), self.arena_w, self.arena_h])
-        else:
-            self.oval_surface = oval_full
-            self.oval_rect = oval_full_rect
-
-        # center and get mask
-        self.oval_rect.center = [730, 540]
-        self.oval_mask = pygame.mask.from_surface(self.oval_surface)
+        # crop the full sized boundary_circle to the max size
+        self.boundary_circle_surface = Surface([self.screen_w, self.screen_h], pygame.SRCALPHA, 32)
+        self.boundary_circle_surface.blit(boundary_circle_surface, boundary_circle_rect)
+        self.boundary_circle_rect = self.boundary_circle_surface.get_rect()
+        self.boundary_circle_rect.center = [730, 540]
 
     def updateFortnite(self):
-        '''updates the next a and b values of the bounding oval. called when number of shapes changes'''
+        '''updates the next a and b values of the boundary_circle. called when number of shapes changes'''
 
         # get the number of shapes alive as a percent
         max_shapes = self.shape_1_data.team_size + self.shape_2_data.team_size
@@ -472,31 +561,30 @@ class Game2:
         # clamp percent to range (0-1)
         clamped_percent = max(0, min(percent_alive, 1))
 
-        # set next a and b
-        self.next_a = int(self.min_a + clamped_percent * (self.max_a - self.min_a))
-        self.next_b = int(self.min_b + clamped_percent * (self.max_b - self.min_b))
+        self.f_r_next = int(self.f_r_min + clamped_percent * (self.f_r_max - self.f_r_min))
 
     def spawnRandomPowerups(self):
         '''spawn a random powerup every few seconds'''
 
-        seconds_per_powerup = 1
+        seconds_per_powerup = 3
 
-        if not self.done and self.frames_played % (seconds_per_powerup * self.target_fps) == 0:
-            powerup_name = random.choice(list(self.powerup_data.keys()))
+        if not self.done and self.frames_played % (seconds_per_powerup * self.target_fps) == 0 and self.frames_played > 300:
+            powerup_name = self.getRandom(list(self.powerup_data.keys()))
             powerup_image = self.powerup_images_medium[self.powerup_data[powerup_name][1]]
 
-            # select an xy within the bounding oval
+            # select an xy within the bounding circle
             # 1: select angle 0-2pi
             theta = random.uniform(0, 2 * math.pi)
-            # 2: generate random radius with uniform distribution within oval
-            r = math.sqrt(random.uniform(0, 0.9))
+            # 2: generate random radius with uniform distribution within circle
+            r = self.f_r * math.sqrt(random.uniform(0, 0.9))
             # 3: convert polar coordinates to cartesian coordinates
-            x = (r * (self.a/2) * math.cos(theta)) + 730
-            y = (r * (self.b/2) * math.sin(theta)) + 540
-            # 4: check if xy is outside of the bounds of the arena, if so, place anywhere within
-            if x >= self.arena_w-20 or x <= 20 or y >= self.arena_h-20 or y <= 20:
-                x = random.randint(20, self.arena_w-20)
-                y = random.randint(20, self.arena_h-20)
+            x = r * math.cos(theta) + 730
+            y = r * math.sin(theta) + 540
+
+            # # 4: check if xy is outside of the bounds of the arena, if so, place anywhere within
+            if x >= self.screen_w-20 or x <= 20 or y >= self.screen_h-20 or y <= 20:
+                x = random.randint(20, self.screen_w-20)
+                y = random.randint(20, self.screen_h-20)
 
             self.playSound(self.pop_sound)
             self.powerup_group.add(Powerup(powerup_name, powerup_image, [x, y]))
@@ -585,6 +673,7 @@ class Game2:
         # return
         
         for shape_1 in itertools.chain(self.team_1_group, self.team_2_group):
+            shape_1: Shape
 
             if shape_1.stats_to_render != [] and shape_1 not in self.shape_rerender_list:
                 self.shape_rerender_queue.put(shape_1)
@@ -596,7 +685,9 @@ class Game2:
             if shape_1.is_dead: continue
 
             for shape_2 in itertools.chain(self.team_1_group, self.team_2_group):
-                if shape_1 == shape_2 or shape_2.is_dead: continue
+                shape_2: Shape
+
+                if shape_1 == shape_2 or shape_2.is_dead or shape_1.is_dead: continue
 
                 if self.determineCollision(shape_1, shape_2) and shape_2 not in shape_1.shapes_touching:
                     self.collideShapes(shape_1, shape_2)
@@ -635,6 +726,9 @@ class Game2:
 
         # 4: determine if collision is taking place
         collision = shape_1.collision_mask.overlap(shape_2.collision_mask, [int(shape_2.collision_mask_rect.x - shape_1.collision_mask_rect.x), int(shape_2.collision_mask_rect.y - shape_1.collision_mask_rect.y)])
+        # dist = numpy.linalg.norm(p1f - p2f)
+        # max_dist = shape_1.r + shape_2.r
+        # collision = dist <= max_dist
 
         # move collision mask back
         shape_1.collision_mask_rect.center = p1
@@ -644,7 +738,9 @@ class Game2:
 
     def collideShapes(self, shape_1: Shape, shape_2: Shape):
         '''main handler for two shapes colliding'''
-        self.playSound(random.choice(self.collision_sounds))
+        choice = self.getRandom(self.collision_sounds)
+        self.playSound(choice)
+         #print(f'{self.frames_played} collide sound shape1: {shape_1.x, shape_1.y, shape_1.vx, shape_1.vy} shape2: {shape_2.x, shape_2.y, shape_2.vx, shape_2.vy}: ')
 
         # keep track of which shapes are touching this frame
         shape_1.shapes_touching.append(shape_2)
@@ -656,6 +752,7 @@ class Game2:
         # get roll to determine winner
         roll_1 = random.randint(0, 20) + shape_1.luck
         roll_2 = random.randint(0, 20) + shape_2.luck
+         #print(f'rolls: {roll_1, roll_2}')
 
         if roll_1 == roll_2: return
 
@@ -673,7 +770,8 @@ class Game2:
         [vx2i, vy2i] = shape_2.getV()
 
         norm_vec = numpy.array([x2 - x1, y2 - y1])
-        if norm_vec[0] == 0 and norm_vec[1] == 0: return
+        if norm_vec[0] == 0 and norm_vec[1] == 0: 
+            return
 
         divisor = math.sqrt(norm_vec[0]**2 + norm_vec[1]**2)
         unit_vec = numpy.array([norm_vec[0] / divisor, norm_vec[1] / divisor])
@@ -840,7 +938,7 @@ class Game2:
         creating_shape.stats.resurrectShape()
         creating_shape.stats_to_render.append('resurrects')
 
-        # resize the bounding oval
+        # resize the bounding circle
         self.updateFortnite()
 
     def blowupBomb(self, shape: Shape):
@@ -888,7 +986,9 @@ class Game2:
 
         if loser.is_dead: 
             winner.killShape()
-            self.playSound(random.choice(self.death_sounds))
+            choice = self.getRandom(self.death_sounds)
+            self.playSound(choice)
+             #print(f'death sound: {choice}')
 
     def attemptKillfeed(self, winner: Shape, loser: Shape):
         '''attempt to make a killfeed entry after two shapes deal damage'''
@@ -991,7 +1091,7 @@ class Game2:
         
         # check if face id has changed
         current_overview_face = self.determineTeamOverviewFaceId(team_id)
-        if current_overview_face != self.team_1_overview_face_id if team_id == 0 else self.team_2_overview_face_id:
+        if current_overview_face != (self.team_1_overview_face_id if team_id == 1 else self.team_2_overview_face_id):
 
             if team_id == 0: self.team_1_overview_face_id = current_overview_face
             else: self.team_2_overview_face_id = current_overview_face
@@ -1040,13 +1140,21 @@ class Game2:
         if 'shape_0' in self.team_overview_sections_to_render or 'all' in self.team_overview_sections_to_render:
             # update image
             self.team_1_overview_image = pygame.transform.smoothscale(self.team_1_overview_images[self.team_1_overview_face_id], [125, 125])
-            self.team_overview_surface.blit(self.team_1_overview_image, [0, 0])
+            rect = self.team_1_overview_image.get_rect()
+            rect.topleft = [0, 0]
+
+            clearSurfaceBeneath(self.team_overview_surface, rect)
+            self.team_overview_surface.blit(self.team_1_overview_image, rect)
 
         if 'shape_1' in self.team_overview_sections_to_render or 'all' in self.team_overview_sections_to_render:
             # update image
             self.team_2_overview_image = pygame.transform.smoothscale(self.team_2_overview_images[self.team_2_overview_face_id], [125, 125])
-            self.team_overview_surface.blit(self.team_2_overview_image, [team_2_offset, 0])
+            rect = self.team_2_overview_image.get_rect()
+            rect.topleft = [team_2_offset, 0]
 
+            clearSurfaceBeneath(self.team_overview_surface, rect)
+            self.team_overview_surface.blit(self.team_2_overview_image, rect)
+            
         if 'count_0' in self.team_overview_sections_to_render or 'all' in self.team_overview_sections_to_render:
             # erase the previous text, recreate
             self.eraseTextFromBackground(self.team_overview_surface, self.team_1_count_text)
@@ -1161,8 +1269,7 @@ class Game2:
 
         # draw background here since we want shapes on bottom layer
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(self.oval_surface, self.oval_rect)
-        # self.screen.blit(self.oval_mask.to_surface(), [0, 0])
+        self.screen.blit(self.boundary_circle_surface, self.boundary_circle_rect)
 
         # draw groups
         self.powerup_group.draw(self.screen)
@@ -1248,7 +1355,6 @@ class Game2:
         # handle stats window things
         self.drawStatsWindow()
 
-
         # update and draw clickable elements
         for clickable in self.clickables:
             clickable.update(mouse_pos)
@@ -1256,6 +1362,7 @@ class Game2:
 
         # if game is done, show victory text
         if self.done: self.screen.blit(self.player_win_text.surface, self.player_win_text.rect)
+        self.title_text.draw(self.screen)
 
         # update and draw cursor
         self.cursor_rect.center = pygame.mouse.get_pos()
@@ -1318,17 +1425,17 @@ class Game2:
 
     # TESTING FUNCTIONS
 
+    def getRandom(self, selections: list):
+        idx = random.randint(0, len(selections)-1)
+        
+        return selections[idx]
+
     def testFps(self):
         fps = self.clock.get_fps()
         
         self.sum_fps += fps
         if (fps < self.fps_low and fps > 30): self.fps_low = fps
         if (fps > self.fps_high): self.fps_high = fps
-
-    def testKillfeed(self):
-        if self.frames_played % 110 == 0 and self.frames_played > 100: 
-            if random.choice([0, 1]) == 1: self.addKillfeed(random.choice(self.team_1_group.sprites()), ACTION_KILL, random.choice(self.team_2_group.sprites()))
-            else: self.addKillfeed(random.choice(self.team_1_group.sprites()), ACTION_PICKUP_BOMB)
 
     # GAME LOOPS
 
@@ -1338,12 +1445,12 @@ class Game2:
     def play(self):
         '''game play driver'''
         self.prev_time = time.time()
+
+        self.transitionIn()
         
         while self.running:
 
-            self.updateGameState()
-
-            self.checkFortnite()
+            self.updateGameState()            
 
             self.checkForCompletion()
 
@@ -1353,7 +1460,8 @@ class Game2:
 
             self.drawScreenElements()
 
-
             self.clock.tick(self.target_fps)
 
-        print(f'game played for: {self.frames_played} frames. FPS AVG: {self.sum_fps / self.frames_played} low: {self.fps_low} high: {self.fps_high}')
+        self.transitionOut()
+        # print(f'game played for: {self.frames_played} frames. FPS AVG: {self.sum_fps / self.frames_played} low: {self.fps_low} high: {self.fps_high}')
+

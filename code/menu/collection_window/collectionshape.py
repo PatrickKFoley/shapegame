@@ -153,7 +153,7 @@ class CollectionShape(pygame.sprite.Sprite):
             Text(['created on:', f'{created_on_datetime.strftime("%m/%d/%Y, %H:%M")}'], 35, 250, 110),
             Text(f'number of owners: {self.shape_data.num_owners}', 32, 250, 180),
             Text(f'created by: {self.shape_data.created_by}', 32, 250, 215),
-            Text(f'your shape is 1 of {count}', 32, 250, 250),
+            Text(f'this shape is 1 of {count}', 32, 250, 250),
         ]
 
         for text in texts:

@@ -6,7 +6,9 @@ import pygame.sprite
 from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
+from typing import Union
 import pygame, random, math
+from typing import Callable
 
 from createdb import User, Shape as ShapeData, Notification, friends, GamePlayed
 from ..screen_elements.text import Text
@@ -18,6 +20,7 @@ from .friends_window.friendsprite import FriendSprite
 from .notifications_window.notificationsprite import NotificationSprite
 from sqlalchemy import func, delete, select, case
 from sqlalchemy.orm import Session
+from sharedfunctions import clearSurfaceBeneath
 
 class ScrollableWindow:
     def __init__(self, user: User, session: Session, side = 'left'):
@@ -64,6 +67,7 @@ class ScrollableWindow:
         self.texts: list[Text] = []
 
         self.group = Group()
+        self.dead_group = Group()
 
     def initSurface(self):
         self.surface_l = 2160
@@ -78,8 +82,16 @@ class ScrollableWindow:
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
         self.scrollbar = ScrollBar(scrollbar_hooks, self.side)
 
-    def addSprite(self, sprite: pygame.sprite.Sprite):
+    def addSprite(self, sprite: Union[FriendSprite, NotificationSprite]):
+        
+        # if type(sprite) == FriendSprite:
+        sprites_copy = self.group.sprites()
+        self.group.empty()
         self.group.add(sprite)
+        self.group.add(sprites_copy)
+        # else:
+        self.group.add(sprite)
+        
 
         # check if the surface needs to be extended
         len_x = 1
@@ -97,18 +109,35 @@ class ScrollableWindow:
         self.y_min = min(-(450 + len(self.group.sprites()) * 175 - 1080), 0)
         self.next_y_min = self.y_min
 
-    def removeSprite(self, sprite: FriendSprite | NotificationSprite ):
+        if sprite.new:
+            [sprite.moveDown() for sprite in self.group.sprites()]
+            self.woosh_sound.play()
+
+    def removeSprite(self, sprite: Union[FriendSprite, NotificationSprite]):
+
+        self.group.remove(sprite)
+        self.dead_group.add(sprite)
+
         self.woosh_sound.play()
-        self.next_y_min = min(-(450 + (len(self.group.sprites())-1) * 175 - 1080), 0) 
-        
+        self.next_y_min = min(-(650 + (len(self.group.sprites())-1) * 175 - 1080), 0)
         
         if type(sprite) == FriendSprite:
-            self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
-            self.session.commit() 
+
+            try:
+                self.session.execute(delete(friends).where((friends.c.user_id == self.user.id) & (friends.c.friend_id == sprite.friend.id)))
+                self.session.commit()
+            except Exception as e:
+                self.session.rollback()
+                print(f'error deleting friend: {e}')
             
         if type(sprite) == NotificationSprite:
-            self.session.execute(delete(Notification).where((Notification.id == sprite.notification.id)))
-            self.session.commit()
+
+            try:
+                self.session.execute(delete(Notification).where((Notification.id == sprite.notification.id)))
+                self.session.commit()
+            except Exception as e:
+                self.session.rollback()
+                print(f'error deleting notification: {e}')
 
     def updateScrollBar(self):
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
@@ -129,18 +158,26 @@ class ScrollableWindow:
         '''
 
         self.button.update(mouse_pos)
+        clearSurfaceBeneath(self.surface, self.button.rect)
         self.surface.blit(self.button.surface, self.button.rect)
 
         for event in events: 
             
-            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos):
+            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos) and not self.button.disabled:
                 self.toggle()
+
+    def close(self):
+        self.opened = False
+        self.next_x = self.closed_x
 
     def updateGroup(self, rel_mouse_pos, events):
 
+        self.dead_group.update(rel_mouse_pos, events)
+
         sprite_died = False
         for sprite in self.group.sprites():
-            if sprite_died: sprite.moveUp()
+            if sprite_died: 
+                sprite.moveUp()
 
             if sprite.update(rel_mouse_pos, events): 
                 sprite_died = True
@@ -154,7 +191,7 @@ class ScrollableWindow:
         for event in events:
             if event.type == MOUSEBUTTONDOWN: 
 
-                if self.button.rect.collidepoint(rel_mouse_pos):
+                if self.button.rect.collidepoint(rel_mouse_pos) and not self.button.disabled:
                     self.toggle()
 
                 if self.rect.collidepoint(mouse_pos):
@@ -169,6 +206,8 @@ class ScrollableWindow:
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
+
+        clearSurfaceBeneath(self.surface, self.button.rect)
 
         # if the window is fully closed, idle
         if self.fully_closed:
@@ -257,6 +296,9 @@ class ScrollableWindow:
         [text.draw(self.surface) for text in self.texts]
         
         self.group.draw(self.surface)
+        self.dead_group.draw(self.surface)
+
+        [self.surface.blit(sprite.info_surface, sprite.info_rect) for sprite in self.group.sprites() if sprite.info_hovered]
 
     def isButtonHovered(self, mouse_pos):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]

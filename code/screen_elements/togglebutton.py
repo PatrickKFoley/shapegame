@@ -1,8 +1,9 @@
+from pygame.locals import *
 from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
 
-class Button:
+class ToggleButton:
     def __init__(self, icon_name: str, size: int, center: list[int]):
     
         self.icon_selected = smoothscale(load(f'assets/icons/{icon_name}_icon_selected.png').convert_alpha(), [size, size])
@@ -34,7 +35,7 @@ class Button:
     def enable(self):
         self.disabled = False
 
-    def update(self, mouse_pos):
+    def update(self, mouse_pos = None, events = None):
 
         if not self.on and self.alpha > 0:
             self.alpha = max(self.alpha - 10, 0)
@@ -45,7 +46,14 @@ class Button:
 
         if self.disabled: return
 
-        self.surface = self.icon_selected if (self.rect.collidepoint(mouse_pos) or self.selected) else self.icon_unselected
+        self.surface = self.icon_selected if self.selected else self.icon_unselected
+
+        if mouse_pos == None: return
+
+        self.surface = self.icon_selected if self.rect.collidepoint(mouse_pos) or self.selected else self.icon_unselected
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN and self.rect.collidepoint(mouse_pos):
+                self.selected = not self.selected
 
     def turnOff(self):
         self.on = False

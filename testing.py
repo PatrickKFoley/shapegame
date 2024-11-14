@@ -1,4 +1,4 @@
-import pygame, numpy
+import pygame, numpy, sys
 from pygame.locals import *
 from pygame.image import load
 import sys
@@ -8,6 +8,7 @@ from createdb import Shape
 from code.game.circledata import *
 from threading import Thread
 from code.game.powerup2 import Powerup
+import time
 
 import numpy as np
 from scipy.io import wavfile
@@ -604,12 +605,14 @@ def generateOvals():
 
         pygame.image.save(background, f'testing_files/ovals/{i}.png')
 
-def menu2():
-    pygame.init()
+def menu2(username):
+    # pygame.init()
+    pygame.display.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
+    pygame.mixer.init()
     pygame.mouse.set_visible(False)
     
-    Menu().play()
+    Menu().play(username)
     pygame.quit()
 
 def collectionWindow():
@@ -758,7 +761,8 @@ def envelope():
 # game3()
 # generateSounds()
 # generateOvals()
-menu2()
+if len(sys.argv) > 1: menu2(sys.argv[1])
+else: game2()
 # envelope()
 # collectionWindow()
 

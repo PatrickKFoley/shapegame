@@ -11,6 +11,10 @@ class ClickableText:
         self.text_unselected, self.text_selected, self.rect, small = self.createText(text, size, color)
         self.align()
 
+        self.disabled = False
+        self.on = True
+        self.alpha = 255
+
         self.length = small.get_size()[0]
         self.width = small.get_size()[1]
 
@@ -45,6 +49,17 @@ class ClickableText:
         self.align()
 
     def update(self, mouse_pos):
+
+        if not self.on and self.alpha > 0:
+            self.alpha = max(self.alpha - 10, 0)
+            self.surface.set_alpha(self.alpha)
+
+        elif self.on and self.alpha < 255:
+            self.alpha = min(self.alpha + 10, 255)
+            self.surface.set_alpha(self.alpha)
+
+        if self.disabled: return
+
         if self.rect.collidepoint(mouse_pos):
             if self.growth_amount < MAX_GROWTH:
                 self.growth_amount += 1
@@ -64,3 +79,14 @@ class ClickableText:
 
         elif self.alignment == "topright":
             self.rect.topright = [self.x, self.y]
+
+    def draw(self, surface):
+        surface.blit(self.surface, self.rect)
+
+    def turnOff(self):
+        self.on = False
+        self.disabled = True
+
+    def turnOn(self):
+        self.on = True
+        self.disabled = False

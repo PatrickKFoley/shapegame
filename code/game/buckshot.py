@@ -1,4 +1,4 @@
-import pygame
+import pygame, numpy as np
 from pygame.surface import Surface
 from .shape import Shape
 
@@ -37,31 +37,32 @@ class Buckshot(pygame.sprite.Sprite):
         self.collision_mask = pygame.mask.from_surface(self.image)
         self.rect.center = [self.x, self.y]
 
-    def checkOvalCollision(self, mask, rect):
-        '''returns true if shape will touch bounding oval in the next frame'''
+    def setV(self, vx, vy):
+        self.vx = round(vx)
+        self.vy = round(vy)
 
-        return self.collision_mask.overlap(mask, [int(rect.x - (self.rect.x + self.vx)), int(rect.y - (self.rect.y + self.vy))])
-    
-    def reflectOffOval(self, a, b):
-        '''determine new velocitiy values after touching the bounding oval'''
-        
-        nx = (self.x - 730) / (a**2)
-        ny = (self.y - 540) / (b**2)
+    def checkCircleCollision(self, circle_r: int):
+        x = self.x + self.vx
+        y = self.y + self.vy
 
-        mag = (nx**2 + ny**2)**0.5
-        nx /= mag
-        ny /= mag
+        dist = np.sqrt((x - 730) ** 2 + (y - 540) ** 2)
 
-        dot = self.vx * nx + self.vy * ny
+        if dist >= (circle_r - self.r):
+            nv = np.array([x - 730, y - 540]) / dist  
+            dp = np.dot([self.vx, self.vy], nv)
+            vf = np.array([self.vx, self.vy]) - 2 * dp * nv
+            
+            self.setV(vf[0], vf[1])
 
-        self.vx -= 2 * dot * nx
-        self.vy -= 2 * dot * ny
+            offset = (circle_r - self.r) - dist
+            self.x += nv[0] * offset
+            self.y += nv[1] * offset
 
-        self.fading = True
+            self.fading = True
 
-    def update(self, oval):
+    def update(self, circle_r: int):
         # determine if you are touching the oval
-        if self.checkOvalCollision(oval[0], oval[1]): self.reflectOffOval(oval[2], oval[3])
+        self.checkCircleCollision(circle_r)
 
         self.x += self.vx
         self.y += self.vy

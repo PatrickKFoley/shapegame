@@ -26,6 +26,19 @@ def createText(text, size, color = "white"):
 
         return surface, surface.get_rect()
     
+def clearSurfaceBeneath(surface, rect):
+    # Lock the surface to directly modify pixel data
+    surface.lock()
+    
+    # Iterate over each pixel in the Rect area
+    for x in range(rect.left, rect.right):
+        for y in range(rect.top, rect.bottom):
+            # Set each pixel within the Rect to fully transparent
+            surface.set_at((x, y), (0, 0, 0, 0))
+    
+    # Unlock the surface
+    surface.unlock()
+    
 def createShape(owner_id = -1, session = None, username = "no one"):
     # decrement number of shape tokens
     face_id = random.randint(0, 4)

@@ -6,6 +6,12 @@ import random, os, datetime
 
 from code.game.gamedata import color_data, shape_data as shape_model_data, names, titles
 
+
+FRIEND_ADD = 'FRIEND'
+FRIEND_CONFIRM = 'FRIEND_CONFIRM'
+CHALLENGE = 'CHALLENGE'
+
+
 BaseClass = declarative_base()
 
 # Games Played Table
@@ -83,7 +89,7 @@ class User(BaseClass):
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     favorite_id = Column("favorite_id", Integer, nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
-    shape_tokens = Column("shape_tokens", Integer, default=50)
+    shape_tokens = Column("shape_tokens", Integer, default=5)
     shape_essence = Column("shape_essence", Float, default=0.0)
     num_shapes = Column("num_shapes", Integer, default=0)
     num_wins = Column("num_wins", Integer, default=0)
@@ -158,7 +164,6 @@ class Shape(BaseClass):
     def __repr__(self):
         return f"({self.id}) {self.owner_id} {self.face_id} {self.color_id} {self.density} {self.velocity} {self.radius_min} {self.radius_max} {self.health} {self.dmg_multiplier} {self.luck} {self.team_size}"
 
-
 def generateRandomShape(user: User, session):
     '''returns randomly generated ShapeData'''
 
@@ -175,6 +180,8 @@ def generateRandomShape(user: User, session):
     team_size = shape_model_data[type].team_size + random.randint(-3, 3)
     name = random.choice(names)
     title = titles[0]
+
+    while radius_max <= radius_min: radius_max += 1
 
     shape_data = Shape(user.id, user, type, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_x, luck, team_size, user.username, name, title)
 
@@ -203,6 +210,7 @@ if __name__ == "__main__":
     session = Session()
 
     session.query(Shape).delete()
+    session.query(Notification).delete()
     session.query(User).delete()
 
     try:
@@ -221,17 +229,26 @@ if __name__ == "__main__":
         for i in range(10):
             session.add(User(f'{i}'))
 
-        # user_1.friends.append(user_2)
-        # user_1.friends.append(user_3)
-        # user_1.friends.append(user_4)
-        # user_1.friends.append(user_5)
+        user_1.friends.append(user_2)
+        user_1.friends.append(user_3)
+        user_1.friends.append(user_4)
+        user_1.friends.append(user_5)
         # user_1.friends.append(user_6)
 
         session.commit()
         
         
         session.add(Notification(user_1, user_2, "FRIEND"))
+        session.add(Notification(user_1, user_3, "FRIEND_CONFIRM"))
+        session.add(Notification(user_1, user_4, "CHALLENGE"))
         session.add(Notification(user_1, user_2, "CHALLENGE"))
+        
+        session.add(Notification(user_3, user_1, "FRIEND"))
+        session.add(Notification(user_3, user_1, "CHALLENGE"))
+        session.add(Notification(user_3, user_1, "CHALLENGE"))
+        session.add(Notification(user_3, user_1, "CHALLENGE"))
+        session.add(Notification(user_3, user_1, "CHALLENGE"))
+
 
         shape_1 = generateRandomShape(user_1, session)
         shape_2 = generateRandomShape(user_2, session)

@@ -30,6 +30,7 @@ class WindowSprite(pygame.sprite.Sprite):
         self.new = new
 
         self.initSprite()
+        self.initInfo()
 
     def initSprite(self):
         self.height = 170
@@ -47,7 +48,7 @@ class WindowSprite(pygame.sprite.Sprite):
         self.image = Surface([self.width, self.height], pygame.SRCALPHA, 32)
         self.rect = self.image.get_rect()
         self.rect.center = [self.x, self.y]
-        self.background = random.choice(self.backgrounds)
+        self.background = self.backgrounds[random.randrange(0, len(self.backgrounds)-1)] # choose a random background (not the last element, which is the info paper)
         self.rerender_icons = False
 
         try:
@@ -63,11 +64,46 @@ class WindowSprite(pygame.sprite.Sprite):
             self.face_image = Surface([1, 1])
 
         self.delete_button = Button('trash', 35, [310, 125])
+        self.info_button = Button('question', 35, [230, 125])
 
         self.buttons = [
-            self.delete_button
+            self.delete_button, self.info_button
         ]
         
+    def initInfo(self):
+        self.info_hovered = False
+        self.info_alpha = 0
+        self.info_y = 180
+
+        self.info_surface = Surface([450, 250], pygame.SRCALPHA, 32)
+        self.info_rect = self.info_surface.get_rect()
+        self.info_rect.center = [self.x, self.y + self.info_y]
+        
+        background = self.backgrounds[-1]
+
+        max_level = self.session.execute(select(func.max(ShapeData.level)).where(ShapeData.owner_id == self.shown_user.id)).scalar()
+        wins_losses = self.session.execute(
+            select(
+                func.count(case((GamePlayed.winner_id == self.user.id, 1))).label("wins"),
+                func.count(case((GamePlayed.winner_id == self.shown_user.id, 1))).label("losses")
+            ).where(
+                ((GamePlayed.player1_id == self.user.id) & (GamePlayed.player2_id == self.shown_user.id)) | 
+                ((GamePlayed.player1_id == self.shown_user.id) & (GamePlayed.player2_id == self.user.id))
+            )
+        ).one()
+        win_loss = 'n/a' if wins_losses.wins + wins_losses.losses == 0 else f'{round(wins_losses.wins / (wins_losses.wins + wins_losses.losses) * 100)}%'
+
+        texts = [
+            Text('joined on:', 28, 150, 66),
+            Text(f'{self.shown_user.date_joined.strftime("%d-%m-%Y")}', 26, 290, 66),
+            Text(f'wins: {self.shown_user.num_wins}           shapes: {self.shown_user.num_shapes}', 28, 225, 115),
+            Text(f'max level: {max_level}', 28, 225, 140),
+            Text(f'your win %:  {win_loss}', 28, 225, 190),
+        ]
+        
+        self.info_surface.blit(background, [25, 20])
+        [text.draw(self.info_surface) for text in texts]
+
     def renderIcons(self):
         [button.draw(self.image) for button in self.buttons]
 
@@ -81,6 +117,7 @@ class WindowSprite(pygame.sprite.Sprite):
             self.v += self.a
             self.alpha -= 15
             self.rect.center = [self.x, self.y]
+            self.info_rect.center = [self.x, self.y + self.info_y]
             
             if self.x < self.next_x:
                 self.x = min(self.x + 10, self.next_x)
@@ -111,11 +148,20 @@ class WindowSprite(pygame.sprite.Sprite):
             if self.y == self.next_y: self.v = 0
 
             self.rect.center = [self.x, self.y]
+            self.info_rect.center = [self.x, self.y + self.info_y]
             
     def moveUp(self):
+    
+        # don't move vertically if you are moving horizontally
+        if self.x != self.next_x: return
+
         self.next_y -= 175
 
     def moveDown(self):
+
+        # don't move vertically if you are moving horizontally
+        if self.x != self.next_x: return
+
         self.next_y += 175
         
     def update(self):

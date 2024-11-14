@@ -15,19 +15,29 @@ from ...screen_elements.button import Button
 from .collectionshape import CollectionShape
 from .selector import Selector
 from .essencebar import EssenceBar
+from ...screen_elements.networknameplate import NetworkNameplate
+from ...server.connectionmanager import ConnectionManager
+from sharedfunctions import clearSurfaceBeneath
+
+COLLECTION = "COLLECTION"
+NETWORK = "NETWORK"
+TRANSITION = "TRANSITION"
 
 class CollectionWindow:
-    def __init__(self, user: User, session: Session):
+    def __init__(self, user: User, session: Session, opponent = False):
         self.user = user
         self.session = session
+        self.opponent = opponent
+        '''True if collection belongs to an opponent'''
 
         self.initCollectionWindow()
         self.initCollectionGroup()
-        
-        self.selector = Selector(self.collection_shapes, [1200, 400])
 
     def initCollectionWindow(self):
         '''create the bottom collection window'''
+        self.mode = COLLECTION if not self.opponent else NETWORK
+        self.connection_manager: None | ConnectionManager = None
+
         self.surface = Surface([1920, 493], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
         self.rect.topleft = [0, 1030]
@@ -49,7 +59,6 @@ class CollectionWindow:
         self.button = Button('shapes', 50, [25, 25])
         self.button.draw(self.surface)
         self.question_button = Button('question', 40, [780, 131])
-        self.question_button.disable()
         self.add_button = Button('add', 90, [81, 226])
         self.del_button = Button('trash', 40, [205, 131])
         self.heart_button = Button('heart', 40, [780, 400])
@@ -64,8 +73,13 @@ class CollectionWindow:
             self.heart_button
         ]
 
-        self.background = load('assets/backgrounds/collection_window.png').convert_alpha()
-        self.background_hearts = load('assets/backgrounds/collection_window_hearts.png').convert_alpha()
+        side = 'top' if self.opponent else 'bottom'
+        self.background_essence = load(f'assets/backgrounds/collection_window/bottom_essence.png').convert_alpha()
+        self.background_essence_hearts = load(f'assets/backgrounds/collection_window/bottom_essence_hearts.png').convert_alpha()
+        self.background_nothing = load(f'assets/backgrounds/collection_window/{side}.png').convert_alpha()
+        self.background_hearts = load(f'assets/backgrounds/collection_window/{side}_hearts.png').convert_alpha()
+        self.background = self.background_essence if not self.opponent else self.background_nothing
+
         self.background_rect = self.background.get_rect()
         self.background_rect.topleft = [0, 1080]
         
@@ -81,13 +95,17 @@ class CollectionWindow:
 
         # essence bar 
         self.essence_bar = EssenceBar(self.user)
+        self.nameplate = NetworkNameplate(self.user)
+        self.nameplate.turnOn()
 
-        self.y = 1080
-        self.next_y = 1080
+        self.opened_y = (1080 - self.background.get_size()[1]) if not self.opponent else 0
+        self.closed_y = 1080 if not self.opponent else - self.background.get_size()[1]
+        self.y = self.closed_y
+        self.next_y = self.y
         self.v = 0
         self.a = 1.5
         self.opened = False
-        self.fully_closed = True
+        self.fully_closed = True if not self.opponent else False
         self.info_alpha = 0
 
         self.selected_index = 0
@@ -102,37 +120,23 @@ class CollectionWindow:
     def initCollectionGroup(self):
         '''create Collection shapes for newly logged in user'''
 
+        # sort shapes
+        shapes: list[ShapeData] = list(self.user.shapes)
+        sorted_shapes = sorted(
+            shapes,
+            key=lambda obj: (obj.id != self.user.favorite_id, obj.id)
+        )
+
         # create sprites
-        for count, shape_data in enumerate(self.user.shapes):
+        for count, shape_data in enumerate(sorted_shapes):
             new_shape = CollectionShape(shape_data, count, self.user.num_shapes, self.session)
             self.collection_shapes.add(new_shape)
 
-        # sort favorite shape to the front of the list
-        for sprite in self.collection_shapes.sprites(): 
-            sprite: CollectionShape
-            if sprite.shape_data.id == self.user.favorite_id:
+        self.selected_shape = self.collection_shapes.sprites()[0]
+        self.selector = Selector(self.collection_shapes, [1200, 400])
 
-                # sort list
-                self.collection_shapes.remove(sprite)
-                collection_copy = self.collection_shapes.sprites()
-                self.collection_shapes.empty()
-                self.collection_shapes.add(sprite)
-                self.collection_shapes.add(collection_copy)
-
-                # reposition sprites
-                [sprite.reposition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
-                
-                # disable delete button
-                self.selected_shape = sprite
-                self.del_button.disable()
-                break
-
-        # if user has 1 or 0 shapes, disable delete button
-        if self.user.num_shapes <= 1:
-            self.del_button.disable()
-
-        if self.user.num_shapes >= 1: 
-            self.question_button.enable()
+        self.del_button.disable()
+        self.heart_button.select()
 
     def positionWindow(self):
         # update window positions
@@ -167,7 +171,7 @@ class CollectionWindow:
             self.rect.topleft = [0, self.y - 50]
 
             # determine closed status
-            if self.y == 1080:
+            if self.y == self.closed_y:
                 self.fully_closed = True
 
     def userGenerateShape(self):
@@ -209,7 +213,7 @@ class CollectionWindow:
         
         # toggle heart button
         self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
-        self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
+        if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
 
         # reposition shapes
         [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
@@ -255,7 +259,7 @@ class CollectionWindow:
                 if sprite.shape_data.id == self.user.favorite_id:
                     self.markSelectedFavorite()
                 self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
-                self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
+                if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
                 
                 
             
@@ -272,10 +276,8 @@ class CollectionWindow:
         [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
 
     def handleInputs(self, mouse_pos, events):
-        mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
 
         # update icons
-
         for clickable in self.clickables:
             clickable.update(mouse_pos)
 
@@ -291,34 +293,105 @@ class CollectionWindow:
                 self.info_alpha -= 15
                 self.info_alpha = max(self.info_alpha, 0)
 
-        # handle events
+        # check for updates to opponent nameplate
+        if self.opponent and self.mode == NETWORK: 
+            selections = self.connection_manager.getPlayerSelections()
+            
+            # if opponent's selection has changed, update selector (which will cause collection update)
+            new_idx = selections.users_selected[0 if self.connection_manager.pid == 1 else 1]
+            if self.selected_index != new_idx and new_idx != -1: self.selector.setSelected(new_idx)
+
+            # if opponent ready status changed
+            if selections.players_ready[0 if self.connection_manager.pid == 1 else 1] != self.nameplate.ready.selected:
+                self.nameplate.ready.selected = not self.nameplate.ready.selected
+                self.nameplate.ready.update()
+                self.nameplate.renderSurface()
+
+            # if opponent confirmed selection status changed
+            if selections.locked[0 if self.connection_manager.pid == 1 else 1] != self.nameplate.locked.selected:
+                self.nameplate.locked.selected = not self.nameplate.locked.selected
+                self.nameplate.locked.update()
+                self.nameplate.renderSurface()
+
+            # if opponent keeps status changed
+            if selections.keeps[0 if self.connection_manager.pid == 1 else 1] != self.nameplate.keeps.selected:
+                self.nameplate.keeps.selected = not self.nameplate.keeps.selected
+                self.nameplate.keeps.update()
+                self.nameplate.renderSurface()
+
+            return
+
+        # handle events as normal if you aren't the opponent window
         for event in events:
             if event.type != MOUSEBUTTONDOWN: return
 
-            if self.button.rect.collidepoint(mouse_pos):
-                self.toggle()
+            if self.mode == COLLECTION:
+                if self.button.rect.collidepoint(mouse_pos) and not self.button.disabled:
+                    self.toggle()
 
-            # if the window is closed the only inputs we want to accept are the open button
-            if not self.opened: return
+                # if the window is closed the only inputs we want to accept are the open button
+                if not self.opened: return
 
-            elif self.add_button.rect.collidepoint(mouse_pos):
-                self.userGenerateShape()
-                self.woosh_sound.play()
+                elif self.add_button.rect.collidepoint(mouse_pos):
+                    self.userGenerateShape()
+                    self.woosh_sound.play()
 
-            # show the delete confirmation screen
-            elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
-                self.delete_clicked = not self.delete_clicked
+                # show the delete confirmation screen
+                elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
+                    self.delete_clicked = not self.delete_clicked
 
-            elif self.delete_clicked and self.yes_clickable.rect.collidepoint(mouse_pos):
-                self.deleteSelectedShape()
-                self.woosh_sound.play()
+                elif self.delete_clicked and self.yes_clickable.rect.collidepoint(mouse_pos):
+                    self.deleteSelectedShape()
+                    self.woosh_sound.play()
 
-            elif self.heart_button.rect.collidepoint(mouse_pos):
-                self.markSelectedFavorite()
+                elif self.heart_button.rect.collidepoint(mouse_pos):
+                    self.markSelectedFavorite()
 
-            # if user clicks anywhere, close delete screen
-            else:
-                self.delete_clicked = False
+                # if user clicks anywhere, close delete screen
+                else:
+                    self.delete_clicked = False
+
+            if self.mode == NETWORK:
+                rel_mouse_pos = [mouse_pos[0] - self.nameplate.rect.x, mouse_pos[1] - self.nameplate.rect.y]
+
+                if self.nameplate.locked.rect.collidepoint(rel_mouse_pos):
+                    self.connection_manager.send(f'LOCKED_{0 if self.nameplate.locked.selected else 1}.')
+
+                    if self.nameplate.ready.selected:
+                        self.nameplate.ready.selected = False
+                        self.nameplate.ready.update()
+                        self.connection_manager.readyUp(0 if self.nameplate.ready.selected else 1)
+
+                elif self.nameplate.keeps.rect.collidepoint(rel_mouse_pos):
+                    self.connection_manager.send(f'KEEPS_{0 if self.nameplate.keeps.selected else 1}.')
+
+                    if self.nameplate.ready.selected:
+                        self.nameplate.ready.selected = False
+                        self.nameplate.ready.update()
+                        self.connection_manager.readyUp(0 if self.nameplate.ready.selected else 1)
+
+                elif self.nameplate.ready.rect.collidepoint(rel_mouse_pos) and self.nameplate.locked.selected:
+                    self.connection_manager.readyUp(0 if self.nameplate.ready.selected else 1)
+
+        # send players selected index, if changed
+        if self.mode == NETWORK:
+            selections = self.connection_manager.getPlayerSelections()
+
+            # if user's selector selected_index has changed, send shape selection
+            if self.selected_index != self.selector.selected_index:
+                self.connection_manager.send(f'SELECTED_{self.selector.selected_index}.')
+
+            # if the current selection doesn't match the selections object, send selection again
+            if (self.selected_index == self.selector.selected_index) and selections.users_selected[self.connection_manager.pid] != self.selected_index:
+                self.connection_manager.send(f'SELECTED_{self.selector.selected_index}.')
+
+            # if toggle button state doesn't match selections, send again
+            if selections.locked[self.connection_manager.pid] != self.nameplate.locked.selected:
+                self.connection_manager.send(f'LOCKED_{1 if self.nameplate.locked.selected else 0}.')
+            if selections.keeps[self.connection_manager.pid] != self.nameplate.keeps.selected:
+                self.connection_manager.send(f'KEEPS_{1 if self.nameplate.keeps.selected else 0}.')
+            if selections.players_ready[self.connection_manager.pid] != self.nameplate.ready.selected:
+                self.connection_manager.send(f'READY_{1 if self.nameplate.ready.selected else 0}.')
 
     def markSelectedFavorite(self):
         
@@ -335,22 +408,41 @@ class CollectionWindow:
             only accepts inputs to and draws toggle button
         '''
 
+        # if no inputs, opponent collection
+        if not mouse_pos: return
+
         self.button.update(mouse_pos)
         self.surface.blit(self.button.surface, self.button.rect)
 
         for event in events: 
-            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos):
+            if event.type == MOUSEBUTTONDOWN and event.button == 1 and self.button.rect.collidepoint(mouse_pos) and not self.button.disabled:
                 self.toggle()
 
     def update(self, mouse_pos, events):
         '''update position of the collection window'''
         rel_mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
 
+        clearSurfaceBeneath(self.surface, self.button.rect)
+
         # if the window is fully closed, idle
         if self.fully_closed:
             self.idle(rel_mouse_pos, events)
             return
         
+        # update returns true when shape essence amount is altered, needing commit
+        if self.essence_bar.update(): 
+            self.session.commit()
+            self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
+
+        # toggle buttons when essence bar is changing
+        if self.mode == COLLECTION:
+            if self.essence_bar.changing and not self.del_button.disabled:
+                self.del_button.disable()
+            elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1 and not self.selected_shape.shape_data.id == self.user.favorite_id:
+                self.del_button.enable()
+        
+        self.handleInputs(rel_mouse_pos, events)
+
         # check if the selector has changed
         if self.selected_index != self.selector.selected_index:
             while (self.selected_index > self.selector.selected_index):
@@ -365,32 +457,25 @@ class CollectionWindow:
                 for sprite in self.collection_shapes.sprites():
                     sprite.moveLeft()
                     
-
             self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
             
             self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
-            self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
+            if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
 
             self.woosh_sound.play()
 
-        # update returns true when shape essence amount is altered, needing commit
-        if self.essence_bar.update(): 
-            self.session.commit()
-            self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
-
-        if self.essence_bar.changing and not self.del_button.disabled:
-            self.del_button.disable()
-        elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1 and not self.selected_shape.shape_data.id == self.user.favorite_id:
-            self.del_button.enable()
-
-        self.handleInputs(mouse_pos, events)
-
+        # update child elements
         self.collection_shapes.update()
         self.deleted_shapes.update()
-        self.selector.update(rel_mouse_pos, events)
-        
+        if not self.opponent: 
+            self.nameplate.update(rel_mouse_pos, events)
+            if not self.nameplate.locked.selected: self.selector.update(rel_mouse_pos, events)
+        else: 
+            self.selector.update(None, None)
+            self.nameplate.update(None, None)
+            
+        self.shape_token_text.update()
         self.positionWindow()
-
         self.renderSurface()
 
     def toggle(self):
@@ -398,11 +483,22 @@ class CollectionWindow:
 
         if self.opened: 
             self.fully_closed = False
-            self.next_y = 1080 - self.background.get_size()[1]
-        else: self.next_y = 1080
+
+            self.next_y = self.opened_y
+        else: 
+            self.next_y = self.closed_y
+
+    def close(self):
+        self.opened = False
+        self.next_y = 1080
 
     def renderSurface(self):
-        self.surface.blit(self.background_hearts if self.selected_shape.shape_data.id == self.user.favorite_id else self.background, [0, 50])
+        if self.mode == COLLECTION: 
+            self.surface.blit(self.background_essence_hearts if self.selected_shape.shape_data.id == self.user.favorite_id else self.background_essence, [0, 50])
+
+        elif self.mode == NETWORK or self.mode == TRANSITION:
+            self.surface.blit(self.background_hearts if self.selected_shape.shape_data.id == self.user.favorite_id else self.background_nothing, [0, 50])
+            self.nameplate.draw(self.surface)
 
         # draw buttons
         [self.surface.blit(clickable.surface, clickable.rect) for clickable in self.clickables if clickable not in [self.yes_clickable, self.no_clickable]]
@@ -415,7 +511,8 @@ class CollectionWindow:
         self.surface.blit(self.shape_token_text.surface, self.shape_token_text.rect)
 
         # render essence bar
-        self.surface.blit(self.essence_bar.images[self.essence_bar.current_index], self.essence_bar.rect)
+        if self.mode == COLLECTION: 
+            self.surface.blit(self.essence_bar.images[self.essence_bar.current_index], self.essence_bar.rect)
 
         # render delete surface
         if self.delete_clicked:
@@ -452,3 +549,77 @@ class CollectionWindow:
         rel_mouse_pos = [mouse_pos[0], mouse_pos[1] - self.y + 50]
 
         return self.button.rect.collidepoint(rel_mouse_pos)
+    
+    def sortGroup(self):
+        '''sort group oldest (first) - youngest, favorite at the front'''
+
+        group: list[CollectionShape] = list(self.collection_shapes)
+        sorted_group = sorted(
+            group,
+            key=lambda obj: (obj.shape_data.id != self.user.favorite_id, obj.shape_data.id)
+        )
+        self.collection_shapes.empty()
+        self.collection_shapes.add(sorted_group)
+
+    def changeModeNetwork(self, connection_manager: ConnectionManager):
+        self.mode = NETWORK
+        self.connection_manager = connection_manager
+
+        self.moveSpritesHome()
+        self.shape_token_text.turnOff()
+        self.nameplate.turnOn()
+
+        for button in [self.del_button, self.heart_button, self.add_button]:
+            button.alpha = 0
+            button.disabled = True
+            button.on = False
+
+            button.surface.set_alpha(button.alpha)
+
+        self.collection_shapes.empty()
+        self.initCollectionGroup()
+
+        self.toggle()
+
+    def changeModeCollection(self):
+        self.mode = COLLECTION
+        self.connection_manager = None
+        
+        self.moveSpritesHome()
+
+        # reset nameplate buttons for next time
+        for button in self.nameplate.buttons:
+            button.selected = False
+            button.update()
+        self.nameplate.renderSurface()  
+
+        self.nameplate.turnOn()
+        self.shape_token_text.turnOn()
+        self.del_button.turnOn()
+        self.heart_button.turnOn()
+        self.add_button.turnOn()
+
+    def changeModeTransition(self):
+        self.mode = TRANSITION
+
+    def moveSpritesHome(self):
+        self.selector.selected_index = 0
+
+        while (self.selected_index > self.selector.selected_index):
+                
+            self.selected_index -= 1
+            for sprite in self.collection_shapes.sprites():
+                sprite.moveRight()
+                
+        while (self.selected_index < self.selector.selected_index):
+            
+            self.selected_index += 1
+            for sprite in self.collection_shapes.sprites():
+                sprite.moveLeft()
+                
+        self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+        
+        self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
+        if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
+
+        self.woosh_sound.play()

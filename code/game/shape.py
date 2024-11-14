@@ -1,4 +1,4 @@
-import  pygame, random, math, numpy as np
+import  pygame, random, math, numpy as np, sys
 from pygame.surface import Surface
 from .shapestats import ShapeStats
 from .gamedata import ColorData
@@ -128,6 +128,9 @@ class Shape(pygame.sprite.Sprite):
         self.hold_counter = 0
         self.state = 'rest'
         """options are 'rest', 'holding', 'growing', 'shrinking'"""
+
+        self.stuck = False
+        '''if true, shape cannot move'''
         
         # store powerup data
         self.powerup_data = powerup_data
@@ -182,13 +185,13 @@ class Shape(pygame.sprite.Sprite):
         return damage
 
     def setV(self, vx, vy):
-        self.vx = vx
-        self.vy = vy
+        self.vx = round(vx)
+        self.vy = round(vy)
 
     # STATE UPDATE FUNCTIONS
 
     # oval = [oval.mask, oval.rect, oval.a, oval.b]
-    def update(self, oval):
+    def update(self, circle_r: int):
         """update shape object"""
 
         # don't die until your stats are updated for the last time
@@ -202,13 +205,14 @@ class Shape(pygame.sprite.Sprite):
 
         self.renderSelf()
 
-        self.move(oval)
+        self.move(circle_r)
 
-    def move(self, oval):
+    def move(self, circle_r: int):
         """move one step forwards"""
 
-        # determine if you are touching the oval
-        if self.checkOvalCollision(oval[0], oval[1]): self.reflectOffOval(oval[2], oval[3])
+        if self.stuck: return
+
+        self.checkCircleCollision(circle_r)
         
         # move shape
         self.x += self.vx
@@ -232,27 +236,25 @@ class Shape(pygame.sprite.Sprite):
             self.vy = -1 * self.vy
 
         # move sprite
-        self.rect.center = self.collision_mask_rect.center = [round(self.x), round(self.y)]
+        self.rect.center = [round(self.x), round(self.y)]
+        self.collision_mask_rect.center = [round(self.x), round(self.y)]
 
-    def checkOvalCollision(self, mask, rect):
-        '''returns true if shape will touch bounding oval in the next frame'''
+    def checkCircleCollision(self, circle_r: int):
+        x = self.x + self.vx
+        y = self.y + self.vy
 
-        return self.collision_mask.overlap(mask, [int(rect.x - (self.collision_mask_rect.x + self.vx)), int(rect.y - (self.collision_mask_rect.y + self.vy))])
-    
-    def reflectOffOval(self, a, b):
-        '''determine new velocitiy values after touching the bounding oval'''
-        
-        nx = (self.x - 730) / (a**2)
-        ny = (self.y - 540) / (b**2)
+        dist = np.sqrt((x - 730) ** 2 + (y - 540) ** 2)
 
-        mag = (nx**2 + ny**2)**0.5
-        nx /= mag
-        ny /= mag
+        if dist >= (circle_r - self.r):
+            nv = np.array([x - 730, y - 540]) / dist  
+            dp = np.dot([self.vx, self.vy], nv)
+            vf = np.array([self.vx, self.vy]) - 2 * dp * nv
+            
+            self.setV(vf[0], vf[1])
 
-        dot = self.vx * nx + self.vy * ny
-
-        self.vx -= 2 * dot * nx
-        self.vy -= 2 * dot * ny
+            offset = (circle_r - self.r) - dist
+            self.x += nv[0] * offset
+            self.y += nv[1] * offset
 
     def takeDamage(self, amount):
         """reduce shapes health by amount, and check if image needs to be updated"""
