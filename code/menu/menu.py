@@ -118,8 +118,8 @@ class Menu():
         self.login_clickable = ClickableText("login", 50, 1920/2, 925)
         self.or_text = Text("or", 35, 1920/2, 980)
         self.username_editable = EditableText("Username: ", 60, 1920/3-50, 850, max_chars=10)
-        self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850)
-        self.password_confirm_editable = EditableText("Confirm Password: ", 50, 1920/2, 925)
+        self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850, max_chars=10)
+        self.password_confirm_editable = EditableText("Confirm Password: ", 50, 1920/2, 925, max_chars=10)
         self.bad_credentials_text = Text("user not found!", 50, 1920/2, 600)
         self.bad_credentials_flag = False
         self.bad_credentials_timer = 0
@@ -143,7 +143,6 @@ class Menu():
 
         # show only title, exit, and login elements
         [element.fastOff() for element in self.screen_elements if element not in [self.title_text]]
-        [element.turnOn() for element in [self.username_editable, self.password_editable, self.login_clickable, self.register_clickable, self.or_text, self.exit_button]]
 
     def initNetworkElements(self):
 
@@ -440,6 +439,8 @@ class Menu():
         [element.turnOff() for element in turn_off]
         [element.turnOn() for element in turn_on]
 
+        self.prev_time = time.time()
+
     def checkUserLoggingIn(self, mouse_pos):
         '''check if user is logging in'''
         if not (self.user == None and self.login_clickable.isHovAndEnabled(mouse_pos)): return
@@ -451,8 +452,6 @@ class Menu():
         try:
             # Query for user with matching username and password
             user = self.session.query(User).filter(User.username == username).first()
-
-            self.prev_time = time.time()
 
             if user and user.check_password(password):
                 # Login successful
@@ -474,7 +473,6 @@ class Menu():
                 else:
                     self.bad_credentials_text.updateText("incorrect password!")
                     self.bad_credentials_flag = True
-                
 
         except Exception as e:
             print(f"Login error: {e}")
@@ -505,7 +503,7 @@ class Menu():
 
                 # Validate password length
                 if len(password) < 8:
-                    self.bad_credentials_text.updateText("password must be at least 8 characters!")
+                    self.bad_credentials_text.updateText("password must be 8-10 characters long!")
                     self.bad_credentials_flag = True
                     return
 
@@ -530,8 +528,6 @@ class Menu():
                 new_shape = generateRandomShape(new_user, self.session)
                 new_user.favorite_id = new_shape.id
                 self.session.commit()
-
-                self.prev_time = time.time()
 
                 # Log in as new user
                 self.user = new_user
@@ -589,6 +585,7 @@ class Menu():
                     self.exit_clicked = True
                     pygame.mixer.Sound.fadeout(self.menu_music, 1000)
 
+                    [element.deselect() for element in self.screen_elements if isinstance(element, EditableText)]
                     [element.turnOff() for element in self.screen_elements if element not in [self.title_text]]
                     [element.button.turnOff() for element in [self.friends_window, self.notifications_window, self.collection_window] if element != None]
 
@@ -685,12 +682,24 @@ class Menu():
 
         self.screen.blit(self.cursor, self.cursor_rect)
 
+    def pauseFor(self, seconds):
+        '''pause the game for a given number of seconds'''
+
+        start_time = time.time()
+        while time.time() - start_time < seconds:
+            self.updateMenuState()
+            self.drawScreenElements()
+            self.clock.tick(self.target_fps)
+
     def play(self, username = 'pat'):
         '''run the game loop for the main menu'''
-        self.loginLoop()
-
         # start the time for accumulator
         self.prev_time = time.time()
+
+        self.pauseFor(1)
+        [element.turnOn() for element in [self.username_editable, self.password_editable, self.login_clickable, self.register_clickable, self.or_text, self.exit_button]]
+
+        self.loginLoop()
 
         while True:
             self.updateMenuState()
