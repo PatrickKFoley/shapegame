@@ -117,8 +117,8 @@ class Menu():
         self.register_clickable = ClickableText("register", 50, 1920/2, 1030)
         self.login_clickable = ClickableText("login", 50, 1920/2, 925)
         self.or_text = Text("or", 35, 1920/2, 980)
-        self.username_editable = EditableText("Username: ", 60, 1920/3, 850)
-        self.password_editable = EditableText("Password: ", 60, 2*1920/3, 850)
+        self.username_editable = EditableText("Username: ", 60, 1920/3-50, 850, max_chars=10)
+        self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850)
         self.password_confirm_editable = EditableText("Confirm Password: ", 50, 1920/2, 925)
         self.bad_credentials_text = Text("user not found!", 50, 1920/2, 600)
         self.bad_credentials_flag = False
@@ -247,9 +247,10 @@ class Menu():
         self.connection_manager = None
         self.opponent_window = None
 
-        # turn on auxiliary screen elements
+        # turn on/off auxiliary screen elements
         [window.button.turnOn() for window in [self.friends_window, self.collection_window, self.notifications_window]]
         [element.turnOn() for element in [self.play_text, self.logged_in_as_text, self.network_back_button, self.local_match_clickable, self.network_match_clickable, self.exit_button]]
+        self.network_back_button.turnOff()
 
     def preGame(self):
         '''wait for user to connect and make selections'''
@@ -589,7 +590,7 @@ class Menu():
                     pygame.mixer.Sound.fadeout(self.menu_music, 1000)
 
                     [element.turnOff() for element in self.screen_elements if element not in [self.title_text]]
-                    [button.turnOff() for button in [self.friends_window.button, self.notifications_window.button, self.collection_window.button]]
+                    [element.button.turnOff() for element in [self.friends_window, self.notifications_window, self.collection_window] if element != None]
 
             # handle window interactions, if windows exist
             if self.collection_window:

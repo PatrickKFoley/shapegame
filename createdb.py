@@ -227,8 +227,8 @@ if __name__ == "__main__":
     session.query(User).delete()
 
     try:
-        user_1 = User("pat", "1234")
-        user_2 = User("camille", "password123")
+        user_1 = User("pat", "1")
+        user_2 = User("camille", "1")
         user_3 = User("aiden", "password123")
         user_4 = User("kyra", "password123")
         user_5 = User("zack", "password123")
