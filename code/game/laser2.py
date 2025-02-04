@@ -21,7 +21,10 @@ class Laser(pygame.sprite.Sprite):
 
         desired_speed = 8
         current_speed = math.sqrt(shape.vx**2 + shape.vy**2)
-        multiplier = desired_speed / current_speed
+        if current_speed == 0:
+            multiplier = 1
+        else:
+            multiplier = desired_speed / current_speed
 
         self.team_id = shape.team_id
         self.x = shape.x

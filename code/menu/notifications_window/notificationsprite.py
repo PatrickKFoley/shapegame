@@ -61,7 +61,7 @@ class NotificationSprite(WindowSprite):
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x + self.width/2, mouse_pos[1] - self.y + self.height/2]
 
-        [button.update(rel_mouse_pos) for button in self.buttons]
+        [button.update(events, rel_mouse_pos) for button in self.buttons]
         
         # check hover
         if any(button.rect.collidepoint(rel_mouse_pos) for button in self.buttons) and not self.rerender_icons:

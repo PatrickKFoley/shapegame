@@ -1,10 +1,9 @@
 import pygame
+from .screenelement import ScreenElement
 
-
-class Checkbox:
+class Checkbox(ScreenElement):
     def __init__(self, text, size, x, y):
-        self.y = y
-        self.x = x
+        super().__init__(x, y)
         self.text = self.createText(text, size)
 
         checked = pygame.transform.smoothscale(pygame.image.load("assets/misc/box_checked.png"), (self.text.get_size()[1] - 10, self.text.get_size()[1]- 10))
@@ -22,7 +21,6 @@ class Checkbox:
 
         self.rect = self.surface.get_rect()
         self.rect.center = [x, y]
-
 
     @staticmethod
     def createText(text, size):

@@ -50,11 +50,11 @@ class NotificationsWindow(ScrollableWindow):
         self.mark_all_button = Button('check_s', 30, [400, 168])
         self.delete_all_button = Button('trash_s', 30, [360, 202])
 
-        self.texts.append(self.header)
-        self.texts.append(self.mark_all_text)
-        self.texts.append(self.delete_all_text)
-        self.clickables.append(self.mark_all_button)
-        self.clickables.append(self.delete_all_button)
+        self.screen_elements.append(self.header)
+        self.screen_elements.append(self.mark_all_text)
+        self.screen_elements.append(self.delete_all_text)
+        self.screen_elements.append(self.mark_all_button)
+        self.screen_elements.append(self.delete_all_button)
 
         # notification count
         self.notification_count = Text('0', 30, 30, 10, color='red')
@@ -92,7 +92,7 @@ class NotificationsWindow(ScrollableWindow):
             self.startNetwork,
             len(self.group),
             True
-        ))
+        ), False)
 
     def deleteAllNotifications(self):
         for sprite in self.group.sprites(): sprite.next_x += 1000

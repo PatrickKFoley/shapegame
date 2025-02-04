@@ -1,4 +1,4 @@
-import pygame, random, os, numpy, math, time, itertools
+import pygame, random, os, numpy, math, time, itertools, colorsys
 from queue import Queue
 from pygame import Surface
 from pygame.locals import *
@@ -64,12 +64,13 @@ class Game2:
         self.seed = seed
         self.player_simulated = player_simulated
         self.server_simulated = server_simulated
+        self.simulated = player_simulated or server_simulated
         self.powerup_data = powerup_data
         
         self.initSimulationNecessities()
         self.initTeams()
 
-        if self.server_simulated or self.player_simulated: return
+        if self.simulated: return
         
         self.initPlayNecessities()
         self.loadImages()
@@ -78,9 +79,10 @@ class Game2:
         self.initStatsScreen()
         self.initTeamOverview()
 
-        self.initFortnite()
+        self.initBoundaryCircle()
 
     # INIT HELPERS
+
 
     def initSimulationNecessities(self):
         '''initiate all variables which are necessary for game simulation'''
@@ -389,18 +391,21 @@ class Game2:
         for sound in self.death_sounds:
             sound.set_volume(.5)
 
-    def initFortnite(self):
+    def initBoundaryCircle(self):
+
 
         # all required numerical data
         self.f_r_max = 910
         self.f_r_min = 350
         self.f_r = self.f_r_max
         self.f_r_next = self.f_r
+        self.f_color = (0, 0, 0, 100)
+        self.f_hue = 0
 
         # draw the full sized boundary_circle
         boundary_circle_surface = Surface([self.f_r*2, self.f_r*2], pygame.SRCALPHA, 32)
         boundary_circle_rect = boundary_circle_surface.get_rect()
-        pygame.draw.ellipse(boundary_circle_surface, (0, 0, 0, 100), boundary_circle_rect, width=5)
+        pygame.draw.ellipse(boundary_circle_surface, self.f_color, boundary_circle_rect, width=5)
         boundary_circle_rect.center = [730, 540]
 
         # crop the full sized boundary_circle to the max size
@@ -480,7 +485,7 @@ class Game2:
 
     # GAME STATE UPDATE FUNCTIONS
 
-    def updateGameState(self):
+    def updateGameState(self, events):
         self.current_time = time.time()
         
         self.time_step_accumulator += self.current_time - self.prev_time
@@ -488,16 +493,18 @@ class Game2:
             self.time_step_accumulator -= self.time_step
             
             self.frames_played += 1
-            self.updateGameElements()
+            self.updateGameElements(events)
 
         self.prev_time = self.current_time
 
         self.testFps()
 
-    def updateGameElements(self):
+    def updateGameElements(self, events):
         '''update all game elements (shapes, powerups, killfeed), separate from drawGameElements for easier simulation'''
-        self.title_text.update()
-        if self.player_win_text: self.player_win_text.update()
+        mouse_pos = pygame.mouse.get_pos()
+
+        self.title_text.update(events, mouse_pos)
+        if self.player_win_text: self.player_win_text.update(events, mouse_pos)
 
         # spawn powerups
         self.spawnRandomPowerups()
@@ -521,27 +528,43 @@ class Game2:
             for i in range(num_cycles):
                 killfeed.cycle()
 
+        # update clickable elements
+        mouse_pos = pygame.mouse.get_pos()
+        [clickable.update(events, mouse_pos) for clickable in self.clickables if clickable not in [None]]
+
         # detect collisions
         self.detectCollisions()
 
-        self.checkFortnite()
 
-    def checkFortnite(self):
+        self.checkBoundaryCircle()
+
+    def checkBoundaryCircle(self):
         '''redraws the bounding boundary_circle if need be'''
         # if self.frames_played % 5 == 0 and self.f_r > 500: self.f_r -= 1
         # return
 
-        if self.f_r == self.f_r_next: return
+        # if self.f_r == self.f_r_next: return
 
         if self.f_r < self.f_r_next and self.frames_played % 5 == 0: 
             self.f_r += 1
-        elif self.frames_played % 5 == 0: 
+        elif self.f_r > self.f_r_next and self.frames_played % 5 == 0: 
             self.f_r -= 1
+        elif self.frames_played % 5 != 0: return # don't update if the boundary circle is not changing
         
+        # update the color of the boundary circle
+        # increment hue 
+        self.f_hue += 0.01
+        if self.f_hue > 1: self.f_hue -= 1
+
+        # convert HSV color to RGB
+        r, g, b = colorsys.hsv_to_rgb(self.f_hue, 1, 1) # S=V=1 for bright colors
+        r, g, b = int(r * 255), int(g * 255), int(b * 255)
+        self.f_color = (r, g, b, 150)
+
         # redraw boundary_circle
         boundary_circle_surface = Surface([self.f_r*2, self.f_r*2], pygame.SRCALPHA, 32)
         boundary_circle_rect = boundary_circle_surface.get_rect()
-        pygame.draw.ellipse(boundary_circle_surface, (0, 0, 0, 100), boundary_circle_rect, width=5)
+        pygame.draw.ellipse(boundary_circle_surface, self.f_color, boundary_circle_rect, width=5)
         boundary_circle_rect.center = [730, 540]
 
         # crop the full sized boundary_circle to the max size
@@ -550,8 +573,9 @@ class Game2:
         self.boundary_circle_rect = self.boundary_circle_surface.get_rect()
         self.boundary_circle_rect.center = [730, 540]
 
-    def updateFortnite(self):
+    def updateBoundaryCircle(self):
         '''updates the next a and b values of the boundary_circle. called when number of shapes changes'''
+
 
         # get the number of shapes alive as a percent
         max_shapes = self.shape_1_data.team_size + self.shape_2_data.team_size
@@ -605,11 +629,11 @@ class Game2:
             self.playSound(self.win_sound)
             self.player_win_text = Text(f'{self.user_1.username if self.p1_win else self.user_2.username} wins!', 150, 730, 540, color='black')
 
-    def handleInputs(self):
+    def handleInputs(self, events):
         ''' handle all inputs from user'''
         mouse_pos = pygame.mouse.get_pos()
 
-        for event in pygame.event.get():
+        for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 
                 if event.button == 1:
@@ -842,7 +866,7 @@ class Game2:
         
         if loser.is_dead:
             self.clouds_group.add(Clouds(loser, self.cloud_images))
-            self.updateFortnite()
+            self.updateBoundaryCircle()
 
     def laserHitShape(self, laser: Laser, shape: Shape):
         if shape.shape_id in laser.ids_collided_with or shape.team_id == laser.team_id: return
@@ -939,7 +963,7 @@ class Game2:
         creating_shape.stats_to_render.append('resurrects')
 
         # resize the bounding circle
-        self.updateFortnite()
+        self.updateBoundaryCircle()
 
     def blowupBomb(self, shape: Shape):
         self.num_active_bombs -= 1
@@ -1355,14 +1379,13 @@ class Game2:
         # handle stats window things
         self.drawStatsWindow()
 
-        # update and draw clickable elements
-        for clickable in self.clickables:
-            clickable.update(mouse_pos)
-            self.screen.blit(clickable.surface, clickable.rect)
+        # draw clickable elements
+        [clickable.draw(self.screen) for clickable in self.clickables if clickable not in [None]]
 
         # if game is done, show victory text
         if self.done: self.screen.blit(self.player_win_text.surface, self.player_win_text.rect)
         self.title_text.draw(self.screen)
+
 
         # update and draw cursor
         self.cursor_rect.center = pygame.mouse.get_pos()
@@ -1449,12 +1472,13 @@ class Game2:
         self.transitionIn()
         
         while self.running:
+            events = pygame.event.get()
 
             self.updateGameState()            
 
             self.checkForCompletion()
 
-            self.handleInputs()
+            self.handleInputs(events)
 
             self.drawGameElements()
 

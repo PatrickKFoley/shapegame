@@ -115,7 +115,7 @@ class Selector:
             self.selections.add(Selection(shape.shape_data, count, self.num_shapes))
         
     def addShape(self, shape: ShapeData):
-        self.selections.sprites()[self.selected_index].selected = False
+        if len(self.selections) != 0: self.selections.sprites()[self.selected_index].selected = False
         self.selected_index = 0
         self.num_shapes += 1
         
@@ -146,9 +146,10 @@ class Selector:
         if removed_shape.position == self.num_shapes: 
             self.selected_index -= 1
         
-        new_selected = self.selections.sprites()[self.selected_index]
-        new_selected.selected = True
-        new_selected.next_size = new_selected.max_size
+        if self.selected_index >= 0:
+            new_selected = self.selections.sprites()[self.selected_index]
+            new_selected.selected = True
+            new_selected.next_size = new_selected.max_size
         
         self.redrawSurface()
         
@@ -163,6 +164,7 @@ class Selector:
         pygame.draw.rect(self.surface, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
 
     def setSelected(self, selected_index):
+        print(self.selected_index)
         self.selected_index = selected_index
 
         for idx, sprite in enumerate(self.selections.sprites()):
@@ -174,12 +176,12 @@ class Selector:
                 sprite.selected = True
                 sprite.next_size = sprite.max_size
 
+        print(self.selected_index)
+
     def update(self, mouse_pos, events):
 
-        if self.disabled: return
-
         # if no inputs are provided, this is the opponent's selector
-        if mouse_pos != None:
+        if mouse_pos != None and not self.disabled:
             rel_mouse_pos = [mouse_pos[0] - self.rect.x, mouse_pos[1] - self.rect.y]
             
             for sprite in self.selections.sprites():
@@ -218,3 +220,12 @@ class Selector:
         self.selections.draw(self.surface)
         self.selections.update()
   
+    def disable(self):
+        self.disabled = True
+
+    def enable(self):
+        self.disabled = False
+
+    def draw(self, surface):
+        surface.blit(self.surface, self.rect)
+

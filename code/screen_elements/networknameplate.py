@@ -13,6 +13,7 @@ class NetworkNameplate:
         self.h = 60
         self.alpha = 0
         self.on = False
+        self.disabled = False
         self.button_hovered = False
 
         self.surface = Surface([self.w, self.h], pygame.SRCALPHA, 32)
@@ -39,14 +40,19 @@ class NetworkNameplate:
             self.ready,
         ]
 
+        if color != None:
+            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', color, 200, 'black')
+        else:
+            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', 'black', 200)
+
         self.elements = [
             self.locked,
             self.keeps,
             self.ready,
-            Text(f'{self.user.username}', 60, 50, 0, 'topleft', color, 200, 'black'), 
             Text('confirm selection', 30, 350, 30),
             Text('play for keeps', 30, 650, 30),
             Text('ready', 30, 880, 30),
+            self.username_text,
         ]
 
         self.renderSurface()
@@ -68,14 +74,14 @@ class NetworkNameplate:
             self.alpha = max(self.alpha - 15, 0)
             self.surface.set_alpha(self.alpha)
         
-        if not self.on or mouse_pos == None: return
+        if not self.on or mouse_pos == None or self.disabled: return
 
         rel_mouse_pos = [mouse_pos[0] - self.rect.x, mouse_pos[1] - self.rect.y]
 
-        # [button.update(rel_mouse_pos, events) for button in self.buttons]
-        self.locked.update(rel_mouse_pos, events)
-        self.keeps.update(rel_mouse_pos, events)
-        if self.locked.selected: self.ready.update(rel_mouse_pos, events)
+        # [button.update(events, rel_mouse_pos) for button in self.buttons]
+        self.locked.update(events, rel_mouse_pos)
+        self.keeps.update(events, rel_mouse_pos)
+        if self.locked.selected: self.ready.update(events, rel_mouse_pos)
 
         if any(button.rect.collidepoint(rel_mouse_pos) for button in self.buttons): 
             self.renderSurface()
@@ -84,6 +90,21 @@ class NetworkNameplate:
             self.button_hovered = False
             self.renderSurface()
         
+    def rerenderName(self):
+        self.elements.pop()
+
+        color = None
+        for shape_data in self.user.shapes:
+            if shape_data.id == self.user.favorite_id:
+                color = color_data[shape_data.color_id].text_color
+                break
+
+        if color != None:
+            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', color, 200, 'black')
+        else:
+            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', 'black', 200)
+
+        self.elements.append(self.username_text)
 
     def draw(self, surface):
         surface.blit(self.surface, self.rect)
@@ -93,4 +114,10 @@ class NetworkNameplate:
 
     def turnOff(self):
         self.on = False
+
+    def disable(self):
+        self.disabled = True
+
+    def enable(self):
+        self.disabled = False
 

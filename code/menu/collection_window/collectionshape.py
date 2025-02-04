@@ -20,6 +20,8 @@ class CollectionShape(pygame.sprite.Sprite):
         self.session = session
         self.new = new
         
+        self.frames = 0
+        self.frame_died = 0
         self.x_selected = 705
         self.x = self.x_selected + position * 220
         self.y = 250
@@ -182,6 +184,12 @@ class CollectionShape(pygame.sprite.Sprite):
         self.next_x += 220
 
     def update(self):
+
+        self.frames += 1
+
+        if self.frames - self.frame_died > 60 and self.frame_died != 0:
+            self.kill()
+
         # adjust transparency
         if self.next_x < self.x_selected and self.x < self.x_selected and self.alpha > 0:
             self.alpha = max(self.alpha - 10 - abs(min(self.v, 25)), 0)

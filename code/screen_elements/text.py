@@ -1,24 +1,21 @@
 from sharedfunctions import createText
 from pygame.surface import Surface
 import pygame
+from .screenelement import ScreenElement
 
-class Text:
-    def __init__(self, text, size, x, y, align = "center", color = "black", max_width = None, outline_color = None):
+class Text(ScreenElement):
+    def __init__(self, text, size, x, y, align = "center", color = "black", max_width = None, outline_color = None, fast_off = False):
+        super().__init__(x, y)
+
         self.text = text
         self.size = size
-        self.x = x
-        self.y = y
         self.y_init = y
-        self.align = align
+        self.alignment = align
         self.color = color
         self.xy = [self.x, self.y]
         self.y_scroll = 0
-        self.align = align
         self.max_width = max_width
         self.outline_color = outline_color
-
-        self.on = True
-        self.alpha = 255
 
         if outline_color == None:
             self.surface, self.rect = createText(self.text, self.size, self.color)
@@ -38,33 +35,8 @@ class Text:
                 self.y += 0.5
                 self.surface, self.rect = createText(self.text, self.size, self.color)
         
-        self.position()
-
-    def position(self):
-        self.xy = [self.x, self.y]
-
-        if self.align == "center": self.rect.center = self.xy
-        elif self.align == "topleft": self.rect.topleft = self.xy
-        elif self.align == "topright": self.rect.topright = self.xy
-
-    def update(self):
-
-        if not self.on and self.alpha > 0:
-            self.alpha = max(self.alpha - 10, 0)
-            self.surface.set_alpha(self.alpha)
-
-        elif self.on and self.alpha < 255:
-            self.alpha = min(self.alpha + 10, 255)
-            self.surface.set_alpha(self.alpha)
-
-    def draw(self, surface):
-        surface.blit(self.surface, self.rect)
-
-    def turnOff(self):
-        self.on = False
-
-    def turnOn(self):
-        self.on = True
+        self.align()
+        if fast_off: self.fastOff()
 
     def updateText(self, text: str):
         self.text = text
@@ -87,4 +59,4 @@ class Text:
                 self.y += 0.5
                 self.surface, self.rect = createText(self.text, self.size, self.color)
         
-        self.position()
+        self.align()

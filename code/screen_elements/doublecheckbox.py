@@ -1,10 +1,9 @@
 import pygame
+from .screenelement import ScreenElement
 
-
-class DoubleCheckbox:
+class DoubleCheckbox(ScreenElement):
     def __init__(self, text, size, x, y):
-        self.y = y
-        self.x = x
+        super().__init__(x, y)
         self.text = self.createText(text, size)
 
         self.self_checked = False
@@ -41,8 +40,6 @@ class DoubleCheckbox:
         self.rect = self.surface.get_rect()
         self.rect.center = [x, y]
 
-
-    @staticmethod
     def createText(text, size):
         font_small = pygame.font.Font("assets/misc/font.ttf", size)
         text_unselected = font_small.render(text, True, "white")

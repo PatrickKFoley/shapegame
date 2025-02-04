@@ -6,45 +6,6 @@ from createdb import User, Shape, GamePlayed
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-def processData(data):
-    '''process any data sent from user into their selections object'''
-
-    parts = data.split('.')
-
-    user = None
-    selected = None
-    shape = None
-    keeps = None
-    ready = None
-    kill = None
-    get = None
-
-    for part in parts:
-        if part[:5] == "USER_":
-            user = int(part[5:])
-
-        elif part[:9] == "SELECTED_":
-            selected = int(part[9:])
-
-        elif part[:6] == "SHAPE_":
-            shape = int(part[6:])
-
-        elif part[:6] == "KEEPS_":
-            keeps = int(part[6:])
-
-        elif part[:6] == "READY_":
-            ready = int(part[6:])
-
-            ready = ready == 1
-
-        elif part == "KILL":
-            kill = True
-
-        elif part == "GET":
-            get = True
-    
-    return user, selected, shape, keeps, ready, kill, get
-
 class Server:
     def __init__(self):
         
@@ -126,6 +87,7 @@ class Server:
                                 t = time.time()
                                 while time.time() - t < 5: pass
                                 selections.winner = random.choice([0, 1])
+                                print(f'winner: {selections.winner}')
                                 game_played = True
 
                                 # determine xp gained

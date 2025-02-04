@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.orm import Mapped, sessionmaker, declarative_base, relationship, mapped_column, registry, Session
 import random, os, datetime
+import bcrypt
 
 from code.game.gamedata import color_data, shape_data as shape_model_data, names, titles
 
@@ -89,6 +90,7 @@ class User(BaseClass):
     id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
     favorite_id = Column("favorite_id", Integer, nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
+    _password = Column("password", String, nullable=False)
     shape_tokens = Column("shape_tokens", Integer, default=5)
     shape_essence = Column("shape_essence", Float, default=0.0)
     num_shapes = Column("num_shapes", Integer, default=0)
@@ -104,8 +106,19 @@ class User(BaseClass):
                                                  secondaryjoin=id==friends.c.friend_id,
                                                  backref="friend_of")
 
-    def __init__(self, username):
+    def __init__(self, username, password):
         self.username = username
+        self.set_password(password)
+
+    def set_password(self, password: str):
+        """Hash and set the password"""
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        self._password = hashed.decode('utf-8')
+
+    def check_password(self, password: str) -> bool:
+        """Verify the provided password matches the stored hash"""
+        return bcrypt.checkpw(password.encode('utf-8'), self._password.encode('utf-8'))
 
     def __repr__(self):
         return f"({self.id}) {self.username}"
@@ -214,20 +227,22 @@ if __name__ == "__main__":
     session.query(User).delete()
 
     try:
-        user_1 = User("pat")
-        user_2 = User("camille")
-        user_3 = User("aiden")
-        user_4 = User("kyra")
-        user_5 = User("zack")
+        user_1 = User("pat", "1234")
+        user_2 = User("camille", "password123")
+        user_3 = User("aiden", "password123")
+        user_4 = User("kyra", "password123")
+        user_5 = User("zack", "password123")
+        user_6 = User("deborah", "password123")
 
         session.add(user_1)
         session.add(user_2)
         session.add(user_3)
         session.add(user_4)
         session.add(user_5)
+        session.add(user_6)
 
         for i in range(10):
-            session.add(User(f'{i}'))
+            session.add(User(f'{i}', f'password{i}'))
 
         user_1.friends.append(user_2)
         user_1.friends.append(user_3)

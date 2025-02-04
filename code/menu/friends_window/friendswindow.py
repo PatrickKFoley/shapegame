@@ -45,9 +45,9 @@ class FriendsWindow(ScrollableWindow):
         self.bad_credentials = Text('user not found!', 30, 250, 202)
         self.thats_you = Text('thats you, silly :3', 30, 250, 202)
         self.search_editable = EditableText('add player: ', 30, 250, 168)
-        
-        self.texts.append(self.header)
-        self.editables.append(self.search_editable)
+
+        self.screen_elements.append(self.header)
+        self.screen_elements.append(self.search_editable)
 
     def initGroup(self):
 
@@ -116,11 +116,11 @@ class FriendsWindow(ScrollableWindow):
             self.startNetwork,
             len(self.group),
             True
-        ))
+        ), False)
 
     def renderSurface(self):
         super().renderSurface()
 
-        if self.already_following_flag: self.surface.blit(self.already_following.surface, self.already_following.rect)
-        if self.bad_credentials_flag: self.surface.blit(self.bad_credentials.surface, self.bad_credentials.rect)
-        if self.thats_you_flag: self.surface.blit(self.thats_you.surface, self.thats_you.rect)
+        if self.already_following_flag: self.already_following.draw(self.surface)
+        if self.bad_credentials_flag: self.bad_credentials.draw(self.surface)
+        if self.thats_you_flag: self.thats_you.draw(self.surface)

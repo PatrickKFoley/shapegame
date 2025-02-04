@@ -10,6 +10,7 @@ from typing import Union
 import pygame, random, math
 from typing import Callable
 
+from code.screen_elements.screenelement import ScreenElement
 from createdb import User, Shape as ShapeData, Notification, friends, GamePlayed
 from ..screen_elements.text import Text
 from ..screen_elements.editabletext import EditableText
@@ -58,13 +59,10 @@ class ScrollableWindow:
 
         self.woosh_sound = Sound('assets/sounds/woosh.wav')
 
-        self.button = Button(self.icon_name, 45, [25, 25] if self.side == 'right' else [525, 25])
-        self.clickables = [
+        self.button = Button(self.icon_name, 45, [25, 25] if self.side == 'right' else [525, 25], fast_off=True)
+        self.screen_elements: list[ScreenElement] = [
             self.button
         ]
-
-        self.editables: list[EditableText] = []
-        self.texts: list[Text] = []
 
         self.group = Group()
         self.dead_group = Group()
@@ -82,7 +80,10 @@ class ScrollableWindow:
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
         self.scrollbar = ScrollBar(scrollbar_hooks, self.side)
 
-    def addSprite(self, sprite: Union[FriendSprite, NotificationSprite]):
+    def draw(self, surface):
+        surface.blit(self.surface, self.rect)
+
+    def addSprite(self, sprite: Union[FriendSprite, NotificationSprite], play_sound = True):
         
         # if type(sprite) == FriendSprite:
         sprites_copy = self.group.sprites()
@@ -111,6 +112,8 @@ class ScrollableWindow:
 
         if sprite.new:
             [sprite.moveDown() for sprite in self.group.sprites()]
+            
+        if play_sound:    
             self.woosh_sound.play()
 
     def removeSprite(self, sprite: Union[FriendSprite, NotificationSprite]):
@@ -157,7 +160,7 @@ class ScrollableWindow:
             only accepts inputs to and draws toggle button
         '''
 
-        self.button.update(mouse_pos)
+        self.button.update(events, mouse_pos)
         clearSurfaceBeneath(self.surface, self.button.rect)
         self.surface.blit(self.button.surface, self.button.rect)
 
@@ -191,7 +194,7 @@ class ScrollableWindow:
         for event in events:
             if event.type == MOUSEBUTTONDOWN: 
 
-                if self.button.rect.collidepoint(rel_mouse_pos) and not self.button.disabled:
+                if self.button.isHovAndEnabled(rel_mouse_pos):
                     self.toggle()
 
                 if self.rect.collidepoint(mouse_pos):
@@ -218,8 +221,10 @@ class ScrollableWindow:
         
         self.updateGroup(rel_mouse_pos, events)
         self.updateScrollBar()
-        [editable.update(events, rel_mouse_pos) for editable in self.editables]
-        [clickable.update(rel_mouse_pos) for clickable in self.clickables]
+        # [editable.update(events, rel_mouse_pos) for editable in self.editables]
+        # [clickable.update(events, rel_mouse_pos) for clickable in self.clickables]
+        [element.update(events, rel_mouse_pos) for element in self.screen_elements]
+
 
         # inputs
         # raised flags
@@ -291,9 +296,10 @@ class ScrollableWindow:
             for i in range(1, self.len_x):
                 self.surface.blit(self.background_extension, [0 if self.side == 'left' else 50, self.surface_l * (i)])
 
-        [clickable.draw(self.surface) for clickable in self.clickables]
-        [editable.draw(self.surface) for editable in self.editables]
-        [text.draw(self.surface) for text in self.texts]
+        # [clickable.draw(self.surface) for clickable in self.clickables]
+        # [editable.draw(self.surface) for editable in self.editables]
+        # [text.draw(self.surface) for text in self.texts]
+        [screen_element.draw(self.surface) for screen_element in self.screen_elements]
         
         self.group.draw(self.surface)
         self.dead_group.draw(self.surface)
