@@ -593,11 +593,11 @@ class CollectionWindow:
 
         # render delete surface
         if self.delete_clicked:
+            self.surface.blit(self.delete_surface, self.delete_rect)
             self.confirm_text.draw(self.surface)
             self.warning.draw(self.surface)
             self.yes_clickable.draw(self.surface)
             self.no_clickable.draw(self.surface)
-            self.surface.blit(self.delete_surface, self.delete_rect)
             self.surface.blit(self.delete_tape, self.delete_tape_rect)
             
         # Draw selector
