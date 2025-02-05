@@ -30,6 +30,8 @@ from sqlalchemy.orm import sessionmaker as session_maker, Session
 from ..game.gamedata import color_data, shape_data as shape_model_data
 from ..game.clouds2 import Clouds
 
+from threading import Thread
+
 NUM_MENU_SHAPES = 16
 
 class Menu():
@@ -86,6 +88,9 @@ class Menu():
         self.initScreenElements()
         self.initMenuShapes()
 
+        self.thread: Thread | None = None
+        self.thread_running = False
+
     # INIT HELPERS
 
     def initSounds(self):
@@ -141,6 +146,7 @@ class Menu():
         self.register_clickable = ClickableText("register", 50, 1920/2, 1030, outline_color='white')
         self.login_clickable = ClickableText("login", 50, 1920/2, 925, outline_color='white')
         self.or_text = Text("or", 35, 1920/2, 980, outline_color='white')
+        self.logging_in_text = Text("logging in...", 40, 1920/2, 1030)
 
         self.username_editable = EditableText("Username: ", 60, 1920/3-50, 850, max_chars=10, outline_color='white')
         self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850, max_chars=10, outline_color='white')
@@ -165,6 +171,7 @@ class Menu():
         self.screen_elements.append(self.password_confirm_editable)
         self.screen_elements.append(self.bad_credentials_text)
         self.screen_elements.append(self.back_button)
+        self.screen_elements.append(self.logging_in_text)
 
         # show only title, exit, and login elements
         [element.fastOff() for element in self.screen_elements if element not in [self.title_text]]
@@ -663,30 +670,40 @@ class Menu():
 
         self.prev_time = time.time()
 
-    def checkUserLoggingIn(self, mouse_pos):
+    def userLogin(self, mouse_pos):
         '''check if user is logging in'''
-        if not (self.user == None and self.login_clickable.isHovAndEnabled(mouse_pos)): return
         
+        if self.thread and self.thread.is_alive(): return
+        if self.thread and not self.thread.is_alive(): del self.thread
+
+        self.thread_running = True
+        self.thread = Thread(target=self.threadRunLoop)
+        self.thread.start()
+
         # Get entered username and password
         username = self.username_editable.getText()
-        password = self.password_editable.getText()
-        
+        password = self.password_editable.getText()        
+
         try:
             # Query for user with matching username and password
             user = self.session.query(User).filter(User.username == username).first()
 
             if user and user.check_password(password):
+                [element.deselect() for element in [self.username_editable, self.password_editable, self.password_confirm_editable]]
+                [element.turnOff() for element in [self.username_editable, self.password_editable, self.password_confirm_editable, self.register_clickable, self.back_button, self.login_clickable, self.or_text]]
+                self.logging_in_text.turnOn()
+
                 # Login successful
-                self.user = user
-                self.logged_in_as_text = Text(f'logged in as: {self.user.username}', 35, 1920/2, 20, fast_off=True)
+                self.logged_in_as_text = Text(f'logged in as: {user.username}', 35, 1920/2, 20, fast_off=True)
                 self.screen_elements.append(self.logged_in_as_text)
 
                 # Initialize windows after successful login
-                self.collection_window = CollectionWindow(self.user, self.session)
-                self.friends_window = FriendsWindow(self.user, self.session, self.addFriend, self.startNetwork)
-                self.notifications_window = NotificationsWindow(self.user, self.session, self.addFriend, self.startNetwork)
+                self.collection_window = CollectionWindow(user, self.session)
+                self.friends_window = FriendsWindow(user, self.session, self.addFriend, self.startNetwork)
+                self.notifications_window = NotificationsWindow(user, self.session, self.addFriend, self.startNetwork)
+                self.user = user
 
-                print('login successful')
+                self.logging_in_text.turnOff()
             else:
                 # provide feedback on what went wrong
                 if user == None:
@@ -700,9 +717,10 @@ class Menu():
             print(f"Login error: {e}")
             self.bad_credentials_flag = True
 
-    def checkUserRegistering(self, mouse_pos):
+        self.thread_running = False
+
+    def userRegister(self, mouse_pos):
         '''check if user is registering'''
-        if not (self.user == None and self.register_clickable.isHovAndEnabled(mouse_pos)): return
                 
         # if user is at inital screen, turn off login elements
         if not self.login_clickable.disabled:
@@ -712,6 +730,13 @@ class Menu():
         
         # if user is at register screen, attempt to register
         else:
+            if self.thread and self.thread.is_alive(): return
+            if self.thread and not self.thread.is_alive(): del self.thread
+
+            self.thread_running = True
+            self.thread = Thread(target=self.threadRunLoop)
+            self.thread.start()
+
             username = self.username_editable.getText()
             password = self.password_editable.getText()
             password_confirm = self.password_confirm_editable.getText()
@@ -721,12 +746,14 @@ class Menu():
                 if len(username) < 3:
                     self.bad_credentials_text.updateText("username must be at least 3 characters!")
                     self.bad_credentials_flag = True
+                    self.thread_running = False
                     return
 
                 # Validate password length
                 if len(password) < 8:
                     self.bad_credentials_text.updateText("password must be 8-10 characters long!")
                     self.bad_credentials_flag = True
+                    self.thread_running = False
                     return
 
                 # Check if username already exists
@@ -734,12 +761,14 @@ class Menu():
                 if existing_user:
                     self.bad_credentials_text.updateText("username taken!")
                     self.bad_credentials_flag = True
+                    self.thread_running = False
                     return
                 
                 # Validate passwords match
                 if password != password_confirm:
                     self.bad_credentials_text.updateText("passwords don't match!")
                     self.bad_credentials_flag = True
+                    self.thread_running = False
                     return
 
                 # Create new user
@@ -751,6 +780,12 @@ class Menu():
                 new_user.favorite_id = new_shape.id
                 self.session.commit()
 
+                [element.deselect() for element in [self.username_editable, self.password_editable, self.password_confirm_editable]]
+                [element.turnOff() for element in [self.username_editable, self.password_editable, self.password_confirm_editable, self.register_clickable, self.back_button, self.login_clickable, self.or_text]]
+                self.logging_in_text.updateText("registering...")
+                self.logging_in_text.turnOn()
+
+
                 # Log in as new user
                 self.user = new_user
                 self.logged_in_as_text = Text(f'logged in as: {self.user.username}', 35, 1920/2, 20, fast_off=True)
@@ -761,12 +796,17 @@ class Menu():
                 self.friends_window = FriendsWindow(self.user, self.session, self.addFriend, self.startNetwork)
                 self.notifications_window = NotificationsWindow(self.user, self.session, self.addFriend, self.startNetwork)
 
+                self.logging_in_text.turnOff()
+
             except Exception as e:
                 print(f"Registration error: {e}")
                 self.bad_credentials_flag = True
 
+            self.thread_running = False
+
     def handleInputs(self, mouse_pos, events):
         '''handle any inputs from the user'''
+
 
         for event in events:
             if event.type != MOUSEBUTTONDOWN or event.button != 1: return
@@ -774,10 +814,10 @@ class Menu():
             self.click_sound.play()
 
             # check if user attempting to login
-            self.checkUserLoggingIn(mouse_pos)
+            if self.login_clickable.isHovAndEnabled(mouse_pos): self.userLogin(mouse_pos)
 
             # check if user attempting to register
-            self.checkUserRegistering(mouse_pos)
+            if self.register_clickable.isHovAndEnabled(mouse_pos): self.userRegister(mouse_pos)
             
             # quit network matchmaking
             if self.network_back_button.isHovAndEnabled(mouse_pos):
@@ -936,8 +976,23 @@ class Menu():
         self.loginLoop()
 
         while True:
+            self.runGameLoop()
+
+    def runGameLoop(self):
+        '''run the game loop'''
+
+        while True:
             self.updateMenuState()
-
             self.drawScreenElements()
-
             self.clock.tick(self.target_fps)
+
+    def threadRunLoop(self):
+        '''run the game loop while the user is not logged in'''
+
+        while self.thread_running:
+            self.updateMenuState()
+            self.drawScreenElements()
+            self.clock.tick(self.target_fps)
+
+        del self.thread
+        self.thread = None
