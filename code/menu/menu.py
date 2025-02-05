@@ -1,3 +1,5 @@
+import math
+import numpy
 from pygame.locals import *
 import pygame.mouse
 from pygame.sprite import Group
@@ -8,6 +10,7 @@ from pygame.image import load
 import pygame, time, itertools, sys, random
 from typing import Union
 
+from code.menu.menushape import MenuShape
 from createdb import User, Shape as ShapeData, Notification, FRIEND_ADD, FRIEND_CONFIRM, CHALLENGE, generateRandomShape
 from ..screen_elements.text import Text
 from ..screen_elements.editabletext import EditableText
@@ -24,7 +27,10 @@ from ..server.connectionmanager import ConnectionManager
 from ..server.playerselections import PlayerSelections
 from sqlalchemy import create_engine, func, delete, select, case
 from sqlalchemy.orm import sessionmaker as session_maker, Session
+from ..game.gamedata import color_data, shape_data as shape_model_data
+from ..game.clouds2 import Clouds
 
+NUM_MENU_SHAPES = 16
 
 class Menu():
     def __init__(self):
@@ -37,7 +43,7 @@ class Menu():
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # update the display
-        self.title_text = Text("shapegame", 150, 1920/2, 1080/2)
+        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3, outline_color='white')
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title_text.surface, self.title_text.rect)
         pygame.display.set_caption("shapegame")
@@ -65,7 +71,8 @@ class Menu():
         self.session = SessionMaker()
 
         # sprite groups
-        self.simple_shapes = Group()
+        self.menu_shapes = Group()
+        self.clouds_group = Group()
 
         # windows
         self.collection_window: CollectionWindow | None = None
@@ -77,6 +84,7 @@ class Menu():
 
         self.initSounds()
         self.initScreenElements()
+        self.initMenuShapes()
 
     # INIT HELPERS
 
@@ -93,6 +101,23 @@ class Menu():
         self.close_sound.set_volume(.5)
         self.open_sound.play()
 
+        self.death_sounds = []
+        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/1.wav"))
+        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/2.wav"))
+        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/3.wav"))
+        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/4.wav"))
+
+        self.collision_sounds = []
+        self.collision_sounds.append(pygame.mixer.Sound("assets/sounds/collisions/clink1.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("assets/sounds/collisions/clink2.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound("assets/sounds/collisions/thud2.wav"))
+
+        for sound in self.collision_sounds:
+            sound.set_volume(.03)
+
+        for sound in self.death_sounds:
+            sound.set_volume(.25)
+
         # start playing menu music on loop
         self.menu_music.play(-1)
 
@@ -101,25 +126,25 @@ class Menu():
 
         # create all text elements
         self.logged_in_as_text: Text | None = None
-        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3)
-        self.play_text = Text("play", 100, 1920/2, 4*1080/5)
+        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3, outline_color='white')
+        self.play_text = Text("play", 100, 1920/2, 4*1080/5, outline_color='white')
         self.connecting_to_text = Text("waiting for opponent..." , 35, 1920/2, 60)
 
         # create all interactive elements
-        self.network_match_clickable = ClickableText("network match", 50, 1920/2 - 200, 975)
-        self.local_match_clickable = ClickableText("local match", 50, 1920/2 + 200, 975)
+        self.network_match_clickable = ClickableText("network match", 50, 1920/2 - 200, 975, outline_color='white')
+        self.local_match_clickable = ClickableText("local match", 50, 1920/2 + 200, 975, outline_color='white')
         self.exit_button = Button("exit", 45, [1920 - 25, 1080 - 25])
         self.back_button = Button("back", 45, [25, 1080 - 25])
         self.network_back_button = Button("exit", 45, [1920 - 25, 661 - 25])
-        self.connect_to_player_editable = EditableText("Connect to user: ", 30, 0, 0, "topleft")
 
         # login elements
-        self.register_clickable = ClickableText("register", 50, 1920/2, 1030)
-        self.login_clickable = ClickableText("login", 50, 1920/2, 925)
-        self.or_text = Text("or", 35, 1920/2, 980)
-        self.username_editable = EditableText("Username: ", 60, 1920/3-50, 850, max_chars=10)
-        self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850, max_chars=10)
-        self.password_confirm_editable = EditableText("Confirm Password: ", 50, 1920/2, 925, max_chars=10)
+        self.register_clickable = ClickableText("register", 50, 1920/2, 1030, outline_color='white')
+        self.login_clickable = ClickableText("login", 50, 1920/2, 925, outline_color='white')
+        self.or_text = Text("or", 35, 1920/2, 980, outline_color='white')
+
+        self.username_editable = EditableText("Username: ", 60, 1920/3-50, 850, max_chars=10, outline_color='white')
+        self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850, max_chars=10, outline_color='white')
+        self.password_confirm_editable = EditableText("Confirm Password: ", 50, 1920/2, 925, max_chars=10, outline_color='white')
         self.bad_credentials_text = Text("user not found!", 50, 1920/2, 600)
         self.bad_credentials_flag = False
         self.bad_credentials_timer = 0
@@ -152,9 +177,46 @@ class Menu():
         self.opponent: None | User =                            None
         self.opponent_window: None | CollectionWindow =         None
 
+    def initMenuShapes(self):
+        '''initialize all shapes in the menu'''
+
+        self.triangle_face_images = []
+        for i in range(4):
+            self.triangle_face_images.append(pygame.image.load(f'assets/shapes/faces/triangle/0/{i}.png').convert_alpha())
+
+        self.square_face_images = []
+        for i in range(4):
+            self.square_face_images.append(pygame.image.load(f'assets/shapes/faces/square/0/{i}.png').convert_alpha())
+
+        self.circle_face_images = []
+        for i in range(4):
+            self.circle_face_images.append(pygame.image.load(f'assets/shapes/faces/circle/0/{i}.png').convert_alpha())
+
+        self.cloud_images = []
+        for i in range(5):
+            self.cloud_images.append(pygame.transform.smoothscale(pygame.image.load(f'assets/powerups/screen_effects/clouds/{i}.png').convert_alpha(), [100, 100]))
+
+        for i in range(NUM_MENU_SHAPES):
+            shape_data = shape_model_data[random.choice(['triangle', 'square', 'circle'])]
+            shape_data.color_id = random.randint(0, len(color_data) - 1)
+
+            face_images = []
+            if shape_data.type == 'triangle':
+                face_images = self.triangle_face_images
+            elif shape_data.type == 'square':
+                face_images = self.square_face_images
+            elif shape_data.type == 'circle':
+                face_images = self.circle_face_images
+
+            self.menu_shapes.add(MenuShape(i, shape_data, color_data[shape_data.color_id], face_images))
+
+        # turn off all shapes
+        [shape.turnOff() for shape in self.menu_shapes]
+
     # WINDOW CALLBACKS
 
     def startNetwork(self, opponent: Union[User, None] = None, send_notification: bool = False):
+
         # refresh database
         self.session.commit()
         
@@ -162,6 +224,7 @@ class Menu():
         if send_notification: self.addDbNotification(opponent, self.user, CHALLENGE)
 
         # turn off auxiliary screen elements
+        [shape.turnOff() for shape in self.menu_shapes]
         [window.close() for window in [self.friends_window, self.collection_window, self.notifications_window]]
         [window.button.turnOff() for window in [self.friends_window, self.collection_window, self.notifications_window]]
         [element.turnOff() for element in self.screen_elements if element not in [self.title_text, self.logged_in_as_text, self.exit_button]]
@@ -247,8 +310,10 @@ class Menu():
         self.opponent_window = None
 
         # turn on/off auxiliary screen elements
+        [shape.turnOn() for shape in self.menu_shapes]
         [window.button.turnOn() for window in [self.friends_window, self.collection_window, self.notifications_window]]
         [element.turnOn() for element in [self.play_text, self.logged_in_as_text, self.network_back_button, self.local_match_clickable, self.network_match_clickable, self.exit_button]]
+
         self.network_back_button.turnOff()
 
     def preGame(self):
@@ -417,6 +482,163 @@ class Menu():
 
         self.session.add(Notification(owner, sender, type))
 
+    # MENU SHAPE HELPERS
+
+    def determineShapeCollisions(self, shape_1: MenuShape, shape_2: MenuShape):
+        '''determine if two shapes are about to collide'''
+
+        v1 = numpy.array(shape_1.getV())
+        v2 = numpy.array(shape_2.getV())
+
+        p1 = numpy.array(shape_1.getXY())
+        p2 = numpy.array(shape_2.getXY())
+
+        p1f = p1 + v1
+        p2f = p2 + v2
+
+        # temp move collision mask
+        shape_1.collision_mask_rect.center = p1f
+        shape_2.collision_mask_rect.center = p2f
+
+        # 4: determine if collision is taking place
+        collision = shape_1.collision_mask.overlap(shape_2.collision_mask, [int(shape_2.collision_mask_rect.x - shape_1.collision_mask_rect.x), int(shape_2.collision_mask_rect.y - shape_1.collision_mask_rect.y)])
+
+        # move collision mask back
+        shape_1.collision_mask_rect.center = p1
+        shape_2.collision_mask_rect.center = p2
+
+        return bool(collision)
+
+    def repositionShapes(self, shape_1: MenuShape, shape_2: MenuShape):
+        '''rectify the positions and velocities of two shapes which are currently colliding'''
+
+        # STEP 1
+
+        [x2, y2] = shape_2.getXY()
+        [x1, y1] = shape_1.getXY()
+
+        [vx1i, vy1i] = shape_1.getV()
+        [vx2i, vy2i] = shape_2.getV()
+
+        norm_vec = numpy.array([x2 - x1, y2 - y1])
+        if norm_vec[0] == 0 and norm_vec[1] == 0: 
+            return
+
+        divisor = math.sqrt(norm_vec[0]**2 + norm_vec[1]**2)
+        unit_vec = numpy.array([norm_vec[0] / divisor, norm_vec[1] / divisor])
+
+        unit_tan_vec = numpy.array([-1 * unit_vec[1], unit_vec[0]])
+
+        # STEP 2
+
+        v1 = numpy.array(shape_1.getV())
+        m1 = shape_1.getM()
+
+        v2 = numpy.array(shape_2.getV())
+        m2 = shape_2.getM()
+
+        # STEP 3
+
+        v1n = numpy.dot(unit_vec, v1)
+
+        v1t = numpy.dot(unit_tan_vec, v1)
+
+        v2n = numpy.dot(unit_vec, v2)
+
+        v2t = numpy.dot(unit_tan_vec, v2)
+
+        # STEP 4
+
+        v1tp = v1t
+
+        v2tp = v2t
+
+        # STEP 5
+
+        v1np = ((v1n * (m1 - m2)) + (2 * m2 * v2n)) / (m1 + m2)
+
+        v2np = ((v2n * (m2 - m1)) + (2 * m1 * v1n)) / (m1 + m2)
+
+        # STEP 6
+
+        v1np_ = v1np * unit_vec
+        v1tp_ = v1tp * unit_tan_vec
+
+        v2np_ = v2np * unit_vec
+        v2tp_ = v2tp * unit_tan_vec
+
+        # STEP 7
+
+        v1p = v1np_ + v1tp_
+        shape_1.setV(v1p[0], v1p[1])
+
+        v2p = v2np_ + v2tp_
+        shape_2.setV(v2p[0], v2p[1])
+
+    def collideShapes(self, shape_1: MenuShape, shape_2: MenuShape):
+        '''collide two shapes, determine winner and loser, and return the loser's id and xy if the loser is dead'''
+
+        random.choice(self.collision_sounds).play()
+
+        self.repositionShapes(shape_1, shape_2)
+
+        winner = shape_1 if random.randint(0, 1) == 0 else shape_2
+        loser = shape_2 if winner == shape_1 else shape_1
+
+        loser.takeDamage(winner.getDamage())
+
+        # check if loser is dead, spawn clouds and return loser's id and xy
+        if loser.hp <= 0:
+            random.choice(self.death_sounds).play()
+
+            loser_id = loser.shape_id
+            loser_xy = loser.getXY()
+            self.clouds_group.add(Clouds(loser, self.cloud_images))
+            loser.kill()
+
+            if loser in winner.shapes_touching: winner.shapes_touching.remove(loser)
+
+            return loser_id, loser_xy
+    
+        return None
+
+    def handleShapeCollisions(self):
+        '''test collisions between all shapes'''
+
+        for shape in self.menu_shapes:
+            for other_shape in self.menu_shapes:
+                if shape == other_shape: continue
+
+                shape: MenuShape
+                other_shape: MenuShape
+
+                if self.determineShapeCollisions(shape, other_shape) and other_shape not in shape.shapes_touching and shape not in other_shape.shapes_touching:
+                    shape.shapes_touching.append(other_shape)
+                    other_shape.shapes_touching.append(shape)
+
+                    # collideShapes will return the id and xy of any dead shape
+                    self.addNewShape(self.collideShapes(shape, other_shape))
+                    
+                elif other_shape in shape.shapes_touching: shape.shapes_touching.remove(other_shape)
+                elif shape in other_shape.shapes_touching: other_shape.shapes_touching.remove(shape)
+
+    def addNewShape(self, dead = None):
+        '''called if a shape is killed during collision, replaces them with a new shape'''
+
+        if dead != None:
+            shape_data = shape_model_data[random.choice(['triangle', 'square', 'circle'])]
+            shape_data.color_id = random.randint(0, len(color_data) - 1)
+
+            face_images = []
+            if shape_data.type == 'triangle':
+                face_images = self.triangle_face_images
+            elif shape_data.type == 'square':
+                face_images = self.square_face_images   
+            elif shape_data.type == 'circle':
+                face_images = self.circle_face_images
+
+            self.menu_shapes.add(MenuShape(dead[0], shape_data, color_data[shape_data.color_id], face_images))
+
     # PLAY HELPERS
 
     def loginLoop(self):
@@ -563,11 +785,12 @@ class Menu():
 
             # if exit/back button clicked while in register screen, go back to login screen
             if (self.exit_button.isHovAndEnabled(mouse_pos) and not self.back_button.disabled) or (self.back_button.isHovAndEnabled(mouse_pos)):
+                self.password_confirm_editable.deselect()
                 self.password_confirm_editable.turnOff()
                 self.back_button.turnOff()
                 self.or_text.turnOn()
                 self.login_clickable.turnOn()
-                
+
             # quit game
             elif self.exit_button.isHovAndEnabled(mouse_pos):
 
@@ -588,6 +811,7 @@ class Menu():
                     [element.deselect() for element in self.screen_elements if isinstance(element, EditableText)]
                     [element.turnOff() for element in self.screen_elements if element not in [self.title_text]]
                     [element.button.turnOff() for element in [self.friends_window, self.notifications_window, self.collection_window] if element != None]
+                    [shape.turnOff() for shape in self.menu_shapes]
 
             # handle window interactions, if windows exist
             if self.collection_window:
@@ -645,10 +869,15 @@ class Menu():
         [element.update(events, mouse_pos) for element in self.screen_elements]
 
         # update sprites
-        self.simple_shapes.update()
+        self.menu_shapes.update()
+        self.clouds_group.update()
+        self.handleShapeCollisions()
+
+
         if self.collection_window: self.collection_window.update(mouse_pos, events)
         if self.friends_window: self.friends_window.update(mouse_pos, events)
         if self.notifications_window: self.notifications_window.update(mouse_pos, events)
+
         if self.opponent_window: self.opponent_window.update(mouse_pos, events)
 
     def drawScreenElements(self):
@@ -659,6 +888,8 @@ class Menu():
 
         # draw background
         self.screen.blit(self.background, (0, 0))
+        self.menu_shapes.draw(self.screen)
+        self.clouds_group.draw(self.screen)
 
         # draw screen elements
         for element in self.screen_elements: element.draw(self.screen)
@@ -698,6 +929,9 @@ class Menu():
 
         self.pauseFor(1)
         [element.turnOn() for element in [self.username_editable, self.password_editable, self.login_clickable, self.register_clickable, self.or_text, self.exit_button]]
+
+        self.pauseFor(1)
+        [shape.turnOn() for shape in self.menu_shapes]
 
         self.loginLoop()
 
