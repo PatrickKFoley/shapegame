@@ -31,7 +31,6 @@ from ..game.gamedata import color_data, shape_data as shape_model_data
 from ..game.clouds2 import Clouds
 
 from threading import Thread
-import asyncio
 
 NUM_MENU_SHAPES = 16
 
@@ -495,8 +494,34 @@ class Menu():
 
     # MENU SHAPE HELPERS
 
+    def checkShapeCollisions(self):
+        '''test collisions between all shapes'''
+
+        for shape in self.menu_shapes:
+            for other_shape in self.menu_shapes:
+                if shape == other_shape: continue
+
+                shape: MenuShape
+                other_shape: MenuShape
+
+                if self.determineShapeCollisions(shape, other_shape):
+                    
+                    shape.shapes_touching.append(other_shape)
+                    other_shape.shapes_touching.append(shape)
+
+                    # collideShapes will return the id and xy of any dead shape
+                    self.addNewShape(self.collideShapes(shape, other_shape))
+
+                # shapes not touching, remove from lists if present
+                else:    
+                    if other_shape in shape.shapes_touching: shape.shapes_touching.remove(other_shape)
+                    if shape in other_shape.shapes_touching: other_shape.shapes_touching.remove(shape)
+
     def determineShapeCollisions(self, shape_1: MenuShape, shape_2: MenuShape):
-        '''determine if two shapes are about to collide'''
+        '''return true if two shapes are about to collide'''
+
+        # shapes already touching, ignore "collision"
+        if shape_1 in shape_2.shapes_touching or shape_2 in shape_1.shapes_touching: return False
 
         v1 = numpy.array(shape_1.getV())
         v2 = numpy.array(shape_2.getV())
@@ -519,6 +544,33 @@ class Menu():
         shape_2.collision_mask_rect.center = p2
 
         return bool(collision)
+
+    def collideShapes(self, shape_1: MenuShape, shape_2: MenuShape):
+        '''collide two shapes, determine winner and loser, and return the loser's id and xy if the loser is dead'''
+
+        random.choice(self.collision_sounds).play()
+
+        self.repositionShapes(shape_1, shape_2)
+
+        winner = shape_1 if random.randint(0, 1) == 0 else shape_2
+        loser = shape_2 if winner == shape_1 else shape_1
+
+        loser.takeDamage(winner.getDamage())
+
+        # check if loser is dead, spawn clouds and return loser's id and xy
+        if loser.hp <= 0:
+            random.choice(self.death_sounds).play()
+
+            loser_id = loser.shape_id
+            loser_xy = loser.getXY()
+            self.clouds_group.add(Clouds(loser, self.cloud_images))
+            loser.kill()
+
+            if loser in winner.shapes_touching: winner.shapes_touching.remove(loser)
+
+            return loser_id, loser_xy
+    
+        return None
 
     def repositionShapes(self, shape_1: MenuShape, shape_2: MenuShape):
         '''rectify the positions and velocities of two shapes which are currently colliding'''
@@ -585,53 +637,6 @@ class Menu():
 
         v2p = v2np_ + v2tp_
         shape_2.setV(v2p[0], v2p[1])
-
-    def collideShapes(self, shape_1: MenuShape, shape_2: MenuShape):
-        '''collide two shapes, determine winner and loser, and return the loser's id and xy if the loser is dead'''
-
-        random.choice(self.collision_sounds).play()
-
-        self.repositionShapes(shape_1, shape_2)
-
-        winner = shape_1 if random.randint(0, 1) == 0 else shape_2
-        loser = shape_2 if winner == shape_1 else shape_1
-
-        loser.takeDamage(winner.getDamage())
-
-        # check if loser is dead, spawn clouds and return loser's id and xy
-        if loser.hp <= 0:
-            random.choice(self.death_sounds).play()
-
-            loser_id = loser.shape_id
-            loser_xy = loser.getXY()
-            self.clouds_group.add(Clouds(loser, self.cloud_images))
-            loser.kill()
-
-            if loser in winner.shapes_touching: winner.shapes_touching.remove(loser)
-
-            return loser_id, loser_xy
-    
-        return None
-
-    def handleShapeCollisions(self):
-        '''test collisions between all shapes'''
-
-        for shape in self.menu_shapes:
-            for other_shape in self.menu_shapes:
-                if shape == other_shape: continue
-
-                shape: MenuShape
-                other_shape: MenuShape
-
-                if self.determineShapeCollisions(shape, other_shape) and other_shape not in shape.shapes_touching and shape not in other_shape.shapes_touching:
-                    shape.shapes_touching.append(other_shape)
-                    other_shape.shapes_touching.append(shape)
-
-                    # collideShapes will return the id and xy of any dead shape
-                    self.addNewShape(self.collideShapes(shape, other_shape))
-                    
-                elif other_shape in shape.shapes_touching: shape.shapes_touching.remove(other_shape)
-                elif shape in other_shape.shapes_touching: other_shape.shapes_touching.remove(shape)
 
     def addNewShape(self, dead = None):
         '''called if a shape is killed during collision, replaces them with a new shape'''
@@ -922,7 +927,7 @@ class Menu():
         # update sprites
         self.menu_shapes.update()
         self.clouds_group.update()
-        self.handleShapeCollisions()
+        self.checkShapeCollisions()
 
 
         if self.collection_window: self.collection_window.update(mouse_pos, events)
@@ -986,8 +991,7 @@ class Menu():
 
         self.loginLoop()
 
-        while True:
-            self.runGameLoop()
+        while True: self.runGameLoop()
 
     def runGameLoop(self):
         '''run the game loop'''
