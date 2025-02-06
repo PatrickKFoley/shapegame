@@ -753,8 +753,7 @@ def envelope():
     pygame.quit()
     sys.exit()
 
-
-
-if len(sys.argv) > 1 and sys.argv[1] == 'menu':
-    menu2()
+if len(sys.argv) > 1: 
+    if sys.argv[1] == 'menu': menu2()
+    elif sys.argv[1] == 'game': game2()
 

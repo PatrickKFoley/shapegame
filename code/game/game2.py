@@ -426,7 +426,9 @@ class Game2:
 
         # fade from clear background to background with office supplies
         while self.frames_played < 60:
-            self.updateGameState()
+            events = pygame.event.get()
+
+            self.updateGameState(events)
             self.drawGameElements()
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
@@ -438,8 +440,9 @@ class Game2:
 
         # fade team overview and teams in
         while self.frames_played < 120:
+            events = pygame.event.get()
 
-            self.updateGameState()
+            self.updateGameState(events)
             self.drawGameElements()
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
@@ -1474,7 +1477,7 @@ class Game2:
         while self.running:
             events = pygame.event.get()
 
-            self.updateGameState()            
+            self.updateGameState(events)            
 
             self.checkForCompletion()
 
