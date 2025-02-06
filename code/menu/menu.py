@@ -31,6 +31,7 @@ from ..game.gamedata import color_data, shape_data as shape_model_data
 from ..game.clouds2 import Clouds
 
 from threading import Thread
+import asyncio
 
 NUM_MENU_SHAPES = 16
 
@@ -38,24 +39,24 @@ class Menu():
     def __init__(self):
         # load cursor and background
         self.screen = pygame.display.set_mode((1920, 1080))
-        self.background = load("assets/backgrounds/BG1.png").convert_alpha()
+        self.background = load('assets/backgrounds/BG1.png').convert_alpha()
         self.office_supplies = load('assets/backgrounds/grid_paper_w_sides_2.png').convert_alpha()
-        self.cursor = smoothscale(load("assets/misc/cursor.png").convert_alpha(), (12, 12))
+        self.cursor = smoothscale(load('assets/misc/cursor.png').convert_alpha(), (12, 12))
         self.cursor_rect = self.cursor.get_rect()
         self.cursor_rect.center = pygame.mouse.get_pos()
 
         # update the display
-        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3, outline_color='white')
+        self.title_text = Text('shapegame', 150, 1920/2, 2*1080/3, outline_color='white')
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.title_text.surface, self.title_text.rect)
-        pygame.display.set_caption("shapegame")
+        pygame.display.set_caption('shapegame')
         pygame.display.update()
 
         # misc attributes
         self.exit_clicked = False
         self.frames_since_exit_clicked = 0
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font("assets/misc/font.ttf", 80)
+        self.font = pygame.font.Font('assets/misc/font.ttf', 80)
         
         self.target_fps = 60
         self.time_step = 1 / self.target_fps
@@ -67,8 +68,8 @@ class Menu():
         self.user: User | None = None
 
         # database session
-        # self.engine = create_engine("postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db", echo=False) # server db
-        self.engine = create_engine("sqlite:///database.db", echo=False) # local db
+        # self.engine = create_engine('postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db', echo=False) # server db
+        self.engine = create_engine('sqlite:///database.db', echo=False) # local db
         SessionMaker = session_maker(bind=self.engine, autoflush=False)
         self.session = SessionMaker()
 
@@ -91,31 +92,34 @@ class Menu():
         self.thread: Thread | None = None
         self.thread_running = False
 
+        self.notification_poll_thread = None
+        self.stop_notification_polling = False
+
     # INIT HELPERS
 
     def initSounds(self):
         '''load all sounds'''
         
-        self.click_sound = Sound("assets/sounds/click.wav")
-        self.start_sound = Sound("assets/sounds/start.wav")
-        self.open_sound = Sound("assets/sounds/open.wav")
-        self.menu_music = Sound("assets/sounds/menu.wav")
-        self.close_sound = Sound("assets/sounds/close.wav")
+        self.click_sound = Sound('assets/sounds/click.wav')
+        self.start_sound = Sound('assets/sounds/start.wav')
+        self.open_sound = Sound('assets/sounds/open.wav')
+        self.menu_music = Sound('assets/sounds/menu.wav')
+        self.close_sound = Sound('assets/sounds/close.wav')
         self.open_sound.set_volume(.5)
         self.menu_music.set_volume(.25)
         self.close_sound.set_volume(.5)
         self.open_sound.play()
 
         self.death_sounds = []
-        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/1.wav"))
-        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/2.wav"))
-        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/3.wav"))
-        self.death_sounds.append(pygame.mixer.Sound("assets/sounds/death/4.wav"))
+        self.death_sounds.append(pygame.mixer.Sound('assets/sounds/death/1.wav'))
+        self.death_sounds.append(pygame.mixer.Sound('assets/sounds/death/2.wav'))
+        self.death_sounds.append(pygame.mixer.Sound('assets/sounds/death/3.wav'))
+        self.death_sounds.append(pygame.mixer.Sound('assets/sounds/death/4.wav'))
 
         self.collision_sounds = []
-        self.collision_sounds.append(pygame.mixer.Sound("assets/sounds/collisions/clink1.wav"))
-        self.collision_sounds.append(pygame.mixer.Sound("assets/sounds/collisions/clink2.wav"))
-        self.collision_sounds.append(pygame.mixer.Sound("assets/sounds/collisions/thud2.wav"))
+        self.collision_sounds.append(pygame.mixer.Sound('assets/sounds/collisions/clink1.wav'))
+        self.collision_sounds.append(pygame.mixer.Sound('assets/sounds/collisions/clink2.wav'))
+        self.collision_sounds.append(pygame.mixer.Sound('assets/sounds/collisions/thud2.wav'))
 
         for sound in self.collision_sounds:
             sound.set_volume(.03)
@@ -131,27 +135,27 @@ class Menu():
 
         # create all text elements
         self.logged_in_as_text: Text | None = None
-        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3, outline_color='white')
-        self.play_text = Text("play", 100, 1920/2, 4*1080/5, outline_color='white')
-        self.connecting_to_text = Text("waiting for opponent..." , 35, 1920/2, 60)
+        self.title_text = Text('shapegame', 150, 1920/2, 2*1080/3, outline_color='white')
+        self.play_text = Text('play', 100, 1920/2, 4*1080/5, outline_color='white')
+        self.connecting_to_text = Text('waiting for opponent...' , 35, 1920/2, 60)
 
         # create all interactive elements
-        self.network_match_clickable = ClickableText("network match", 50, 1920/2 - 200, 975, outline_color='white')
-        self.local_match_clickable = ClickableText("local match", 50, 1920/2 + 200, 975, outline_color='white')
-        self.exit_button = Button("exit", 45, [1920 - 25, 1080 - 25])
-        self.back_button = Button("back", 45, [25, 1080 - 25])
-        self.network_back_button = Button("exit", 45, [1920 - 25, 661 - 25])
+        self.network_match_clickable = ClickableText('network match', 50, 1920/2 - 200, 975, outline_color='white')
+        self.local_match_clickable = ClickableText('local match', 50, 1920/2 + 200, 975, outline_color='white')
+        self.exit_button = Button('exit', 45, [1920 - 25, 1080 - 25])
+        self.back_button = Button('back', 45, [25, 1080 - 25])
+        self.network_back_button = Button('exit', 45, [1920 - 25, 661 - 25])
 
         # login elements
-        self.register_clickable = ClickableText("register", 50, 1920/2, 1030, outline_color='white')
-        self.login_clickable = ClickableText("login", 50, 1920/2, 925, outline_color='white')
-        self.or_text = Text("or", 35, 1920/2, 980, outline_color='white')
-        self.logging_in_text = Text("logging in...", 40, 1920/2, 1030)
+        self.register_clickable = ClickableText('register', 50, 1920/2, 1030, outline_color='white')
+        self.login_clickable = ClickableText('login', 50, 1920/2, 925, outline_color='white')
+        self.or_text = Text('or', 35, 1920/2, 980, outline_color='white')
+        self.logging_in_text = Text('logging in...', 40, 1920/2, 1030)
 
-        self.username_editable = EditableText("Username: ", 60, 1920/3-50, 850, max_chars=10, outline_color='white')
-        self.password_editable = EditableText("Password: ", 60, 2*1920/3+50, 850, max_chars=10, outline_color='white')
-        self.password_confirm_editable = EditableText("Confirm Password: ", 50, 1920/2, 925, max_chars=10, outline_color='white')
-        self.bad_credentials_text = Text("user not found!", 50, 1920/2, 600)
+        self.username_editable = EditableText('Username: ', 60, 1920/3-50, 850, max_chars=10, outline_color='white')
+        self.password_editable = EditableText('Password: ', 60, 2*1920/3+50, 850, max_chars=10, outline_color='white')
+        self.password_confirm_editable = EditableText('Confirm Password: ', 50, 1920/2, 925, max_chars=10, outline_color='white')
+        self.bad_credentials_text = Text('user not found!', 50, 1920/2, 600)
         self.bad_credentials_flag = False
         self.bad_credentials_timer = 0
 
@@ -453,7 +457,7 @@ class Menu():
             searched_user = self.session.query(User).filter(User.username == username).one()
         except Exception as e:
             self.friends_window.bad_credentials_flag = True
-            print(f"Could not add friend, none found: {e}")
+            print(f'Could not add friend, none found: {e}')
             return
 
         # raise flags
@@ -707,14 +711,14 @@ class Menu():
             else:
                 # provide feedback on what went wrong
                 if user == None:
-                    self.bad_credentials_text.updateText("user not found!")
+                    self.bad_credentials_text.updateText('user not found!')
                     self.bad_credentials_flag = True
                 else:
-                    self.bad_credentials_text.updateText("incorrect password!")
+                    self.bad_credentials_text.updateText('incorrect password!')
                     self.bad_credentials_flag = True
 
         except Exception as e:
-            print(f"Login error: {e}")
+            print(f'Login error: {e}')
             self.bad_credentials_flag = True
 
         self.thread_running = False
@@ -744,14 +748,14 @@ class Menu():
             try:
                 # Validate username length
                 if len(username) < 3:
-                    self.bad_credentials_text.updateText("username must be at least 3 characters!")
+                    self.bad_credentials_text.updateText('username must be at least 3 characters!')
                     self.bad_credentials_flag = True
                     self.thread_running = False
                     return
 
                 # Validate password length
                 if len(password) < 8:
-                    self.bad_credentials_text.updateText("password must be 8-10 characters long!")
+                    self.bad_credentials_text.updateText('password must be 8-10 characters long!')
                     self.bad_credentials_flag = True
                     self.thread_running = False
                     return
@@ -759,14 +763,14 @@ class Menu():
                 # Check if username already exists
                 existing_user = self.session.query(User).filter(User.username == username).first()
                 if existing_user:
-                    self.bad_credentials_text.updateText("username taken!")
+                    self.bad_credentials_text.updateText('username taken!')
                     self.bad_credentials_flag = True
                     self.thread_running = False
                     return
                 
                 # Validate passwords match
                 if password != password_confirm:
-                    self.bad_credentials_text.updateText("passwords don't match!")
+                    self.bad_credentials_text.updateText(f'passwords don\'t match!')
                     self.bad_credentials_flag = True
                     self.thread_running = False
                     return
@@ -782,7 +786,7 @@ class Menu():
 
                 [element.deselect() for element in [self.username_editable, self.password_editable, self.password_confirm_editable]]
                 [element.turnOff() for element in [self.username_editable, self.password_editable, self.password_confirm_editable, self.register_clickable, self.back_button, self.login_clickable, self.or_text]]
-                self.logging_in_text.updateText("registering...")
+                self.logging_in_text.updateText('registering...')
                 self.logging_in_text.turnOn()
 
 
@@ -799,7 +803,7 @@ class Menu():
                 self.logging_in_text.turnOff()
 
             except Exception as e:
-                print(f"Registration error: {e}")
+                print(f'Registration error: {e}')
                 self.bad_credentials_flag = True
 
             self.thread_running = False
@@ -884,7 +888,7 @@ class Menu():
         if self.frames % 120 == 0:
             self.session.commit()
 
-            if self.friends_window: self.friends_window.checkFriendsUpdate()
+            # if self.friends_window: self.friends_window.checkFriendsUpdate()
             if self.notifications_window: self.notifications_window.checkNotificationsUpdate()
 
 
@@ -892,6 +896,13 @@ class Menu():
             self.frames_since_exit_clicked += 1
 
             if self.frames_since_exit_clicked == self.target_fps: sys.exit()
+
+        # Start notification polling when notifications window is created
+        if self.notifications_window and not self.notification_poll_thread:
+            self.startNotificationPolling()
+        # Stop polling if notifications window is destroyed
+        elif not self.notifications_window and self.notification_poll_thread:
+            self.stopNotificationPolling()
 
     def updateScreenElements(self):
         '''update all elements on the screen'''
@@ -962,7 +973,7 @@ class Menu():
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
 
-    def play(self, username = 'pat'):
+    def play(self):
         '''run the game loop for the main menu'''
         # start the time for accumulator
         self.prev_time = time.time()
@@ -996,3 +1007,31 @@ class Menu():
 
         del self.thread
         self.thread = None
+
+    def startNotificationPolling(self):
+        '''Start asynchronous polling for notifications'''
+        
+        def pollNotifications():
+            '''Poll for notification updates in a separate thread'''
+            
+            while not self.stop_notification_polling:
+                if self.notifications_window:
+                    self.session.commit()
+                    self.notifications_window.checkNotificationsUpdate()
+                
+                time.sleep(2)  # Poll every 2 seconds
+
+        if self.notification_poll_thread is None:
+            self.stop_notification_polling = False
+            self.notification_poll_thread = Thread(target=pollNotifications)
+            self.notification_poll_thread.daemon = True  # Thread will exit when main program exits
+            self.notification_poll_thread.start()
+
+    def stopNotificationPolling(self):
+        '''Stop the notification polling thread'''
+        self.stop_notification_polling = True
+        if self.notification_poll_thread:
+            self.notification_poll_thread.join()
+            self.notification_poll_thread = None
+
+    

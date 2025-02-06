@@ -509,9 +509,10 @@ def cleanImages(path, num_images):
     print(num_pixels)
 
 def game2():
-    user1 = User("Camille")
-    user2 = User("Patrick")
+    user1 = User("Camille", 'password')
+    user2 = User("Patrick", 'password')
     shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
+
     shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 15, "", "dickhead", "")
 
     # shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
@@ -605,14 +606,14 @@ def generateOvals():
 
         pygame.image.save(background, f'testing_files/ovals/{i}.png')
 
-def menu2(username):
+def menu2():
     # pygame.init()
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.mixer.set_num_channels(16)
     pygame.mouse.set_visible(False)
     
-    Menu().play(username)
+    Menu().play()
     pygame.quit()
 
 def collectionWindow():
@@ -752,18 +753,8 @@ def envelope():
     pygame.quit()
     sys.exit()
 
-# newArt()
-# generateHealthBars()
-# shape2()
-# cleanImages('shape_images/healthbars/triangle/', 18)
-# game2()
-# killfeed
-# game3()
-# generateSounds()
-# generateOvals()
-if len(sys.argv) > 1: menu2(sys.argv[1])
-else: game2()
-# envelope()
-# collectionWindow()
 
+
+if len(sys.argv) > 1 and sys.argv[1] == 'menu':
+    menu2()
 
