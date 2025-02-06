@@ -7,7 +7,6 @@ from createdb import User, Shape as ShapeData
 from ..game.circledata import powerup_data
 from ..screen_elements.text import Text 
 
-NUM_MENU_SHAPES = 16
 
 class MenuShape(pygame.sprite.Sprite):
     def __init__(self, shape_id, shape_data: ShapeData = 0, color_data: ColorData = 0,  face_images: list[Surface] = 0):

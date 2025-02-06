@@ -32,7 +32,6 @@ from ..game.clouds2 import Clouds
 
 from threading import Thread
 
-NUM_MENU_SHAPES = 16
 
 class Menu():
     def __init__(self):
@@ -105,7 +104,7 @@ class Menu():
         self.menu_music = Sound('assets/sounds/menu.wav')
         self.close_sound = Sound('assets/sounds/close.wav')
         self.open_sound.set_volume(.5)
-        self.menu_music.set_volume(.25)
+        self.menu_music.set_volume(.15)
         self.close_sound.set_volume(.5)
         self.open_sound.play()
 
@@ -121,10 +120,10 @@ class Menu():
         self.collision_sounds.append(pygame.mixer.Sound('assets/sounds/collisions/thud2.wav'))
 
         for sound in self.collision_sounds:
-            sound.set_volume(.03)
+            sound.set_volume(.01)
 
         for sound in self.death_sounds:
-            sound.set_volume(.25)
+            sound.set_volume(.10)
 
         # start playing menu music on loop
         self.menu_music.play(-1)
@@ -505,6 +504,8 @@ class Menu():
                 other_shape: MenuShape
 
                 if self.determineShapeCollisions(shape, other_shape):
+
+                    if other_shape in shape.shapes_touching or shape in other_shape.shapes_touching: continue
                     
                     shape.shapes_touching.append(other_shape)
                     other_shape.shapes_touching.append(shape)
@@ -520,15 +521,17 @@ class Menu():
     def determineShapeCollisions(self, shape_1: MenuShape, shape_2: MenuShape):
         '''return true if two shapes are about to collide'''
 
-        # shapes already touching, ignore "collision"
-        if shape_1 in shape_2.shapes_touching or shape_2 in shape_1.shapes_touching: return False
-
         v1 = numpy.array(shape_1.getV())
         v2 = numpy.array(shape_2.getV())
 
         p1 = numpy.array(shape_1.getXY())
         p2 = numpy.array(shape_2.getXY())
+        
+        # if distance is greater than sum of radii * 1.5, no collision possible
+        if numpy.linalg.norm(p1 - p2) > (shape_1.r + shape_2.r) * 1.5:
+            return False
 
+        # get future positions
         p1f = p1 + v1
         p2f = p2 + v2
 
