@@ -7,6 +7,8 @@ from pygame.surface import Surface
 from pygame.image import load
 import pygame
 from typing import Callable
+import sqlalchemy
+from sqlalchemy.orm import exc
 
 
 from createdb import User, Notification
@@ -75,10 +77,27 @@ class NotificationsWindow(ScrollableWindow):
                 if self.delete_all_button.rect.collidepoint(rel_mouse_pos): self.deleteAllNotifications()
      
     def checkNotificationsUpdate(self):
-        '''check if a notification has been added'''
+        '''check if notifications have been added or removed'''
+        
+        # compare current notifications with displayed notifications, remove/delete accordingly
+        current_notifications = set(notification.id for notification in self.user.notifications_owned)
+        displayed_notifications = set()
+        sprites_to_remove = []
 
-        if len(self.group) != len(self.user.notifications_owned):
-            self.addNotificationSprite(self.user.notifications_owned[-1])
+        # determine which notifications are to be removed
+        for sprite in self.group.sprites():
+            try: 
+                displayed_notifications.add(sprite.notification.id) #if notification.id causes an error, it has been deleted
+            except (exc.ObjectDeletedError, sqlalchemy.exc.InvalidRequestError):
+                sprites_to_remove.append(sprite)
+        
+        # remove sprites with deleted notifications
+        for sprite in sprites_to_remove: sprite.next_x += 1000
+        
+        # Add sprites for new notifications
+        for notification in self.user.notifications_owned:
+            if notification.id not in displayed_notifications:
+                self.addNotificationSprite(notification)
 
     def addNotificationSprite(self, notification: Notification):
 

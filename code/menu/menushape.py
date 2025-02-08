@@ -7,33 +7,41 @@ from createdb import User, Shape as ShapeData
 from ..game.circledata import powerup_data
 from ..screen_elements.text import Text 
 
+NUM_MENU_SHAPES = 12
 
 class MenuShape(pygame.sprite.Sprite):
     def __init__(self, shape_id, shape_data: ShapeData = 0, color_data: ColorData = 0,  face_images: list[Surface] = 0):
         super().__init__()
 
+        # provided properties
         self.shape_id = shape_id
         self.shape_data = shape_data
         self.color_data = color_data
         self.face_images = face_images
 
+        # shape gameplay attributes
         self.r = random.randint(shape_data.radius_min, shape_data.radius_max)
         self.m = round((3/4) * 3.14 * self.r**3)
         self.hp = shape_data.health
         self.max_hp = shape_data.health
-        self.alpha = 255
+        self.shapes_touching: list[MenuShape] = []
+        
+        # shape display attributes
+        self.alpha_max = 190
+        self.alpha = self.alpha_max
         self.shown = True
         self.stuck = False
         self.within_bounds = False
-        self.shapes_touching: list[MenuShape] = []
 
-        self.determineSpawnXY()
+        self.initPos()
         self.initSurface()
         
-    def determineSpawnXY(self):
+    # SHAPE INIT HELPERS
+
+    def initPos(self):
         # Calculate position on circle based on shape_id
         circle_radius = 1300
-        speed = random.randint(5, 6)
+        speed = 6
         total_shapes = NUM_MENU_SHAPES
         screen_center_x = 1920/2
         screen_center_y = 1080/2 
@@ -74,6 +82,7 @@ class MenuShape(pygame.sprite.Sprite):
         # set current shape image
         self.current_shape_image = pygame.transform.smoothscale(self.shape_images[0], (self.r*2, self.r*2))
         self.image = pygame.transform.smoothscale(self.current_shape_image, (self.r*2, self.r*2))
+        self.image.set_alpha(self.alpha)
         self.collision_mask = pygame.mask.from_surface(self.current_shape_image)
         self.collision_mask_rect = self.current_shape_image.get_rect()
         self.rect = self.current_shape_image.get_rect()
@@ -82,14 +91,15 @@ class MenuShape(pygame.sprite.Sprite):
     # GAME LOOP HELPERS
 
     def update(self):
+        
         self.move()
 
         if not self.shown and self.alpha > 0:
             self.alpha = max(0, self.alpha - 10)
             self.image.set_alpha(self.alpha)
 
-        elif self.shown and self.alpha < 255:
-            self.alpha = min(255, self.alpha + 10)
+        elif self.shown and self.alpha < self.alpha_max:
+            self.alpha = min(self.alpha_max, self.alpha + 10)
             self.image.set_alpha(self.alpha)
 
     def move(self):
@@ -111,27 +121,26 @@ class MenuShape(pygame.sprite.Sprite):
             self.vy = (10 * dy) / magnitude
         
         # Set within_bounds when shape is fully inside screen bounds
-        if (self.r <= self.x <= 1920 - self.r and 
-            self.r <= self.y <= 1080 - self.r):
+        if (self.r <= self.x <= 1920 - self.r and self.r <= self.y <= 1080 - self.r):
             self.within_bounds = True
 
         # ensure shape stays within bounds once it is within bounds
         if self.within_bounds:
             if self.x > 1920 - self.r:
                 self.x = 1920 - self.r
-                self.vx = -1 * self.vx
+                self.vx *= -1
 
             if self.x < self.r:
                 self.x = self.r
-                self.vx = -1 * self.vx
+                self.vx *= -1
 
             if self.y > 1080 - self.r:
                 self.y = 1080 - self.r
-                self.vy = -1 * self.vy
+                self.vy *= -1
 
             if self.y < self.r:
                 self.y = self.r
-                self.vy = -1 * self.vy
+                self.vy *= -1
 
         # move sprite
         self.rect.center = [round(self.x), round(self.y)]
@@ -157,6 +166,8 @@ class MenuShape(pygame.sprite.Sprite):
         elif hp_percent < 75 and hp_percent >= 50: self.image = self.shape_images[1]
         elif hp_percent < 50 and hp_percent >= 25: self.image = self.shape_images[2]
         else: self.image = self.shape_images[3]
+
+        self.image.set_alpha(self.alpha)
 
     def getXY(self):
         return [self.x, self.y]

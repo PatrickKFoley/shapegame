@@ -30,8 +30,9 @@ from sqlalchemy.orm import sessionmaker as session_maker, Session
 from ..game.gamedata import color_data, shape_data as shape_model_data
 from ..game.clouds2 import Clouds
 
-from threading import Thread
+from threading import Thread, Lock
 
+NUM_MENU_SHAPES = 12
 
 class Menu():
     def __init__(self):
@@ -92,6 +93,8 @@ class Menu():
 
         self.notification_poll_thread = None
         self.stop_notification_polling = False
+
+        self.db_lock = Lock()
 
     # INIT HELPERS
 
@@ -224,7 +227,7 @@ class Menu():
 
     # WINDOW CALLBACKS
 
-    def startNetwork(self, opponent: Union[User, None] = None, send_notification: bool = False):
+    def startNetwork(self, opponent: Union[User, None] = None, send_notification: bool = True):
 
         # refresh database
         self.session.commit()
@@ -281,6 +284,24 @@ class Menu():
                         self.user,
                         self.selections.seed
                     ).play()
+                
+            # remove all game invitations from opponent
+            if self.opponent:
+                with self.db_lock:
+                    try:
+                        notifications = self.session.query(Notification).filter(
+                            (Notification.owner_id == self.user.id) & 
+                            (Notification.sender_id == self.opponent.id) &
+                            (Notification.type == 'CHALLENGE')
+                        ).all()
+
+                        if notifications:
+                            for notification in notifications:
+                                self.session.delete(notification)
+                            self.session.commit()
+                    except Exception as e:
+                        self.session.rollback()
+                        print(f"Error deleting notifications: {e}")
 
             # clear time accumulation
             self.prev_time = time.time()
@@ -337,11 +358,12 @@ class Menu():
             self.clock.tick(self.target_fps)
 
         # search for opponent, create collection window
+        self.opponent = None
         if self.network_connected:
             self.session.commit()
             self.opponent = self.session.query(User).filter(User.id == int(self.selections.user_ids[0 if self.pid == 1 else 1])).first()
-            self.opponent_window = CollectionWindow(self.opponent, self.session, True)
 
+            self.opponent_window = CollectionWindow(self.opponent, self.session, True)
             self.opponent_window.changeModeNetwork(self.connection_manager)
             self.collection_window.changeModeNetwork(self.connection_manager)
             self.network_back_button.turnOn()
@@ -485,10 +507,15 @@ class Menu():
             return
 
     def addDbNotification(self, owner: User, sender: User, type: str):
-        '''create and add notification to the database (if a similar notification doesn't already exist)'''
-
-        if any((notification.type == type) and (notification.sender == sender) for notification in owner.notifications_owned): return
-
+        '''create and add notification to the database, replacing any similar existing notifications'''
+        
+        # Delete any existing similar notifications
+        existing_notification = next((notification for notification in owner.notifications_owned 
+                                   if notification.type == type and notification.sender == sender), None)
+        if existing_notification:
+            self.session.delete(existing_notification)
+            
+        # Add the new notification
         self.session.add(Notification(owner, sender, type))
 
     # MENU SHAPE HELPERS
@@ -528,8 +555,8 @@ class Menu():
         p2 = numpy.array(shape_2.getXY())
         
         # if distance is greater than sum of radii * 1.5, no collision possible
-        if numpy.linalg.norm(p1 - p2) > (shape_1.r + shape_2.r) * 1.5:
-            return False
+        # if numpy.linalg.norm(p1 - p2) > (shape_1.r + shape_2.r) * 1.5:
+        #     return False
 
         # get future positions
         p1f = p1 + v1
@@ -893,11 +920,11 @@ class Menu():
 
         self.prev_time = self.current_time
 
-        if self.frames % 120 == 0:
-            self.session.commit()
+        # if self.frames % 120 == 0:
+        #     self.session.commit()
 
-            # if self.friends_window: self.friends_window.checkFriendsUpdate()
-            if self.notifications_window: self.notifications_window.checkNotificationsUpdate()
+        #     # if self.friends_window: self.friends_window.checkFriendsUpdate()
+        #     if self.notifications_window: self.notifications_window.checkNotificationsUpdate()
 
 
         if self.exit_clicked:
@@ -938,6 +965,18 @@ class Menu():
         if self.notifications_window: self.notifications_window.update(mouse_pos, events)
 
         if self.opponent_window: self.opponent_window.update(mouse_pos, events)
+
+        # draw bad credentials text if flag is true, and handle timer
+        if self.bad_credentials_flag:
+            self.bad_credentials_text.turnOn()
+
+            self.bad_credentials_timer += 1
+            if self.bad_credentials_timer == 200:
+                self.bad_credentials_flag = False
+                self.bad_credentials_timer = 0
+                self.bad_credentials_text.turnOff()
+
+        self.screen.blit(self.cursor, self.cursor_rect)
 
     def drawScreenElements(self):
         '''draw all elements to the screen'''
@@ -1040,5 +1079,20 @@ class Menu():
         if self.notification_poll_thread:
             self.notification_poll_thread.join()
             self.notification_poll_thread = None
+
+    def pollNotifications(self):
+        '''poll database for new notifications'''
+        while self.running:
+            try:
+                with self.db_lock:
+                    self.session.expire_all()
+                    notifications = self.session.query(Notification).filter_by(owner_id=self.user.id).all()
+                    self.user.notifications_owned = notifications
+                    self.session.commit()
+                
+                time.sleep(1)
+            except:
+                with self.db_lock:
+                    self.session.rollback()
 
     

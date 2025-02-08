@@ -235,7 +235,7 @@ class Game2:
 
     def loadImages(self):
         '''load all images into their containers'''
-        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3)
+        self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3, outline_color='white')
 
         def getHealthbarImages(shape_data: ShapeData):
             '''load and return an array of healthbar images for the given shape'''
@@ -420,9 +420,7 @@ class Game2:
         self.background.set_alpha(0)
         self.title_text.turnOff()
 
-        for sprite in itertools.chain(self.team_1_group, self.team_2_group):
-            sprite.image.set_alpha(0)
-            sprite.stuck = True
+        for sprite in itertools.chain(self.team_1_group, self.team_2_group): sprite.stuck = True
 
         # fade from clear background to background with office supplies
         while self.frames_played < 60:
@@ -450,10 +448,7 @@ class Game2:
             cur_a = self.team_overview_surface.get_alpha()
             if cur_a < 255:
                 next_a = min(cur_a + 10, 255)
-
                 self.team_overview_surface.set_alpha(next_a)
-                for sprite in itertools.chain(self.team_1_group, self.team_2_group):
-                    sprite.image.set_alpha(next_a)
 
         for sprite in itertools.chain(self.team_1_group, self.team_2_group):
             sprite.stuck = False
@@ -467,8 +462,9 @@ class Game2:
 
         pause_start = time.time()
         while time.time() - pause_start < 1:
+            events = pygame.event.get()
 
-            self.updateGameState()
+            self.updateGameState(events)
 
             cur_a = self.background_clear.get_alpha()
             if cur_a < 255:

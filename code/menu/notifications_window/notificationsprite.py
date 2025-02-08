@@ -90,7 +90,7 @@ class NotificationSprite(WindowSprite):
                         self.addFriend(self.notification.sender.username)
                     else: 
                         print(self.notification.type)
-                        self.startNetwork(self.shown_user, self.notification.type == 'FRIEND_CONFIRM')
+                        self.startNetwork(self.shown_user)
                 
                 if self.delete_button.rect.collidepoint(rel_mouse_pos):
                     self.next_x += 1000
