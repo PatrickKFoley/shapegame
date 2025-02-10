@@ -330,7 +330,7 @@ class Menu():
         # turn on/off auxiliary screen elements
         [shape.turnOn() for shape in self.menu_shapes]
         [window.button.turnOn() for window in [self.friends_window, self.collection_window, self.notifications_window]]
-        [element.turnOn() for element in [self.play_text, self.logged_in_as_text, self.network_back_button, self.local_match_clickable, self.network_match_clickable, self.exit_button]]
+        [element.turnOn() for element in [self.play_text, self.logged_in_as_text, self.network_back_button, self.local_match_clickable, self.network_match_clickable, self.exit_button] if element != None]
 
         self.network_back_button.turnOff()
 
@@ -1009,18 +1009,57 @@ class Menu():
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
 
-    def play(self):
+    def play(self, username = None, password = None):
         '''run the game loop for the main menu'''
+        # if provided username and password, try to log in and skip login loop
+        do_login_loop = False
+        if username != None and password != None:
+            try:
+                user = self.session.query(User).filter(User.username == username).first()
+                
+                if not user: 
+                    print('Warning: username provided at command line not found')
+                    do_login_loop = True
+                
+                elif user.check_password(str(password)):
+                    self.user = user
+                    
+                    # Initialize windows after successful login
+                    self.logged_in_as_text = Text(f'logged in as: {user.username}', 35, 1920/2, 20, fast_off=True)
+                    self.screen_elements.append(self.logged_in_as_text)
+                    self.collection_window = CollectionWindow(user, self.session)
+                    self.friends_window = FriendsWindow(user, self.session, self.addFriend, self.startNetwork)
+                    self.notifications_window = NotificationsWindow(user, self.session, self.addFriend, self.startNetwork)
+                    
+                    print(f'Success: logged in as {user.username}')
+                
+                else:
+                    print('Warning: incorrect password provied at command line')
+                    do_login_loop = True
+                    
+            except Exception as e:
+                print(f'ERROR: {e}')
+                do_login_loop = True
+        
+        else: do_login_loop = True
+        
         # start the time for accumulator
         self.prev_time = time.time()
-
-        self.pauseFor(1)
-        [element.turnOn() for element in [self.username_editable, self.password_editable, self.login_clickable, self.register_clickable, self.or_text, self.exit_button]]
+        
+        # turn on/off screen elements
+        if do_login_loop:
+            self.pauseFor(1)
+            [element.turnOn() for element in [self.username_editable, self.password_editable, self.login_clickable, self.register_clickable, self.or_text, self.exit_button]]
+        else: 
+            turn_off = [self.username_editable, self.password_editable, self.login_clickable, self.register_clickable, self.password_editable, self.password_confirm_editable, self.or_text, self.back_button]
+            turn_on = [self.play_text, self.network_match_clickable, self.local_match_clickable, self.exit_button, self.logged_in_as_text, self.friends_window.button, self.notifications_window.button, self.collection_window.button]
+            [element.turnOff() for element in turn_off]
+            [element.turnOn() for element in turn_on if element != None]
 
         self.pauseFor(1)
         [shape.turnOn() for shape in self.menu_shapes]
-
-        self.loginLoop()
+                
+        if do_login_loop: self.loginLoop()
 
         while True: self.runGameLoop()
 

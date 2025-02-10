@@ -606,14 +606,14 @@ def generateOvals():
 
         pygame.image.save(background, f'testing_files/ovals/{i}.png')
 
-def menu2():
+def menu2(username = None, password = None):
     # pygame.init()
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.mixer.set_num_channels(16)
     pygame.mouse.set_visible(False)
     
-    Menu().play()
+    Menu().play(username, password)
     pygame.quit()
 
 def collectionWindow():
@@ -754,6 +754,10 @@ def envelope():
     sys.exit()
 
 if len(sys.argv) > 1: 
-    if sys.argv[1] == 'menu': menu2()
+    if sys.argv[1] == 'menu': 
+        if len(sys.argv) < 4:
+            menu2()
+        elif len(sys.argv) == 4:
+            menu2(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == 'game': game2()
 
