@@ -76,8 +76,10 @@ class NotificationsWindow(ScrollableWindow):
 
                 if self.delete_all_button.rect.collidepoint(rel_mouse_pos): self.deleteAllNotifications()
      
-    def checkNotificationsUpdate(self):
+    def checkNotificationsUpdate(self, prev_opponent = None):
         '''check if notifications have been added or removed'''
+
+        clear_prev_opponent = prev_opponent != None
         
         # compare current notifications with displayed notifications, remove/delete accordingly
         current_notifications = set(notification.id for notification in self.user.notifications_owned)
@@ -88,6 +90,9 @@ class NotificationsWindow(ScrollableWindow):
         for sprite in self.group.sprites():
             try: 
                 displayed_notifications.add(sprite.notification.id) #if notification.id causes an error, it has been deleted
+                # Remove challenge notifications from previous opponent
+                if prev_opponent and sprite.notification.type == 'CHALLENGE' and sprite.notification.sender_id == prev_opponent.id:
+                    sprites_to_remove.append(sprite)
             except (exc.ObjectDeletedError, sqlalchemy.exc.InvalidRequestError):
                 sprites_to_remove.append(sprite)
         
@@ -98,6 +103,8 @@ class NotificationsWindow(ScrollableWindow):
         for notification in self.user.notifications_owned:
             if notification.id not in displayed_notifications:
                 self.addNotificationSprite(notification)
+
+        return clear_prev_opponent
 
     def addNotificationSprite(self, notification: Notification):
 

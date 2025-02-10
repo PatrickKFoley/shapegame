@@ -65,6 +65,7 @@ class Menu():
 
         # database entries
         self.user: User | None = None
+        self.prev_opponent: User | None = None
 
         # database session
         # self.engine = create_engine('postgresql://postgres:postgres@172.105.17.177/root/shapegame/shapegame/database.db', echo=False) # server db
@@ -284,24 +285,6 @@ class Menu():
                         self.user,
                         self.selections.seed
                     ).play()
-                
-            # remove all game invitations from opponent
-            if self.opponent:
-                with self.db_lock:
-                    try:
-                        notifications = self.session.query(Notification).filter(
-                            (Notification.owner_id == self.user.id) & 
-                            (Notification.sender_id == self.opponent.id) &
-                            (Notification.type == 'CHALLENGE')
-                        ).all()
-
-                        if notifications:
-                            for notification in notifications:
-                                self.session.delete(notification)
-                            self.session.commit()
-                    except Exception as e:
-                        self.session.rollback()
-                        print(f"Error deleting notifications: {e}")
 
             # clear time accumulation
             self.prev_time = time.time()
@@ -329,9 +312,14 @@ class Menu():
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
 
+        # keep track of who opponent was for notification deletion
+        if self.opponent: self.prev_opponent = self.opponent
+
+
         # prepare to go back to the menu
         self.collection_window.changeModeCollection()
         if self.opponent_window: self.opponent_window.changeModeCollection()
+
 
         # delete what needs to be deleted
         # if self.connection_manager: del self.connection_manager
@@ -508,10 +496,11 @@ class Menu():
 
     def addDbNotification(self, owner: User, sender: User, type: str):
         '''create and add notification to the database, replacing any similar existing notifications'''
-        
+
         # Delete any existing similar notifications
         existing_notification = next((notification for notification in owner.notifications_owned 
                                    if notification.type == type and notification.sender == sender), None)
+
         if existing_notification:
             self.session.delete(existing_notification)
             
@@ -1063,7 +1052,8 @@ class Menu():
             while not self.stop_notification_polling:
                 if self.notifications_window:
                     self.session.commit()
-                    self.notifications_window.checkNotificationsUpdate()
+                    clear_prev_opponent = self.notifications_window.checkNotificationsUpdate(self.prev_opponent)
+                    if clear_prev_opponent: self.prev_opponent = None
                 
                 time.sleep(2)  # Poll every 2 seconds
 
