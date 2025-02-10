@@ -32,41 +32,51 @@ class Shape(pygame.sprite.Sprite):
 
             self.r = random.randint(shape_data.radius_min, shape_data.radius_max)
             self.m = round((3/4) * 3.14 * self.r**3)
-            self.vx = shape_data.velocity if team_id == 1 else shape_data.velocity * -1
-            self.vy = random.randint(-1, 1)
+            self.vx = 0  # Will be set based on spawn position
+            self.vy = 0  # Will be set based on spawn position
         
             # determine spawn location
-            self.spawn_locations = [
-                [
-                    (self.screen_w - 150, self.screen_h / 6),  (self.screen_w - 150, 2 * self.screen_h / 6), (self.screen_w - 150, 3 * self.screen_h / 6), (self.screen_w - 150, 4 * self.screen_h / 6), (self.screen_w - 150, 5 * self.screen_h / 6),
-                    (self.screen_w - 300, self.screen_h / 6),  (self.screen_w - 300, 2 * self.screen_h / 6), (self.screen_w - 300, 3 * self.screen_h / 6), (self.screen_w - 300, 4 * self.screen_h / 6), (self.screen_w - 300, 5 * self.screen_h / 6),
-                    (self.screen_w - 450, self.screen_h / 6),  (self.screen_w - 450, 2 * self.screen_h / 6), (self.screen_w - 450, 3 * self.screen_h / 6), (self.screen_w - 450, 4 * self.screen_h / 6), (self.screen_w - 450, 5 * self.screen_h / 6),
-                    (self.screen_w - 600, self.screen_h / 6),  (self.screen_w - 600, 2 * self.screen_h / 6), (self.screen_w - 600, 3 * self.screen_h / 6), (self.screen_w - 600, 4 * self.screen_h / 6), (self.screen_w - 600, 5 * self.screen_h / 6),
-                    (self.screen_w - 700, self.screen_h / 6),  (self.screen_w - 700, 2 * self.screen_h / 6), (self.screen_w - 700, 3 * self.screen_h / 6), (self.screen_w - 700, 4 * self.screen_h / 6), (self.screen_w - 700, 5 * self.screen_h / 6),
-                ], [
-                    (150, self.screen_h / 6),  (150, 2 * self.screen_h / 6), (150, 3 * self.screen_h / 6), (150, 4 * self.screen_h / 6), (150, 5 * self.screen_h / 6),
-                    (300, self.screen_h / 6),  (300, 2 * self.screen_h / 6), (300, 3 * self.screen_h / 6), (300, 4 * self.screen_h / 6), (300, 5 * self.screen_h / 6),
-                    (450, self.screen_h / 6),  (450, 2 * self.screen_h / 6), (450, 3 * self.screen_h / 6), (450, 4 * self.screen_h / 6), (450, 5 * self.screen_h / 6),
-                    (600, self.screen_h / 6),  (600, 2 * self.screen_h / 6), (600, 3 * self.screen_h / 6), (600, 4 * self.screen_h / 6), (600, 5 * self.screen_h / 6),
-                    (700, self.screen_h / 6),  (700, 2 * self.screen_h / 6), (700, 3 * self.screen_h / 6), (700, 4 * self.screen_h / 6), (700, 5 * self.screen_h / 6),
-                ], 
-            ]
-
-            self.x = self.spawn_locations[team_id][shape_id][0]
-            self.y = self.spawn_locations[team_id][shape_id][1]
-
-            # self.x = 730
-            # self.y = 540
-
-            # if you aren't spawning in a full row, move vertically
-            num_remainders = shape_data.team_size % 5
-            if num_remainders != 0 and shape_id >= shape_data.team_size - num_remainders:
-                self.y = ((shape_id+1) % 5) * self.screen_h / (num_remainders + 1)
+            center_x = 730
+            center_y = 540
+            spawn_radius = 1400
+            
+            # Determine arc range for each team (using 150 degrees instead of 180)
+            arc_size = 170
+            arc_start = -arc_size/2
+            arc_end = arc_size/2
+            
+            # Convert team positions to radians and adjust for top/bottom spawning
+            if team_id == 0:  # Bottom team
+                start_angle = math.radians(arc_start + 90)
+                end_angle = math.radians(arc_end + 90)
+            else:  # Top team
+                start_angle = math.radians(arc_start - 90)
+                end_angle = math.radians(arc_end - 90)
+            
+            # Calculate angle for this specific shape
+            if shape_data.team_size > 1:
+                angle = start_angle + (end_angle - start_angle) * (shape_id / (shape_data.team_size - 1))
+            else:
+                angle = (start_angle + end_angle) / 2
+                
+            # Calculate spawn position
+            self.x = center_x + spawn_radius * math.cos(angle)
+            self.y = center_y + spawn_radius * math.sin(angle)
+            
+            # Calculate velocity vector pointing to center
+            angle_to_center = math.atan2(center_y - self.y, center_x - self.x)
+            speed = shape_data.velocity
+            self.vx = speed * math.cos(angle_to_center)
+            self.vy = speed * math.sin(angle_to_center)
+            
+            self.within_bounds = False
 
             # collection for powerup names
             self.powerup_arr: list[str] = []
 
         else:
+            self.within_bounds = True
+            
             # copy all data from resurrected model
             self.model_id = resurrected_model.shape_id
 
@@ -212,28 +222,46 @@ class Shape(pygame.sprite.Sprite):
 
         if self.stuck: return
 
-        self.checkCircleCollision(circle_r)
+        if self.within_bounds:
+            self.checkCircleCollision(circle_r)
         
         # move shape
         self.x += self.vx
         self.y += self.vy
+        
+        # redirect shape back to center if it's too far away
+        dist_from_center = math.sqrt((self.x - 730)**2 + (self.y - 540)**2)
+        if dist_from_center > 1401:
+            # Calculate unit vector pointing to center
+            dx = 730 - self.x 
+            dy = 540 - self.y
+            magnitude = math.sqrt(dx**2 + dy**2)
+            
+            # Set velocity towards center with speed 10
+            self.vx = (10 * dx) / magnitude
+            self.vy = (10 * dy) / magnitude
+        
+        # set within_bounds to true if shape is within bounds
+        if self.x > self.r and self.x < self.screen_w - self.r and self.y > self.r and self.y < self.screen_h - self.r:
+            self.within_bounds = True
 
         # ensure shape stays within bounds
-        if self.x > self.screen_w - self.r:
-            self.x = self.screen_w - self.r
-            self.vx = -1 * self.vx
+        if self.within_bounds:
+            if self.x > self.screen_w - self.r:
+                self.x = self.screen_w - self.r
+                self.vx = -1 * self.vx
 
-        if self.x < self.r:
-            self.x = self.r
-            self.vx = -1 * self.vx
+            if self.x < self.r:
+                self.x = self.r
+                self.vx = -1 * self.vx
 
-        if self.y > self.screen_h - self.r:
-            self.y = self.screen_h - self.r
-            self.vy = -1 * self.vy
+            if self.y > self.screen_h - self.r:
+                self.y = self.screen_h - self.r
+                self.vy = -1 * self.vy
 
-        if self.y < self.r:
-            self.y = self.r
-            self.vy = -1 * self.vy
+            if self.y < self.r:
+                self.y = self.r
+                self.vy = -1 * self.vy
 
         # move sprite
         self.rect.center = [round(self.x), round(self.y)]

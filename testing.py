@@ -511,9 +511,9 @@ def cleanImages(path, num_images):
 def game2():
     user1 = User("Camille", 'password')
     user2 = User("Patrick", 'password')
-    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 40, 50, 100, 1, 1, 15, "", "dumbass", "")
+    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 40, 50, 100, 1, 1, 10, "", "dumbass", "")
 
-    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 15, "", "dickhead", "")
+    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 10, "", "dickhead", "")
 
     # shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
     # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
