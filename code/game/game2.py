@@ -83,7 +83,6 @@ class Game2:
 
     # INIT HELPERS
 
-
     def initSimulationNecessities(self):
         '''initiate all variables which are necessary for game simulation'''
 
@@ -712,12 +711,19 @@ class Game2:
 
                 if shape_1 == shape_2 or shape_2.is_dead or shape_1.is_dead: continue
 
-                if self.determineCollision(shape_1, shape_2) and shape_2 not in shape_1.shapes_touching:
+                if self.determineCollision(shape_1, shape_2):
+
+                    if shape_2 in shape_1.shapes_touching or shape_1 in shape_2.shapes_touching: continue
+
+                    shape_1.shapes_touching.append(shape_2)
+                    shape_2.shapes_touching.append(shape_1)
+
                     self.collideShapes(shape_1, shape_2)
                 
                 # keep track of which shapes you are not touching
                 else:
                     if shape_2 in shape_1.shapes_touching: shape_1.shapes_touching.remove(shape_2)
+                    if shape_1 in shape_2.shapes_touching: shape_2.shapes_touching.remove(shape_1)
 
             for powerup in self.powerup_group:
                 dist = math.sqrt((powerup.x - shape_1.x)**2 + (powerup.y - shape_1.y)**2)
@@ -763,10 +769,9 @@ class Game2:
         '''main handler for two shapes colliding'''
         choice = self.getRandom(self.collision_sounds)
         self.playSound(choice)
-         #print(f'{self.frames_played} collide sound shape1: {shape_1.x, shape_1.y, shape_1.vx, shape_1.vy} shape2: {shape_2.x, shape_2.y, shape_2.vx, shape_2.vy}: ')
+        #print(f'{self.frames_played} collide sound shape1: {shape_1.x, shape_1.y, shape_1.vx, shape_1.vy} shape2: {shape_2.x, shape_2.y, shape_2.vx, shape_2.vy}: ')
 
-        # keep track of which shapes are touching this frame
-        shape_1.shapes_touching.append(shape_2)
+
         
         self.repositionShapes(shape_1, shape_2)
 

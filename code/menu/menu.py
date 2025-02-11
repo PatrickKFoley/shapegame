@@ -1123,5 +1123,3 @@ class Menu():
             except:
                 with self.db_lock:
                     self.session.rollback()
-
-    
