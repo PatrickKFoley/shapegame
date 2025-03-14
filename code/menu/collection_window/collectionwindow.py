@@ -38,6 +38,8 @@ class CollectionWindow:
         self.mode = COLLECTION if not self.opponent else NETWORK
         self.connection_manager: None | ConnectionManager = None
 
+        self.num_tokens_on_create = self.user.shape_tokens
+
         self.surface = Surface([1920, 493], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
         self.rect.topleft = [0, 1030]
@@ -52,14 +54,16 @@ class CollectionWindow:
         self.delete_tape_rect.center = [1140, 110]
 
         self.confirm_text = Text('delete shape?', 80, 1130, 175)
+        self.confirm_up_text = Text('level up shape?', 80, 1130, 175)
         self.warning = Text(['this action cannot', 'be undone'], 40, 1130, 240)
         self.yes_clickable = ClickableText('yes', 100, 1000, 325, color=[0, 200, 0])
         self.no_clickable = ClickableText('no', 100, 1260, 325, color=[255, 0, 0])
 
         self.button = Button('shapes', 50, [25, 25], fast_off=True)
         self.button.draw(self.surface)
-        self.question_button = Button('question', 40, [780, 131])
-        self.add_button = Button('add', 90, [81, 226])
+        self.question_button = Button('question_inverted' if self.opponent else 'question', 40, [780, 131])
+        self.up_button = Button('up', 40, [600, 131])
+        self.add_button = Button('add', 90, [81, 226] if not self.opponent else [81, 292])
         self.del_button = Button('trash', 40, [205, 131])
         self.heart_button = Button('heart', 40, [780, 400])
 
@@ -67,18 +71,18 @@ class CollectionWindow:
             self.button, self.question_button, 
             self.add_button,    self.del_button, 
             self.yes_clickable, self.no_clickable,
-            self.heart_button, self.confirm_text, self.warning
+            self.heart_button, self.confirm_text, self.warning,
+            self.up_button, self.confirm_up_text
         ]
 
         # disable add button if user has no shape tokens
-        if self.user.shape_tokens == 0: self.add_button.disable()
+        if self.user.shape_tokens == 0: 
+            self.add_button.disable()
+            self.up_button.disable()
 
         side = 'top' if self.opponent else 'bottom'
-        self.background_essence = load(f'assets/backgrounds/collection_window/bottom_essence.png').convert_alpha()
-        self.background_essence_hearts = load(f'assets/backgrounds/collection_window/bottom_essence_hearts.png').convert_alpha()
-        self.background_nothing = load(f'assets/backgrounds/collection_window/{side}.png').convert_alpha()
+        self.background = load(f'assets/backgrounds/collection_window/{side}.png').convert_alpha()
         self.background_hearts = load(f'assets/backgrounds/collection_window/{side}_hearts.png').convert_alpha()
-        self.background = self.background_essence if not self.opponent else self.background_nothing
 
         self.background_rect = self.background.get_rect()
         self.background_rect.topleft = [0, 1080]
@@ -91,11 +95,12 @@ class CollectionWindow:
         self.tape_rect = self.tape_surface.get_rect()
         self.tape_rect.center = [1105, 110]
 
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
 
         # essence bar 
-        self.essence_bar = EssenceBar(self.user)
-        self.nameplate = NetworkNameplate(self.user)
+        self.essence_bar = EssenceBar(self.user, self.opponent)
+        self.essence_bar_lock = False # lock the essence bar from updating on global update call
+        self.nameplate = NetworkNameplate(self.user, self.opponent)
         self.nameplate.turnOn()
 
         self.opened_y = (1080 - self.background.get_size()[1]) if not self.opponent else 0
@@ -114,11 +119,15 @@ class CollectionWindow:
         self.deleted_shapes = Group()
 
         self.delete_clicked = False
+        self.up_clicked = False
         
         self.woosh_sound = Sound('assets/sounds/woosh.wav')
+        self.lvl_up_sound = Sound('assets/sounds/levelup.wav')
+        self.lvl_up_sound.set_volume(0.5)
 
     def initCollectionGroup(self):
         '''create Collection shapes for newly logged in user'''
+        self.collection_shapes.empty()
 
         # sort shapes
         shapes: list[ShapeData] = list(self.user.shapes)
@@ -129,14 +138,18 @@ class CollectionWindow:
 
         # create sprites
         for count, shape_data in enumerate(sorted_shapes):
-            new_shape = CollectionShape(shape_data, count, self.user.num_shapes, self.session)
+            new_shape = CollectionShape(shape_data, count, self.user.num_shapes, self.session, opponent=self.opponent)
             self.collection_shapes.add(new_shape)
 
         self.selected_shape = None if len(self.collection_shapes) == 0 else self.collection_shapes.sprites()[0]
-        self.selector = Selector(self.collection_shapes, [1200, 400])
+        self.selector = Selector(self.collection_shapes, [1200, 400], inverted=self.opponent)
 
-        self.del_button.disable()
-        if self.selected_shape != None: self.heart_button.select()
+        if self.user.num_shapes == 0: self.del_button.disable()
+        
+        else:
+            if self.selected_shape.shape_data.id == self.user.favorite_id:
+                self.del_button.disable()
+                self.heart_button.select()
 
     def draw(self, surface):
         surface.blit(self.surface, self.rect)
@@ -203,10 +216,12 @@ class CollectionWindow:
             shape.moveRight()
 
         # recreate shape tokens text
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
 
         # disable add button if user used last token
-        if self.user.shape_tokens == 0: self.add_button.disable()
+        if self.user.shape_tokens == 0: 
+            self.add_button.disable()
+            self.up_button.disable()
 
         # enable buttons
         if self.user.num_shapes >= 1: self.question_button.enable()
@@ -270,7 +285,7 @@ class CollectionWindow:
                 removed = True
 
                 # if the right-most shape was deleted, move all shapes to the right
-                if count == self.user.num_shapes:
+                if count == len(self.collection_shapes):
                     for sprite in self.collection_shapes.sprites():
                         sprite.moveRight()
 
@@ -278,12 +293,12 @@ class CollectionWindow:
                 
                 if self.selected_index >= 0:
                     self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
-
-                    # if user deleted their favorite shape, mark next new selected shape as favorite 
-                    if sprite.shape_data.id == self.user.favorite_id:
-                        self.markSelectedFavorite()
-                    self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
                     if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
+            
+                else:
+                    self.selected_shape = None
+                    if self.mode == COLLECTION: self.del_button.disable()
+
             elif removed: sprite.moveLeft()
 
         [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
@@ -305,7 +320,7 @@ class CollectionWindow:
 
                 # delete db entry
                 self.user.num_shapes -= 1
-                self.user.shape_essence += sprite.shape_data.level * 0.25
+                self.user.shape_essence += max(sprite.shape_data.level * 0.25, 0.15)
 
                 self.session.execute(delete(ShapeData).where(ShapeData.id == sprite.shape_data.id))
                 self.session.commit()
@@ -344,6 +359,31 @@ class CollectionWindow:
 
         # reposition shapes
         [sprite.redrawPosition(position, self.user.num_shapes) for position, sprite in enumerate(self.collection_shapes.sprites())]
+
+    def lvlUpSelectedShape(self):
+        self.up_clicked = False
+
+        self.selected_shape.shape_data.level += 1
+        self.user.shape_tokens -= 1
+
+        self.selected_shape.shape_data.health += 5
+        self.selected_shape.shape_data.dmg_multiplier = round(self.selected_shape.shape_data.dmg_multiplier + 0.1, 1)
+        self.selected_shape.shape_data.luck = round(self.selected_shape.shape_data.luck + 0.1, 1)
+
+        if self.selected_shape.shape_data.level % 5 == 0:
+            self.selected_shape.shape_data.team_size += 1
+
+        self.session.commit()
+
+        self.collection_shapes.sprites()[self.selected_index].regenerateStats()
+
+        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
+
+        if self.user.shape_tokens == 0:
+            self.up_button.disable()
+            self.add_button.disable()
+
+        self.lvl_up_sound.play()
 
     def handleInputs(self, mouse_pos, events):
 
@@ -410,6 +450,12 @@ class CollectionWindow:
                 elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
                     self.delete_clicked = not self.delete_clicked
 
+                elif self.up_button.isHovAndEnabled(mouse_pos):
+                    self.up_clicked = not self.up_clicked
+
+                elif self.up_clicked and self.yes_clickable.rect.collidepoint(mouse_pos):
+                    self.lvlUpSelectedShape()
+
                 elif self.delete_clicked and self.yes_clickable.rect.collidepoint(mouse_pos):
                     self.deleteSelectedShape()
                     self.woosh_sound.play()
@@ -420,6 +466,7 @@ class CollectionWindow:
                 # if user clicks anywhere, close delete screen
                 else:
                     self.delete_clicked = False
+                    self.up_clicked = False
 
             if self.mode == NETWORK:
                 rel_mouse_pos = [mouse_pos[0] - self.nameplate.rect.x, mouse_pos[1] - self.nameplate.rect.y]
@@ -449,11 +496,11 @@ class CollectionWindow:
 
             # if user's selector selected_index has changed, send shape selection
             if self.selected_index != self.selector.selected_index:
-                self.connection_manager.send(f'SELECTED_{self.selector.selected_index}.')
+                self.connection_manager.send(f'SELECTED_{self.selector.selected_index}.SHAPE_{self.selected_shape.shape_data.id}.')
 
             # if the current selection doesn't match the selections object, send selection again
-            if (self.selected_index == self.selector.selected_index) and selections.users_selected[self.connection_manager.pid] != self.selected_index:
-                self.connection_manager.send(f'SELECTED_{self.selector.selected_index}.')
+            if (self.selected_index == self.selector.selected_index) and selections.users_selected[self.connection_manager.pid] != self.selected_index and self.selected_shape != None:
+                self.connection_manager.send(f'SELECTED_{self.selector.selected_index}.SHAPE_{self.selected_shape.shape_data.id}.')
 
             # if toggle button state doesn't match selections, send again
             if selections.locked[self.connection_manager.pid] != self.nameplate.locked.selected:
@@ -504,9 +551,20 @@ class CollectionWindow:
             return
         
         # update returns true when shape essence amount is altered, needing commit
-        if self.essence_bar.update(): 
-            self.session.commit()
-            self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200, color=('black' if self.user.shape_tokens > 0 else 'red'))
+        if not self.essence_bar_lock:
+            ret = self.essence_bar.update()
+
+            # returns 'real' when collection window is not an opponent window, signaling for the user's db entry to be updated (they gained a token)
+            if ret == 'real': 
+                self.session.commit()
+                self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
+                self.up_button.enable()
+                self.add_button.enable()
+            
+            # returns 'fake' when collection window is opponent window, no db alteration needed, just update the text on the screen
+            elif ret == 'fake':
+                self.num_tokens_on_create += 1
+                self.shape_token_text = Text(f'{self.num_tokens_on_create}', 35 if self.num_tokens_on_create < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.num_tokens_on_create > 0 else 'red'))
 
         # toggle buttons when essence bar is changing
         if self.mode == COLLECTION:
@@ -530,8 +588,8 @@ class CollectionWindow:
                 self.selected_index += 1
                 for sprite in self.collection_shapes.sprites():
                     sprite.moveLeft()
-                    
-            self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+                
+            self.selected_shape = None if len(self.collection_shapes) == 0 else self.collection_shapes.sprites()[self.selected_index]
             
             self.heart_button.selected = False if self.selected_shape == None else self.selected_shape.shape_data.id == self.user.favorite_id
             if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
@@ -568,16 +626,16 @@ class CollectionWindow:
         self.next_y = 1080
 
     def renderSurface(self):
-        if self.mode == COLLECTION: 
-            # self.surface.blit(self.background_essence_hearts if self.selected_shape.shape_data.id == self.user.favorite_id else self.background_essence, [0, 50])
-            self.surface.blit(self.background_essence if self.selected_shape == None or self.selected_shape.shape_data.id != self.user.favorite_id else self.background_essence_hearts, [0, 50])
+        self.surface.fill((0, 0, 0, 0))
+        
+        self.surface.blit(self.background if self.selected_shape == None or self.selected_shape.shape_data.id != self.user.favorite_id else self.background_hearts, [0, 50])
 
-        elif self.mode == NETWORK or self.mode == TRANSITION:
-            self.surface.blit(self.background_nothing if self.selected_shape == None or self.selected_shape.shape_data.id != self.user.favorite_id else self.background_hearts, [0, 50])
+        if self.mode == NETWORK or self.mode == TRANSITION:
+            # self.surface.blit(self.background_nothing if self.selected_shape == None or self.selected_shape.shape_data.id != self.user.favorite_id else self.background_hearts, [0, 50])
             self.nameplate.draw(self.surface)
 
         # draw buttons
-        [screen_element.draw(self.surface) for screen_element in self.screen_elements if screen_element not in [self.yes_clickable, self.no_clickable]]
+        [screen_element.draw(self.surface) for screen_element in self.screen_elements if screen_element not in [self.yes_clickable, self.no_clickable, self.confirm_text, self.confirm_up_text, self.warning]]
 
 
         # sprites
@@ -588,13 +646,22 @@ class CollectionWindow:
         self.shape_token_text.draw(self.surface)
 
         # render essence bar
-        if self.mode == COLLECTION: 
-            self.surface.blit(self.essence_bar.images[self.essence_bar.current_index], self.essence_bar.rect)
+        # if self.mode == COLLECTION: 
+        self.surface.blit(self.essence_bar.images[self.essence_bar.current_index], self.essence_bar.rect)
 
         # render delete surface
         if self.delete_clicked:
             self.surface.blit(self.delete_surface, self.delete_rect)
             self.confirm_text.draw(self.surface)
+            self.warning.draw(self.surface)
+            self.yes_clickable.draw(self.surface)
+            self.no_clickable.draw(self.surface)
+            self.surface.blit(self.delete_tape, self.delete_tape_rect)
+
+        # render level up surface
+        if self.up_clicked:
+            self.surface.blit(self.delete_surface, self.delete_rect)
+            self.confirm_up_text.draw(self.surface)
             self.warning.draw(self.surface)
             self.yes_clickable.draw(self.surface)
             self.no_clickable.draw(self.surface)
@@ -635,12 +702,28 @@ class CollectionWindow:
         self.collection_shapes.empty()
         self.collection_shapes.add(sorted_group)
 
+    def renumberGroup(self):
+        '''redraw the positions of the shapes in the group to reflect their current positions'''
+
+        num_shapes = len(self.collection_shapes.sprites())
+
+        for count, shape in enumerate(self.collection_shapes.sprites()):
+            shape: CollectionShape
+
+            shape.redrawPosition(count, num_shapes)
+
     def changeModeNetwork(self, connection_manager: ConnectionManager):
         self.mode = NETWORK
         self.connection_manager = connection_manager
 
+        self.essence_bar_lock = True
+
         self.moveSpritesHome()
-        self.shape_token_text.turnOff()
+        # self.shape_token_text.turnOff()
+        self.del_button.fastOff()
+        self.add_button.disable()
+        self.up_button.fastOff()
+        self.heart_button.fastOff()
         self.nameplate.turnOn()
 
         for button in [self.del_button, self.heart_button, self.add_button]:
@@ -658,6 +741,8 @@ class CollectionWindow:
     def changeModeCollection(self):
         self.mode = COLLECTION
         self.connection_manager = None
+
+        self.essence_bar_lock = False
         
         self.moveSpritesHome()
 
@@ -668,10 +753,11 @@ class CollectionWindow:
         self.nameplate.renderSurface()  
 
         self.nameplate.turnOn()
-        self.shape_token_text.turnOn()
+        # self.shape_token_text.turnOn()
         self.del_button.turnOn()
         self.heart_button.turnOn()
-        self.add_button.turnOn()
+        self.add_button.enable()
+        self.up_button.turnOn()
 
     def changeModeTransition(self):
         self.mode = TRANSITION
@@ -691,9 +777,14 @@ class CollectionWindow:
             for sprite in self.collection_shapes.sprites():
                 sprite.moveLeft()
                 
-        self.selected_shape = self.collection_shapes.sprites()[self.selected_index]
+        self.selected_shape = None if len(self.collection_shapes) == 0 else self.collection_shapes.sprites()[self.selected_index]
         
-        self.heart_button.selected = self.selected_shape.shape_data.id == self.user.favorite_id
-        if self.mode == COLLECTION: self.del_button.disable() if self.selected_shape.shape_data.id == self.user.favorite_id else self.del_button.enable()
+        # determine button states given the selected shape
+        self.heart_button.selected = False if self.selected_shape == None else self.selected_shape.shape_data.id == self.user.favorite_id
+        if self.mode == COLLECTION: 
+            if self.selected_shape == None or self.selected_shape.shape_data.id == self.user.favorite_id:
+                self.del_button.disable()
+            else:
+                self.del_button.enable()
 
         self.woosh_sound.play()

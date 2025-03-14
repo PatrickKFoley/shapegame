@@ -3,13 +3,15 @@ from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
 from .screenelement import ScreenElement
+import pygame
 
 class ToggleButton(ScreenElement):
-    def __init__(self, icon_name: str, size: int, center: list[int]):
+    def __init__(self, icon_name: str, size: int, center: list[int], invert = False):
         super().__init__(center[0], center[1])
     
-        self.icon_selected = smoothscale(load(f'assets/icons/{icon_name}_icon_selected.png').convert_alpha(), [size, size])
-        self.icon_unselected = smoothscale(load(f'assets/icons/{icon_name}_icon.png').convert_alpha(), [size, size])
+        self.icon_selected = smoothscale(load(f'assets/icons/{icon_name}_icon_selected{"_inverted" if invert else ""}.png').convert_alpha(), [size, size])
+        self.icon_unselected = smoothscale(load(f'assets/icons/{icon_name}_icon{"_inverted" if invert else ""}.png').convert_alpha(), [size, size])
+
         self.surface = self.icon_unselected
         self.rect = self.surface.get_rect()
         self.rect.center = center

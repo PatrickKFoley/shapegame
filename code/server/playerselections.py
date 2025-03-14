@@ -67,7 +67,7 @@ class PlayerSelections:
 
         self.winner = None
 
-        self.xp_earned = None
+        self.essence_earned = [-1, -1]
 
     def __repr__(self):
         return "id: {} ready: {} players_ready: {} users_selected: {} shape_ids: {} user_ids: {} keeps: {} seed: {} kill: {}".format(self.id, self.ready, self.players_ready, self.users_selected, self.shape_ids, self.user_ids, self.keeps, self.seed, self.kill)

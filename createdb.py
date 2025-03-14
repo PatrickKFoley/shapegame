@@ -147,7 +147,7 @@ class Shape(BaseClass):
     team_size = Column("team_size", Integer)
     num_wins = Column("num_wins", Integer, default=0)    
     num_losses = Column("num_losses", Integer, default=0)
-    level = Column("level", Integer, default=10)
+    level = Column("level", Integer, default=0)
     xp = Column("xp", Integer, default=0)
     num_owners = Column("num_owners", Integer, default=1)
 
@@ -229,57 +229,70 @@ if __name__ == "__main__":
     try:
         user_1 = User("pat", "1")
         user_2 = User("camille", "1")
-        user_3 = User("aiden", "password123")
-        user_4 = User("kyra", "password123")
-        user_5 = User("zack", "password123")
-        user_6 = User("deborah", "password123")
+        # user_3 = User("aiden", "password123")
+        # user_4 = User("kyra", "password123")
+        # user_5 = User("zack", "password123")
+        # user_6 = User("deborah", "password123")
 
         session.add(user_1)
         session.add(user_2)
-        session.add(user_3)
-        session.add(user_4)
-        session.add(user_5)
-        session.add(user_6)
 
-        for i in range(10):
-            session.add(User(f'{i}', f'password{i}'))
+        user_1.shape_tokens = 20
+        user_2.shape_tokens = 20
+        # session.add(user_3)
+        # session.add(user_4)
+        # session.add(user_5)
+        # session.add(user_6)
+
+        # for i in range(10):
+        #     session.add(User(f'{i}', f'password{i}'))
 
         user_1.friends.append(user_2)
-        user_1.friends.append(user_3)
-        user_1.friends.append(user_4)
-        user_1.friends.append(user_5)
+        user_2.friends.append(user_1)
+        # user_1.friends.append(user_3)
+        # user_1.friends.append(user_4)
+        # user_1.friends.append(user_5)
         # user_1.friends.append(user_6)
 
         session.commit()
         
         
-        session.add(Notification(user_1, user_2, "FRIEND"))
-        session.add(Notification(user_1, user_3, "FRIEND_CONFIRM"))
-        session.add(Notification(user_1, user_4, "CHALLENGE"))
-        session.add(Notification(user_1, user_2, "CHALLENGE"))
+        # session.add(Notification(user_1, user_2, "FRIEND"))
+        # session.add(Notification(user_1, user_3, "FRIEND_CONFIRM"))
+        # session.add(Notification(user_1, user_4, "CHALLENGE"))
+        # session.add(Notification(user_1, user_2, "CHALLENGE"))
         
-        session.add(Notification(user_3, user_1, "FRIEND"))
-        session.add(Notification(user_3, user_1, "CHALLENGE"))
-        session.add(Notification(user_3, user_1, "CHALLENGE"))
-        session.add(Notification(user_3, user_1, "CHALLENGE"))
-        session.add(Notification(user_3, user_1, "CHALLENGE"))
+        # session.add(Notification(user_3, user_1, "FRIEND"))
+        # session.add(Notification(user_3, user_1, "CHALLENGE"))
+        # session.add(Notification(user_3, user_1, "CHALLENGE"))
+        # session.add(Notification(user_3, user_1, "CHALLENGE"))
+        # session.add(Notification(user_3, user_1, "CHALLENGE"))
 
 
         shape_1 = generateRandomShape(user_1, session)
+        shape_1_2 = generateRandomShape(user_1, session)
+        shape_1_3 = generateRandomShape(user_1, session)
+        shape_1_4 = generateRandomShape(user_1, session)
+        shape_1_5 = generateRandomShape(user_1, session)
         shape_2 = generateRandomShape(user_2, session)
-        shape_3 = generateRandomShape(user_3, session)
-        shape_4 = generateRandomShape(user_4, session)
-        shape_5 = generateRandomShape(user_5, session)
+        shape_2_2 = generateRandomShape(user_2, session)
+        shape_2_3 = generateRandomShape(user_2, session)
+        shape_2_4 = generateRandomShape(user_2, session)
+        shape_2_5 = generateRandomShape(user_2, session)
+
+        # shape_3 = generateRandomShape(user_3, session)
+        # shape_4 = generateRandomShape(user_4, session)
+        # shape_5 = generateRandomShape(user_5, session)
         
-        session.query(User).filter(User.id == user_1.id).update({User.favorite_id: shape_1.id})
-        session.query(User).filter(User.id == user_2.id).update({User.favorite_id: shape_2.id})
-        session.query(User).filter(User.id == user_3.id).update({User.favorite_id: shape_3.id})
-        session.query(User).filter(User.id == user_4.id).update({User.favorite_id: shape_4.id})
-        session.query(User).filter(User.id == user_5.id).update({User.favorite_id: shape_5.id})
+        # session.query(User).filter(User.id == user_1.id).update({User.favorite_id: shape_1.id})
+        # session.query(User).filter(User.id == user_2.id).update({User.favorite_id: shape_2.id})
+        # session.query(User).filter(User.id == user_3.id).update({User.favorite_id: shape_3.id})
+        # session.query(User).filter(User.id == user_4.id).update({User.favorite_id: shape_4.id})
+        # session.query(User).filter(User.id == user_5.id).update({User.favorite_id: shape_5.id})
         session.commit()
 
-        session.add(GamePlayed(user_1.id, user_2.id, shape_1.id, shape_2.id, user_1.id))
-        session.commit()
+        # session.add(GamePlayed(user_1.id, user_2.id, shape_1.id, shape_2.id, user_1.id))
+        # session.commit()
 
     except Exception as e:
         session.rollback()

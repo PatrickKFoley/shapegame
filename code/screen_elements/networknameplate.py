@@ -6,8 +6,9 @@ from .togglebutton import ToggleButton
 from ..game.gamedata import color_data
 
 class NetworkNameplate:
-    def __init__(self, user: User):
+    def __init__(self, user: User, opponent = False):
         self.user = user
+        self.opponent = opponent
         
         self.w = 1020
         self.h = 60
@@ -21,8 +22,8 @@ class NetworkNameplate:
         self.rect = self.surface.get_rect()
         self.rect.center = [1370, 100]
         
-        pygame.draw.rect(self.background, 'black', [0, 0, self.w, self.h], border_radius=10)
-        pygame.draw.rect(self.background, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
+        pygame.draw.rect(self.background, 'white' if self.opponent else 'black', [0, 0, self.w, self.h], border_radius=10)
+        pygame.draw.rect(self.background, 'black' if self.opponent else 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
 
         color = None
         for shape_data in self.user.shapes:
@@ -30,9 +31,9 @@ class NetworkNameplate:
                 color = color_data[shape_data.color_id].text_color
                 break
         
-        self.locked = ToggleButton('radio', 35, [490, self.h/2])
-        self.keeps = ToggleButton('radio', 35, [775, self.h/2])
-        self.ready = ToggleButton('radio', 35, [950, self.h/2])
+        self.locked = ToggleButton('radio', 35, [490, self.h/2], self.opponent)
+        self.keeps = ToggleButton('radio', 35, [775, self.h/2], self.opponent)
+        self.ready = ToggleButton('radio', 35, [950, self.h/2], self.opponent)
 
         self.buttons = [
             self.locked,
@@ -41,17 +42,18 @@ class NetworkNameplate:
         ]
 
         if color != None:
-            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', color, 200, 'black')
+            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', color, 200, 'white' if self.opponent else 'black')
         else:
-            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', 'black', 200)
+            self.username_text = Text(f'{self.user.username}', 60, 125, 30, 'center', 'white' if self.opponent else 'black', 200)
 
+        text_color = 'white' if self.opponent else 'black'
         self.elements = [
             self.locked,
             self.keeps,
             self.ready,
-            Text('confirm selection', 30, 350, 30),
-            Text('play for keeps', 30, 650, 30),
-            Text('ready', 30, 880, 30),
+            Text('confirm selection', 30, 350, 30, color=text_color),
+            Text('play for keeps', 30, 650, 30, color=text_color),
+            Text('ready', 30, 880, 30, color=text_color),
             self.username_text,
         ]
 

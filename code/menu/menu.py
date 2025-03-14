@@ -20,9 +20,12 @@ from ..screen_elements.screenelement import ScreenElement
 from ..game.gamedata import color_data, shape_data as shape_model_data, names, titles
 from ..game.game2 import Game2
 from .collection_window.collectionwindow import CollectionWindow
+from .collection_window.collectionshape import CollectionShape
+from .collection_window.movingshape import MovingShape
 from .friends_window.friendswindow import FriendsWindow
 from .friends_window.friendsprite import FriendSprite
 from .notifications_window.notificationswindow import NotificationsWindow
+from .notifications_window.notificationsprite import NotificationSprite
 from ..server.connectionmanager import ConnectionManager
 from ..server.playerselections import PlayerSelections
 from sqlalchemy import create_engine, func, delete, select, case
@@ -76,6 +79,7 @@ class Menu():
         # sprite groups
         self.menu_shapes = Group()
         self.clouds_group = Group()
+        self.moving_shapes = Group()
 
         # windows
         self.collection_window: CollectionWindow | None = None
@@ -297,8 +301,8 @@ class Menu():
                 self.clock.tick(self.target_fps)
 
         # do network post game if still connected
-        # if self.network_connected:
-        #     self.postGame()
+        if self.network_connected:
+            self.postGame()
 
         if not self.selections.kill[self.pid]: self.connection_manager.send('KILL.')
 
@@ -384,7 +388,18 @@ class Menu():
             self.network_back_button.turnOff()
 
     def postGame(self):
+        '''animate the results of a network match'''
+
         self.session.commit()
+
+        # manually increment the opponent's essence bar
+        amount = 0
+        if self.pid == self.selections.winner:
+            amount = min(self.selections.essence_earned[0], self.selections.essence_earned[1])
+        else:
+            amount = max(self.selections.essence_earned[0], self.selections.essence_earned[1])
+        self.opponent_window.essence_bar.new_essence += amount
+        
         
         # prepare windows for post game animation
         windows = [self.opponent_window, self.collection_window]
@@ -393,51 +408,85 @@ class Menu():
             window.nameplate.disable()
             window.selector.disable()
 
-        # winner_window = self.collection_window if self.selections.winner == self.pid else self.opponent_window
-        # winner_window.selector.setSelected(0)
-        # while winner_window.selected_index > winner_window.selector.selected_index:
-            
-        #     winner_window.selected_index -= 1
-        #     [sprite.moveRight() for sprite in winner_window.collection_shapes.sprites()]
-        
         # give windows time to open
-        pause_start = time.time()
-        while time.time() - pause_start < 1:
-            # update state
-            self.updateMenuState()
-            self.drawScreenElements()
+        self.pauseFor(1)
+
+        # if game was played for keeps, animate the shuffle between groups
+        if self.selections.keeps[0] and self.selections.keeps[1]:
+
+            # determine winner and loser windows and shape data to be moved
+            if self.selections.winner == self.pid:
+                winner_window = self.collection_window
+                loser_window = self.opponent_window
+                moved_shape = self.opponent_window.selected_shape
+                moving_side = 'top'
+            else:
+                self.selections.users_selected[0 if self.pid == 1 else 1] = 0 # necessary to stop opponent window from fighting the movement, since it's selected shape is locked to the selection indicated by server
+                winner_window = self.opponent_window
+                loser_window = self.collection_window
+                moved_shape = self.collection_window.selected_shape
+                moving_side = 'bottom'
+
+            # move all shapes to original position
+            if winner_window.selected_index != 0:
+                winner_window.moveSpritesHome()
+
+            # add new shape to the front of the list
+            new_shape = CollectionShape(moved_shape.shape_data, -1, winner_window.user.num_shapes, self.session, True)
+            collection_copy = winner_window.collection_shapes.sprites()
+            winner_window.collection_shapes.empty()
+            winner_window.collection_shapes.add(itertools.chain([new_shape, collection_copy]))
+            winner_window.selector.addShape(new_shape.shape_data)
+
+            # adjust selected shape and shape positions to introduce new shape from the right
+            winner_window.selected_shape: CollectionShape = new_shape # type: ignore
+            for shape in winner_window.collection_shapes: shape.moveRight()
+
+            # adjust transparency of new shape and shape's stats (to 0)
+            winner_window.selected_shape.alpha_lock = True
+            winner_window.selected_shape.image.set_alpha(0)
+            winner_window.selected_shape.stats_surface.set_alpha(0)
+            winner_window.selected_shape.stats_alpha = 0
+            winner_window.selected_shape.next_stats_alpha = 0
+
+            # allow shapes to move to original position
+            self.pauseFor(0.5)
+
+            # remove loser's shape from shapes group
+            loser_window.selected_shape.alpha = 0
+            loser_window.selected_shape.stats_surface.set_alpha(0)
+            # flag if the opponent is removing their last shape, in this case, the selections object needs to be altered similar to above
+            flag = loser_window == self.opponent_window and loser_window.selected_index == len(loser_window.collection_shapes)-1 
+            loser_window.removeSelectedShape()
+            if flag: self.selections.users_selected[0 if self.pid == 1 else 1] = loser_window.selector.selected_index
+
+            # renumber all sprites to match their altered lists
+            [sprite.redrawPosition(position, len(loser_window.collection_shapes)) for position, sprite in enumerate(loser_window.collection_shapes.sprites())]
+            [sprite.redrawPosition(position, len(winner_window.collection_shapes)) for position, sprite in enumerate(winner_window.collection_shapes.sprites())]
+            
+            # add false image of shape to some group so that it can be animated moving
+            self.moving_shapes.add(MovingShape(moved_shape.image, moving_side))
+            self.pauseFor(0.5)
+
+            # once false image is in place, fade shape and stats back in
+            winner_window.selected_shape.alpha_lock = False
+            winner_window.selected_shape.next_stats_alpha = 255
+
+            self.pauseFor(1)
+            self.moving_shapes.empty() # kill false image on the way out
         
-        # move all shapes back to original position
-        if self.selections.winner == self.pid:
-            self.collection_window.moveSpritesHome()
-        else:
-            self.opponent_window.moveSpritesHome()
+        self.opponent_window.essence_bar_lock = False
+        self.collection_window.essence_bar_lock = False
 
-        # give shapes time to move
-        pause_start = time.time()
-        while time.time() - pause_start < 1:
+        # hold while essence bars are updating
+        self.updateMenuState() # required for essence bar's changing flag to be updated
+        while self.opponent_window.essence_bar.changing or self.collection_window.essence_bar.changing:
             # update state
             self.updateMenuState()
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
 
-        # shuffle shape between groups
-        if self.selections.winner == self.pid:
-            shape_data = self.opponent_window.selected_shape.shape_data
-            self.opponent_window.removeSelectedShape()
-            self.collection_window.addShapeToCollection(shape_data)
-        else:
-            shape_data = self.collection_window.selected_shape.shape_data
-            self.collection_window.removeSelectedShape()
-            self.opponent_window.addShapeToCollection(shape_data)
-
-        # give time to animate shape shuffle
-        pause_start = time.time()
-        while time.time() - pause_start < 5:
-            # update state
-            self.updateMenuState()
-            self.drawScreenElements()
-            self.clock.tick(self.target_fps)
+        self.pauseFor(5)
 
         # prepare windows to return to main menu
         for window in windows:
@@ -451,6 +500,23 @@ class Menu():
             self.updateMenuState()
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
+
+        self.session.commit()
+
+        # redraw the positions of shapes in collection group
+        # (keeps the new shape at the front of the group)
+        self.collection_window.renumberGroup()
+
+        # redraw the player information in follow name tag/notification tag
+        for sprite in self.friends_window.group.sprites():
+            sprite: FriendSprite
+            if sprite.friend == self.opponent: 
+                sprite.initInfo()
+        
+        for sprite in self.notifications_window.group.sprites():
+            sprite: NotificationSprite
+            if sprite.user == self.opponent: 
+                sprite.initInfo()
 
     def addFriend(self, username):
         '''add friend relationship in the database'''
@@ -804,9 +870,9 @@ class Menu():
                 self.session.add(new_user)
                 self.session.commit()
 
-                new_shape = generateRandomShape(new_user, self.session)
-                new_user.favorite_id = new_shape.id
-                self.session.commit()
+                # new_shape = generateRandomShape(new_user, self.session)
+                # new_user.favorite_id = new_shape.id
+                # self.session.commit()
 
                 [element.deselect() for element in [self.username_editable, self.password_editable, self.password_confirm_editable]]
                 [element.turnOff() for element in [self.username_editable, self.password_editable, self.password_confirm_editable, self.register_clickable, self.back_button, self.login_clickable, self.or_text]]
@@ -944,6 +1010,7 @@ class Menu():
         [element.update(events, mouse_pos) for element in self.screen_elements]
 
         # update sprites
+        self.moving_shapes.update()
         self.menu_shapes.update()
         self.clouds_group.update()
         self.checkShapeCollisions()
@@ -987,6 +1054,8 @@ class Menu():
         if self.notifications_window: self.notifications_window.draw(self.screen)
         if self.opponent_window: self.opponent_window.draw(self.screen)
 
+        # draw moving shapes on top of windows
+        self.moving_shapes.draw(self.screen)
 
         # draw bad credentials text if flag is true, and handle timer
         if self.bad_credentials_flag:

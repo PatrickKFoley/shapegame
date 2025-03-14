@@ -12,15 +12,15 @@ MIN_W = 75
 MAX_W = 1030
 
 class Selection(pygame.sprite.Sprite):
-    def __init__(self, shape: ShapeData, position: int, num_shapes: int):
+    def __init__(self, shape: ShapeData, position: int, num_shapes: int, inverted: bool = False):
         super().__init__()
         
         self.shape_type = shape.type
         self.shape = shape
         self.position = position
         self.num_shapes = num_shapes
-        
-        self.surface_size = 40
+        self.inverted = inverted
+        self.surface_size = 35
         self.min_size = 25
         self.max_size = 35
         
@@ -39,18 +39,18 @@ class Selection(pygame.sprite.Sprite):
         self.rect.center = [self.x, 30]
         
         if self.shape_type == 'triangle':
-            pygame.draw.polygon(self.selected_surface, 'black', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
-            pygame.draw.polygon(self.unselected_surface, 'gray', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
+            pygame.draw.polygon(self.selected_surface, 'white' if self.inverted else 'black', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
+            pygame.draw.polygon(self.unselected_surface, 'lightgray' if self.inverted else 'gray', [[self.surface_size/2, 0], [self.surface_size, self.surface_size], [0, self.surface_size]])
         
         elif self.shape_type == 'square':
             # self.selected_surface.fill('black')
             # self.unselected_surface.fill('gray')
-            pygame.draw.rect(self.selected_surface, 'black', [0, 0, self.surface_size, self.surface_size], border_radius=10)
-            pygame.draw.rect(self.unselected_surface, 'gray', [0, 0, self.surface_size, self.surface_size], border_radius=10)
+            pygame.draw.rect(self.selected_surface, 'white' if self.inverted else 'black', [0, 0, self.surface_size, self.surface_size], border_radius=10)
+            pygame.draw.rect(self.unselected_surface, 'lightgray' if self.inverted else 'gray', [0, 0, self.surface_size, self.surface_size], border_radius=10)
         
         elif self.shape_type == 'circle':
-            pygame.draw.circle(self.selected_surface, 'black', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
-            pygame.draw.circle(self.unselected_surface, 'gray', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
+            pygame.draw.circle(self.selected_surface, 'white' if self.inverted else 'black', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
+            pygame.draw.circle(self.unselected_surface, 'lightgray' if self.inverted else 'gray', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
 
         shape_image = smoothscale(self.selected_surface if self.selected or self.hovered else self.unselected_surface, [self.size, self.size])
         rect = shape_image.get_rect()
@@ -90,12 +90,13 @@ class Selection(pygame.sprite.Sprite):
             self.image.blit(shape_image, rect)
         
 class Selector:
-    def __init__(self, shapes: list[CollectionShape], center: list[int]):
+    def __init__(self, shapes: list[CollectionShape], center: list[int], inverted: bool = False):
         self.shapes = shapes
         self.num_shapes = len(shapes)
         self.center = center
         self.topleft = [850, 377]
         self.selected_index = 0
+        self.inverted = inverted
 
         self.disabled = False
         
@@ -107,15 +108,19 @@ class Selector:
         self.rect = self.surface.get_rect()
         # self.rect.center = center
         self.rect.topleft = self.topleft
-        pygame.draw.rect(self.surface, 'black', [0, 0, self.w, self.h], border_radius=10)
-        pygame.draw.rect(self.surface, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
+        pygame.draw.rect(self.surface, 'white' if self.inverted else 'black', [0, 0, self.w, self.h], border_radius=10)
+        pygame.draw.rect(self.surface, 'black' if self.inverted else 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
         self.selections = Group()
         
         for count, shape in enumerate(self.shapes):
-            self.selections.add(Selection(shape.shape_data, count, self.num_shapes))
+            self.selections.add(Selection(shape.shape_data, count, self.num_shapes, self.inverted))
         
     def addShape(self, shape: ShapeData):
-        if len(self.selections) != 0: self.selections.sprites()[self.selected_index].selected = False
+        if len(self.selections) != 0: 
+            # self.selections.sprites()[self.selected_index].selected = False
+
+            for selection in self.selections.sprites(): selection.selected = False
+            
         self.selected_index = 0
         self.num_shapes += 1
         
@@ -126,7 +131,7 @@ class Selector:
         selections_copy = self.selections.sprites()
         
         self.selections.empty()
-        self.selections.add(Selection(shape, 0, self.num_shapes))
+        self.selections.add(Selection(shape, 0, self.num_shapes, self.inverted))
         self.selections.add(selections_copy)
         
         self.redrawSurface()
@@ -160,8 +165,8 @@ class Selector:
         self.rect = self.surface.get_rect()
         # self.rect.center = self.center
         self.rect.topleft = self.topleft
-        pygame.draw.rect(self.surface, 'black', [0, 0, self.w, self.h], border_radius=10)
-        pygame.draw.rect(self.surface, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
+        pygame.draw.rect(self.surface, 'white' if self.inverted else 'black', [0, 0, self.w, self.h], border_radius=10)
+        pygame.draw.rect(self.surface, 'black' if self.inverted else 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
 
     def setSelected(self, selected_index):
         print(self.selected_index)
@@ -215,8 +220,8 @@ class Selector:
             self.rect = self.surface.get_rect()
             self.rect.topleft = self.topleft
         
-        pygame.draw.rect(self.surface, 'black', [0, 0, self.w, self.h], border_radius=10)
-        pygame.draw.rect(self.surface, 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
+        pygame.draw.rect(self.surface, 'white' if self.inverted else 'black', [0, 0, self.w, self.h], border_radius=10)
+        pygame.draw.rect(self.surface, 'black' if self.inverted else 'white', [3, 3, self.w-6, self.h-6], border_radius=10)
         self.selections.draw(self.surface)
         self.selections.update()
   
