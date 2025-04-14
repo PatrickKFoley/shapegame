@@ -28,6 +28,7 @@ class WindowSprite(pygame.sprite.Sprite):
         self.backgrounds = backgrounds
         self.side = side
         self.new = new
+        self.frames = 0
 
         self.initSprite()
         self.initInfo()
@@ -165,6 +166,8 @@ class WindowSprite(pygame.sprite.Sprite):
         self.next_y += 175
         
     def update(self):
+        
+        self.frames += 1
         # rerender icons if need be
         if self.rerender_icons:
             self.renderIcons()

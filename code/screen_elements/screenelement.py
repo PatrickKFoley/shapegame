@@ -1,7 +1,7 @@
 import pygame
 
 class ScreenElement:
-    def __init__(self, x, y, fast_off = False):
+    def __init__(self, x, y, fast_off = False, duration = None):
         self.x = x
         self.y = y
 
@@ -14,6 +14,10 @@ class ScreenElement:
         self.disabled = False
         self.selected = False
         self.hovered = False
+        
+        self.duration = duration
+        self.frames = 0
+        self.dead = False
 
     def isHovAndEnabled(self, mouse_pos):
         return not self.disabled and self.rect.collidepoint(mouse_pos)
@@ -48,6 +52,17 @@ class ScreenElement:
     def deselect(self): self.selected = False
 
     def update(self, events, rel_mouse_pos):
+        
+        if self.dead: return
+        self.frames += 1
+        
+        if self.frames == 1 and self.duration != None: self.turnOn()
+        elif self.duration != None:
+            if self.frames > self.duration:
+                self.turnOff()
+                
+            if self.alpha == 0: self.dead = True
+        
         # fade in or out
         if not self.shown and self.alpha > 0:
             self.alpha = max(self.alpha - 10, 0)

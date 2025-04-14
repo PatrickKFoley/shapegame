@@ -1,4 +1,4 @@
-import pygame, numpy, sys
+import pygame, numpy, sys, os
 from pygame.locals import *
 from pygame.image import load
 import sys
@@ -753,7 +753,80 @@ def envelope():
     pygame.quit()
     sys.exit()
 
+def renameImages():
+    pygame.init()
+    
+    mask = pygame.image.load('assets/backgrounds/sticker shimmer/mask.png')
+    
+    for i in range(53):
+        print(i+1)
+        # os.rename(f'assets/backgrounds/sticker shimmer/Untitled_Artwork-{i+1}.png', f'assets/backgrounds/sticker shimmer/{i}.png')
+        
+        image = pygame.image.load(f'assets/backgrounds/sticker shimmer/{i}.png')
+        
+        for x in range(image.get_size()[0]):
+            for y in range(image.get_size()[1]):
+                mask_pixel = mask.get_at((x, y))
 
+                if mask_pixel[3] == 0:
+                    image.set_at([x, y], [0, 0, 0, 0])
+
+        pygame.image.save(image, f'assets/backgrounds/sticker shimmer/{i}.png')
+        
+def generateShimmer():
+    pygame.init()
+    
+    shimmer = pygame.image.load('assets/backgrounds/sticker shimmer/color shimmer.png')
+    spot = pygame.image.load('assets/backgrounds/sticker shimmer/spot.png')
+    mask = pygame.image.load('assets/backgrounds/sticker shimmer/mask.png')
+
+    len = 349
+    spot_len = 349
+    
+    start_x = -spot_len
+    stop_x = 349
+    
+    cur_x = start_x
+    
+    count = 0
+    max = 0
+    
+    while cur_x < stop_x:
+        print(cur_x)
+        
+        image = pygame.Surface([len, 170], pygame.SRCALPHA, 32)
+        
+        for x in range(image.get_size()[0]):
+            for y in range(image.get_size()[1]):
+                
+                if x+cur_x < 0 or x+cur_x >= len or mask.get_at([x, y])[3] == 0:
+                    intensity = 0
+                else:
+                    intensity = min(spot.get_at([x+cur_x, y])[3] * 1.75, 255)
+                    
+                if intensity > max:
+                    max = intensity
+                
+                if intensity == 0:
+                    color = [0, 0, 0, 0]
+                else:
+                    color = [
+                        shimmer.get_at([x, y])[0],
+                        shimmer.get_at([x, y])[1],
+                        shimmer.get_at([x, y])[2],
+                        intensity
+                    ]
+                
+                
+                image.set_at([x, y], color)
+                
+        pygame.image.save(image, f'assets/backgrounds/sticker shimmer/{count}.png')
+        
+        cur_x += 20
+        count += 1
+    print(max)
+    
+    
 if len(sys.argv) > 1: 
     if sys.argv[1] == 'menu': 
         if len(sys.argv) < 4:
@@ -763,3 +836,5 @@ if len(sys.argv) > 1:
     elif sys.argv[1] == 'game': game2()
 
 
+# renameImages()
+generateShimmer()

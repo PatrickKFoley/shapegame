@@ -22,11 +22,11 @@ from sqlalchemy import create_engine, func, delete, select, case
 from sqlalchemy.orm import Session
 
 class NotificationsWindow(ScrollableWindow):
-    def __init__(self, user: User, session: Session, addFriend: Callable, startNetwork: Callable):
+    def __init__(self, user: User, session: Session, addFriend: Callable, startNetwork: Callable, notifyMenu: Callable):
         super().__init__(user, session, 'right')
         self.addFriend = addFriend
         self.startNetwork = startNetwork
-
+        self.notifyMenu = notifyMenu
         self.addAssets()
         self.initGroup()
 
@@ -43,27 +43,36 @@ class NotificationsWindow(ScrollableWindow):
         for i in range(4):
             self.challenge_tags.append(load(f'assets/backgrounds/challenge_stickers/{i}.png'))
         self.challenge_tags.append(self.name_tags[-1])
-
+        
+        self.shimmer = []
+        for i in range(33):
+            self.shimmer.append(load(f'assets/backgrounds/sticker shimmer/{i}.png').convert_alpha())
+            
         # create and add screen elements
+        self.new_notification_sound = Sound('assets/sounds/new_notification.wav')
 
         self.header = Text('notifications', 40, 300, 115)
         self.mark_all_text = Text('mark all as read', 30, 280, 168)
         self.delete_all_text = Text('delete all', 30, 280, 202)
         self.mark_all_button = Button('check_s', 30, [400, 168])
         self.delete_all_button = Button('trash_s', 30, [360, 202])
+        
+        # new notification count
+        new_count = len([n for n in self.user.notifications_owned if n.new])
+        self.sprite_count_text = Text(f'{new_count}', 30, 45, 25, align='topright', color='red', outline_color='white')
+        if self.sprite_count_text.text == '0': self.sprite_count_text.fastOff()
 
         self.screen_elements.append(self.header)
         self.screen_elements.append(self.mark_all_text)
         self.screen_elements.append(self.delete_all_text)
         self.screen_elements.append(self.mark_all_button)
         self.screen_elements.append(self.delete_all_button)
-
+        self.screen_elements.append(self.sprite_count_text)
         # notification count
-        self.notification_count = Text('0', 30, 30, 10, color='red')
 
     def initGroup(self):
         for notification in reversed(self.user.notifications_owned):
-            self.addNotificationSprite(notification)
+            self.addNotificationSprite(notification, new=False, shimmer_images=self.shimmer)
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
@@ -75,6 +84,8 @@ class NotificationsWindow(ScrollableWindow):
             if event.type == MOUSEBUTTONDOWN: 
 
                 if self.delete_all_button.rect.collidepoint(rel_mouse_pos): self.deleteAllNotifications()
+                
+                if self.mark_all_button.isHovAndEnabled(rel_mouse_pos): self.markNotificationsAsRead()
      
     def checkNotificationsUpdate(self, prev_opponent = None):
         '''check if notifications have been added or removed'''
@@ -102,11 +113,15 @@ class NotificationsWindow(ScrollableWindow):
         # Add sprites for new notifications
         for notification in self.user.notifications_owned:
             if notification.id not in displayed_notifications:
+                self.new_notification_sound.play()
                 self.addNotificationSprite(notification)
 
         return clear_prev_opponent
 
-    def addNotificationSprite(self, notification: Notification):
+    def addNotificationSprite(self, notification: Notification, new: bool = True, shimmer_images: list[Surface] = None):
+        
+        # create notification on main menu
+        if new: self.notifyMenu(notification)
 
         self.addSprite(NotificationSprite(
             self.user, 
@@ -117,8 +132,35 @@ class NotificationsWindow(ScrollableWindow):
             self.addFriend,
             self.startNetwork,
             len(self.group),
-            True
+            True,
+            shimmer_images
         ), False)
 
     def deleteAllNotifications(self):
         for sprite in self.group.sprites(): sprite.next_x += 1000
+        
+    def update(self, mouse_pos, events):
+        
+        if len(self.user.notifications_owned) != self.sprite_count_text.text:
+            self.updateSpriteCountText()
+
+        super().update(mouse_pos, events)
+        
+    def markNotificationsAsRead(self):
+        '''mark all notifications as read'''
+        for notification in self.user.notifications_owned:
+            notification.new = False
+            
+        self.updateSpriteCountText()
+        
+        for sprite in self.group.sprites():
+            sprite.new = False
+            
+        self.session.commit()
+
+    def updateSpriteCountText(self):
+        new_count = len([n for n in self.user.notifications_owned if n.new])
+        self.sprite_count_text.updateText(f'{new_count}')
+            
+        if self.sprite_count_text.text == '0': self.sprite_count_text.turnOff()
+        else: self.sprite_count_text.turnOn()

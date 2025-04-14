@@ -4,8 +4,8 @@ import pygame
 from .screenelement import ScreenElement
 
 class Text(ScreenElement):
-    def __init__(self, text, size, x, y, align = "center", color = "black", max_width = None, outline_color = None, fast_off = False):
-        super().__init__(x, y)
+    def __init__(self, text, size, x, y, align = "center", color = "black", max_width = None, outline_color = None, fast_off = False, duration = None):
+        super().__init__(x, y, fast_off, duration)
 
         self.text = text
         self.size = size
@@ -44,8 +44,11 @@ class Text(ScreenElement):
             self.surface.blit(back, [0, 0])
             self.surface.blit(front, [diff, 0])
 
-    def updateText(self, text: str):
+    def updateText(self, text: str, color: str = None):
         self.text = text
+
+        if color != None:
+            self.color = color
 
         self.buildSurface(self.size)
 

@@ -244,6 +244,7 @@ class Menu():
         [shape.turnOff() for shape in self.menu_shapes]
         [window.close() for window in [self.friends_window, self.collection_window, self.notifications_window]]
         [window.button.turnOff() for window in [self.friends_window, self.collection_window, self.notifications_window]]
+        self.notifications_window.sprite_count_text.turnOff()
         [element.turnOff() for element in self.screen_elements if element not in [self.title_text, self.logged_in_as_text, self.exit_button]]
         self.connecting_to_text.turnOn()
 
@@ -334,6 +335,7 @@ class Menu():
         # turn on/off auxiliary screen elements
         [shape.turnOn() for shape in self.menu_shapes]
         [window.button.turnOn() for window in [self.friends_window, self.collection_window, self.notifications_window]]
+        if self.notifications_window.sprite_count_text.text != '0': self.notifications_window.sprite_count_text.turnOn()
         [element.turnOn() for element in [self.play_text, self.logged_in_as_text, self.network_back_button, self.local_match_clickable, self.network_match_clickable, self.exit_button] if element != None]
 
         self.network_back_button.turnOff()
@@ -573,6 +575,13 @@ class Menu():
         # Add the new notification
         self.session.add(Notification(owner, sender, type))
 
+    def notifyMenu(self, notification: Notification):
+        '''create notification on main menu'''
+        
+        blurb = [f'new notification', f'from {notification.sender.username}']
+        
+        self.screen_elements.append(Text(blurb, 30, 1870, 0, align='topright', color='black', duration=250, fast_off=True))
+
     # MENU SHAPE HELPERS
 
     def checkShapeCollisions(self):
@@ -794,7 +803,7 @@ class Menu():
                 # Initialize windows after successful login
                 self.collection_window = CollectionWindow(user, self.session)
                 self.friends_window = FriendsWindow(user, self.session, self.addFriend, self.startNetwork)
-                self.notifications_window = NotificationsWindow(user, self.session, self.addFriend, self.startNetwork)
+                self.notifications_window = NotificationsWindow(user, self.session, self.addFriend, self.startNetwork, self.notifyMenu)
                 self.user = user
 
                 self.logging_in_text.turnOff()
@@ -888,7 +897,7 @@ class Menu():
                 # Initialize windows for new user
                 self.collection_window = CollectionWindow(self.user, self.session)
                 self.friends_window = FriendsWindow(self.user, self.session, self.addFriend, self.startNetwork)
-                self.notifications_window = NotificationsWindow(self.user, self.session, self.addFriend, self.startNetwork)
+                self.notifications_window = NotificationsWindow(self.user, self.session, self.addFriend, self.startNetwork, self.notifyMenu)
 
                 self.logging_in_text.turnOff()
 
@@ -945,6 +954,7 @@ class Menu():
                     [element.deselect() for element in self.screen_elements if isinstance(element, EditableText)]
                     [element.turnOff() for element in self.screen_elements if element not in [self.title_text]]
                     [element.button.turnOff() for element in [self.friends_window, self.notifications_window, self.collection_window] if element != None]
+                    self.notifications_window.sprite_count_text.turnOff()
                     [shape.turnOff() for shape in self.menu_shapes]
 
             # handle window interactions, if windows exist
@@ -985,7 +995,9 @@ class Menu():
         if self.exit_clicked:
             self.frames_since_exit_clicked += 1
 
-            if self.frames_since_exit_clicked == self.target_fps: sys.exit()
+            if self.frames_since_exit_clicked == self.target_fps: 
+                self.notifications_window.markNotificationsAsRead()
+                sys.exit()
 
         # Start notification polling when notifications window is created
         if self.notifications_window and not self.notification_poll_thread:
@@ -1098,7 +1110,7 @@ class Menu():
                     self.screen_elements.append(self.logged_in_as_text)
                     self.collection_window = CollectionWindow(user, self.session)
                     self.friends_window = FriendsWindow(user, self.session, self.addFriend, self.startNetwork)
-                    self.notifications_window = NotificationsWindow(user, self.session, self.addFriend, self.startNetwork)
+                    self.notifications_window = NotificationsWindow(user, self.session, self.addFriend, self.startNetwork, self.notifyMenu)
                     
                     print(f'Success: logged in as {user.username}')
                 
@@ -1131,7 +1143,7 @@ class Menu():
         if do_login_loop: self.loginLoop()
 
         while True: self.runGameLoop()
-
+        
     def runGameLoop(self):
         '''run the game loop'''
 

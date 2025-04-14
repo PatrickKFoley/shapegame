@@ -7,7 +7,7 @@ from pygame.transform import smoothscale
 from pygame.surface import Surface
 from pygame.image import load
 from typing import Union
-import pygame, random, math
+import pygame, random, math, itertools
 from typing import Callable
 
 from code.screen_elements.screenelement import ScreenElement
@@ -66,6 +66,11 @@ class ScrollableWindow:
 
         self.group = Group()
         self.dead_group = Group()
+        
+        self.sprite_count_text = None
+        '''text to display the number of sprites in the window
+            currently only used for notifications window
+        '''
 
     def initSurface(self):
         self.surface_l = 2160
@@ -159,10 +164,22 @@ class ScrollableWindow:
         ''' replaces update() when window is fully closed
             only accepts inputs to and draws toggle button
         '''
-
-        self.button.update(events, mouse_pos)
-        clearSurfaceBeneath(self.surface, self.button.rect)
-        self.surface.blit(self.button.surface, self.button.rect)
+        
+        if self.sprite_count_text != None and self.sprite_count_text.text != '0':
+            
+            self.button.update(events, mouse_pos)
+            self.sprite_count_text.update(events, mouse_pos)
+            
+            clearSurfaceBeneath(self.surface, self.button.rect)
+            clearSurfaceBeneath(self.surface, self.sprite_count_text.rect)
+            
+            self.button.draw(self.surface)
+            self.sprite_count_text.draw(self.surface)
+            
+        else:
+            self.button.update(events, mouse_pos)
+            clearSurfaceBeneath(self.surface, self.button.rect)
+            self.button.draw(self.surface)
 
         for event in events: 
             
@@ -223,7 +240,7 @@ class ScrollableWindow:
         self.updateScrollBar()
         # [editable.update(events, rel_mouse_pos) for editable in self.editables]
         # [clickable.update(events, rel_mouse_pos) for clickable in self.clickables]
-        [element.update(events, rel_mouse_pos) for element in self.screen_elements]
+        [element.update(events, rel_mouse_pos) for element in self.screen_elements if element != None]
 
 
         # inputs
@@ -299,10 +316,12 @@ class ScrollableWindow:
         # [clickable.draw(self.surface) for clickable in self.clickables]
         # [editable.draw(self.surface) for editable in self.editables]
         # [text.draw(self.surface) for text in self.texts]
-        [screen_element.draw(self.surface) for screen_element in self.screen_elements]
+        [screen_element.draw(self.surface) for screen_element in self.screen_elements if screen_element != None]
         
-        self.group.draw(self.surface)
-        self.dead_group.draw(self.surface)
+        # self.group.draw(self.surface)
+        # self.dead_group.draw(self.surface)
+        [sprite.draw(self.surface) for sprite in itertools.chain(self.group.sprites(), self.dead_group.sprites())]
+        
 
         [self.surface.blit(sprite.info_surface, sprite.info_rect) for sprite in self.group.sprites() if sprite.info_hovered]
 

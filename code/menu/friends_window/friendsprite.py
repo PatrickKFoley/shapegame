@@ -86,3 +86,6 @@ class FriendSprite(WindowSprite):
 
         return super().update()
     
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+    

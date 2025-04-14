@@ -21,7 +21,7 @@ class NotificationSprite(WindowSprite):
 
     # INIT
 
-    def __init__(self, user: User, notification: Notification, position: int, session: Session, backgrounds: list[Surface], addFriend: Callable, startNetwork: Callable, current_length = None, new = False):
+    def __init__(self, user: User, notification: Notification, position: int, session: Session, backgrounds: list[Surface], addFriend: Callable, startNetwork: Callable, current_length = None, new = False, shimmer_images: list[Surface] = None):
         self.side = 'right'
         super().__init__(user, notification.sender, session, position, backgrounds, current_length, self.side, new)
 
@@ -33,9 +33,17 @@ class NotificationSprite(WindowSprite):
         self.addFriend = addFriend
         self.startNetwork = startNetwork
         self.current_length = current_length
-
+        self.shimmer_images = shimmer_images
         self.addAssets()
         self.initSurface()
+        
+        self.shimmer_index = 0
+        self.shimmering = self.notification.new
+        self.next_shimmer_frame = random.randint(60, 120)
+        self.frames = 0
+        self.shimmer_surface = None if not self.shimmering else self.shimmer_images[self.shimmer_index]
+        
+        
 
     def addAssets(self):
         blurb = 'followed you!' if self.notification.type == 'FRIEND' else ('wants to fight!' if self.notification.type == 'CHALLENGE' else 'followed you back!')
@@ -57,6 +65,13 @@ class NotificationSprite(WindowSprite):
         [button.draw(self.image) for button in self.buttons]
 
     # UPDATE STATE
+    
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+        
+        if self.shimmering:
+            surface.blit(self.shimmer_surface, self.rect)
+        
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x + self.width/2, mouse_pos[1] - self.y + self.height/2]
@@ -98,6 +113,32 @@ class NotificationSprite(WindowSprite):
     def update(self, mouse_pos, events):
 
         self.handleInputs(mouse_pos, events)
+        
+        if self.shimmering and self.frames >= self.next_shimmer_frame:
+            
+            if self.frames % 3 == 0:
+            
+                self.shimmer_index += 1
+                if self.shimmer_index >= len(self.shimmer_images):
+                    self.shimmer_index = 0
+                    self.next_shimmer_frame = self.frames + 90
+                    
+                prev_alpha = self.shimmer_surface.get_alpha()
+                self.shimmer_surface = Surface(self.shimmer_images[self.shimmer_index].get_size(), pygame.SRCALPHA, 32)
+                self.shimmer_surface.blit(self.shimmer_images[self.shimmer_index], [0, 0])
+                self.shimmer_surface.set_alpha(prev_alpha)
+                    
+                    
+                if not self.notification.new and self.shimmer_surface.get_alpha() > 0:
+                    self.shimmer_surface.set_alpha(max(self.shimmer_surface.get_alpha() - 10, 0))
+                
+            if self.shimmer_surface.get_alpha() == 0:
+                self.shimmering = False
+                
+            if self.image.get_alpha() != 255:
+                self.shimmer_surface.set_alpha(max(self.shimmer_surface.get_alpha() - 10, 0))
+                
 
         return super().update()
+    
     
