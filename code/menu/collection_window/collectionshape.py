@@ -259,6 +259,8 @@ class CollectionShape(pygame.sprite.Sprite):
             self.info_surface.blit(text.surface, text.rect)
 
         self.info_surface.set_alpha(0)
+        
+        self.redrawPosition(self.position, self.num_shapes)
 
     def eraseTextFromBackground(self, background: Surface, text: Text):
         '''erase the given text from the given background by setting all pixels beneath the text's rect to transparent '''

@@ -14,7 +14,7 @@ from ...screen_elements.button import Button
 
 from .collectionshape import CollectionShape
 from .selector import Selector
-from .essencebar import EssenceBar
+from .essencebar import EssenceBar2 as EssenceBar
 from ...screen_elements.networknameplate import NetworkNameplate
 from ...server.connectionmanager import ConnectionManager
 from sharedfunctions import clearSurfaceBeneath
@@ -38,7 +38,7 @@ class CollectionWindow:
         self.mode = COLLECTION if not self.opponent else NETWORK
         self.connection_manager: None | ConnectionManager = None
 
-        self.num_tokens_on_create = self.user.shape_tokens
+        self.num_tokens_on_create = int(self.user.shape_essence)
 
         self.surface = Surface([1920, 493], pygame.SRCALPHA, 32)
         self.rect = self.surface.get_rect()
@@ -76,7 +76,7 @@ class CollectionWindow:
         ]
 
         # disable add button if user has no shape tokens
-        if self.user.shape_tokens == 0: 
+        if int(self.user.shape_essence) == 0: 
             self.add_button.disable()
             self.up_button.disable()
 
@@ -95,7 +95,7 @@ class CollectionWindow:
         self.tape_rect = self.tape_surface.get_rect()
         self.tape_rect.center = [1105, 110]
 
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
+        self.shape_token_text = Text(f'{int(self.user.shape_essence)}', 35 if int(self.user.shape_essence) < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if int(self.user.shape_essence) > 0 else 'red'))
 
         # essence bar 
         self.essence_bar = EssenceBar(self.user, self.opponent)
@@ -192,7 +192,7 @@ class CollectionWindow:
 
     def userGenerateShape(self):
         '''handle the user adding a shape to their collection'''
-        if self.user.shape_tokens == 0 or self.user.num_shapes == 30: return
+        if int(self.user.shape_essence) == 0 or self.user.num_shapes == 30: return
 
         # move all shapes to original position
         while self.selected_index != 0:
@@ -203,6 +203,7 @@ class CollectionWindow:
 
         # create shape in database
         shape_data = generateRandomShape(self.user, self.session)
+        self.essence_bar.increaseEssenceBy(-1)
 
         # add new collection shape to the front of the list
         new_shape = CollectionShape(shape_data, -1, self.user.num_shapes, self.session, True)
@@ -216,10 +217,10 @@ class CollectionWindow:
             shape.moveRight()
 
         # recreate shape tokens text
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
+        # self.shape_token_text = Text(f'{int(self.user.shape_essence)}', 35 if int(self.user.shape_essence) < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if int(self.user.shape_essence) > 0 else 'red'))
 
         # disable add button if user used last token
-        if self.user.shape_tokens == 0: 
+        if int(self.user.shape_essence) == 0: 
             self.add_button.disable()
             self.up_button.disable()
 
@@ -319,8 +320,12 @@ class CollectionWindow:
                 self.selector.removeShape()
 
                 # delete db entry
+                essence_amount = max(sprite.shape_data.level * 0.25, 0.15)
                 self.user.num_shapes -= 1
-                self.user.shape_essence += max(sprite.shape_data.level * 0.25, 0.15)
+                self.user.shape_essence += essence_amount
+                
+                self.essence_bar.increaseEssenceBy(essence_amount)
+                self.user.shape_essence += essence_amount
 
                 self.session.execute(delete(ShapeData).where(ShapeData.id == sprite.shape_data.id))
                 self.session.commit()
@@ -363,8 +368,11 @@ class CollectionWindow:
     def lvlUpSelectedShape(self):
         self.up_clicked = False
 
+        self.essence_bar.increaseEssenceBy(-1)
+        self.user.shape_essence -= 1
+
         self.selected_shape.shape_data.level += 1
-        self.user.shape_tokens -= 1
+        # self.user.shape_tokens -= 1
 
         self.selected_shape.shape_data.health += 5
         self.selected_shape.shape_data.dmg_multiplier = round(self.selected_shape.shape_data.dmg_multiplier + 0.1, 1)
@@ -377,9 +385,9 @@ class CollectionWindow:
 
         self.collection_shapes.sprites()[self.selected_index].regenerateStats()
 
-        self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
+        self.shape_token_text = Text(f'{int(self.user.shape_essence)}', 35 if int(self.user.shape_essence) < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if int(self.user.shape_essence) > 0 else 'red'))
 
-        if self.user.shape_tokens == 0:
+        if int(self.user.shape_essence) == 0:
             self.up_button.disable()
             self.add_button.disable()
 
@@ -442,12 +450,12 @@ class CollectionWindow:
                 # if the window is closed the only inputs we want to accept are the open button
                 if not self.opened: return
 
-                elif self.add_button.rect.collidepoint(mouse_pos):
+                elif self.add_button.isHovAndEnabled(mouse_pos):
                     self.userGenerateShape()
                     self.woosh_sound.play()
 
                 # show the delete confirmation screen
-                elif self.del_button.rect.collidepoint(mouse_pos) and not self.del_button.disabled:
+                elif self.del_button.isHovAndEnabled(mouse_pos):
                     self.delete_clicked = not self.delete_clicked
 
                 elif self.up_button.isHovAndEnabled(mouse_pos):
@@ -553,25 +561,39 @@ class CollectionWindow:
         # update returns true when shape essence amount is altered, needing commit
         if not self.essence_bar_lock:
             ret = self.essence_bar.update()
-
-            # returns 'real' when collection window is not an opponent window, signaling for the user's db entry to be updated (they gained a token)
-            if ret == 'real': 
-                self.session.commit()
-                self.shape_token_text = Text(f'{self.user.shape_tokens}', 35 if self.user.shape_tokens < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.user.shape_tokens > 0 else 'red'))
-                self.up_button.enable()
-                self.add_button.enable()
             
-            # returns 'fake' when collection window is opponent window, no db alteration needed, just update the text on the screen
-            elif ret == 'fake':
-                self.num_tokens_on_create += 1
-                self.shape_token_text = Text(f'{self.num_tokens_on_create}', 35 if self.num_tokens_on_create < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.num_tokens_on_create > 0 else 'red'))
+            if self.shape_token_text.text != f'{int(self.user.shape_essence)}':
+                self.shape_token_text = Text(f'{int(self.user.shape_essence)}', 35 if int(self.user.shape_essence) < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if int(self.user.shape_essence) > 0 else 'red'))
+
+            # # returns 'real' when collection window is not an opponent window, signaling for the user's db entry to be updated (they gained a token)
+            # if ret == 'real': 
+            #     self.session.commit()
+            #     self.shape_token_text = Text(f'{int(self.user.shape_essence)}', 35 if int(self.user.shape_essence) < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if int(self.user.shape_essence) > 0 else 'red'))
+            #     self.up_button.enable()
+            #     self.add_button.enable()
+            
+            # # returns 'fake' when collection window is opponent window, no db alteration needed, just update the text on the screen
+            # elif ret == 'fake':
+            #     self.num_tokens_on_create += 1
+            #     self.shape_token_text = Text(f'{self.num_tokens_on_create}', 35 if self.num_tokens_on_create < 10 else 30, 108, 200 if not self.opponent else 320, color=(('white' if self.opponent else 'black') if self.num_tokens_on_create > 0 else 'red'))
 
         # toggle buttons when essence bar is changing
         if self.mode == COLLECTION:
-            if self.essence_bar.changing and not self.del_button.disabled:
+            if self.essence_bar.changing:
                 self.del_button.disable()
-            elif not self.essence_bar.changing and self.del_button.disabled and self.user.num_shapes > 1 and not self.selected_shape.shape_data.id == self.user.favorite_id:
-                self.del_button.enable()
+                self.add_button.disable()
+                self.up_button.disable()
+            
+            
+            else:
+                if self.user.num_shapes > 1 and not self.selected_shape.shape_data.id == self.user.favorite_id:
+                    self.del_button.enable()
+            
+                if self.user.num_shapes < 30 and int(self.user.shape_essence) > 0:
+                    self.add_button.enable()
+        
+                if self.selected_shape != None:
+                    self.up_button.enable()
         
         self.handleInputs(rel_mouse_pos, events)
 
