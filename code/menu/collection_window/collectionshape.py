@@ -101,7 +101,6 @@ class CollectionShape(pygame.sprite.Sprite):
         d_ts_s = f'{d_ts}' if d_ts < 0 else f'+{d_ts}'
 
         text_color = 'white' if self.opponent else 'black'
-        print(text_color)
         
         self.texts = [
             # name
