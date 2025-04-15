@@ -837,4 +837,4 @@ if len(sys.argv) > 1:
 
 
 # renameImages()
-generateShimmer()
+# generateShimmer()

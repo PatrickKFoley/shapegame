@@ -41,6 +41,13 @@ class ScreenElement:
         self.shown = True
         self.enable()
 
+    def turnOnFor(self, duration):
+        self.dead = False
+        self.frames = 0
+        self.duration = duration
+        
+        self.turnOn()
+
     def disable(self):
         self.disabled = True
 

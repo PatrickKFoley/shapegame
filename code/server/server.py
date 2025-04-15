@@ -24,7 +24,7 @@ class Server:
         self.failed = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.socket.bind(("192.168.2.24", 5555))
+            self.socket.bind(("192.168.2.12", 5555))
             self.socket.listen()
             print('Server started!\n')
 
@@ -106,6 +106,8 @@ class Server:
                                 session.add(game_entry)
 
                                 # shuffle shapes
+
+                                loser_lost_last_shape = False
                                 if selections.keeps[0] and selections.keeps[1]:
                                     winner.num_shapes += 1
                                     loser.num_shapes -= 1
@@ -118,8 +120,8 @@ class Server:
                                     if loser_shape.id == loser.favorite_id: loser.favorite_id = -1
 
                                     # # don't let user run out of shapes and shape tokes
-                                    if loser.num_shapes == 0 and loser.shape_tokens == 0:
-                                        loser.shape_essence += 1
+                                    if loser.num_shapes == 0 and int(loser.shape_essence) == 0:
+                                        loser_lost_last_shape = True
                                     # DO THIS WITH SHAPE ESS
 
                                 # determine xp gained
@@ -129,14 +131,14 @@ class Server:
                                 loser_amount = round(amount/4, 2)
                                 if selections.keeps[0] and selections.keeps[1]: amount *= 2 # if game was played for keeps, double the reward of the winner
                                 print(f'determined shape ess amount: {amount, loser_amount}')
-                                loser.shape_essence += loser_amount
-                                winner.shape_essence += amount
-
-                                loser.shape_essence = round(loser.shape_essence, 2)
-                                winner.shape_essence = round(winner.shape_essence, 2)
 
                                 selections.essence_earned = [loser_amount, amount]
                                 selections.winner = winner_pid # do this last, as it signals the other thread to send the last selections object
+
+                                if loser_lost_last_shape:
+                                    selections.essence_earned[0] += 1
+                                    selections.essence_earned[0] = max(selections.essence_earned[0], 1)  # Ensure minimum value is 1
+                                    selections.essence_earned[1] = max(selections.essence_earned[1], selections.essence_earned[0])  # Ensure the other value is the maximum
 
                                 session.commit()
                                 connection.sendall(pickle.dumps(selections))

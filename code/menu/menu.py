@@ -394,14 +394,15 @@ class Menu():
 
         self.session.commit()
 
-        # manually increment the opponent's essence bar
-        amount = 0
+        # determine amount of essence to add to each player
+        opponent_amount = 0
+        player_amount = 0
         if self.pid == self.selections.winner:
-            amount = min(self.selections.essence_earned[0], self.selections.essence_earned[1])
+            opponent_amount = min(self.selections.essence_earned[0], self.selections.essence_earned[1])
+            player_amount = max(self.selections.essence_earned[0], self.selections.essence_earned[1])
         else:
-            amount = max(self.selections.essence_earned[0], self.selections.essence_earned[1])
-        self.opponent_window.essence_bar.new_essence += amount
-        
+            opponent_amount = max(self.selections.essence_earned[0], self.selections.essence_earned[1])
+            player_amount = min(self.selections.essence_earned[0], self.selections.essence_earned[1])
         
         # prepare windows for post game animation
         windows = [self.opponent_window, self.collection_window]
@@ -434,7 +435,7 @@ class Menu():
                 winner_window.moveSpritesHome()
 
             # add new shape to the front of the list
-            new_shape = CollectionShape(moved_shape.shape_data, -1, winner_window.user.num_shapes, self.session, True)
+            new_shape = CollectionShape(moved_shape.shape_data, -1, winner_window.user.num_shapes, self.session, True, winner_window == self.opponent_window)
             collection_copy = winner_window.collection_shapes.sprites()
             winner_window.collection_shapes.empty()
             winner_window.collection_shapes.add(itertools.chain([new_shape, collection_copy]))
@@ -443,6 +444,7 @@ class Menu():
             # adjust selected shape and shape positions to introduce new shape from the right
             winner_window.selected_shape: CollectionShape = new_shape # type: ignore
             for shape in winner_window.collection_shapes: shape.moveRight()
+            self.collection_window.woosh_sound.play()
 
             # adjust transparency of new shape and shape's stats (to 0)
             winner_window.selected_shape.alpha_lock = True
@@ -468,6 +470,7 @@ class Menu():
             
             # add false image of shape to some group so that it can be animated moving
             self.moving_shapes.add(MovingShape(moved_shape.image, moving_side))
+            self.collection_window.woosh_sound.play()
             self.pauseFor(0.5)
 
             # once false image is in place, fade shape and stats back in
@@ -477,8 +480,10 @@ class Menu():
             self.pauseFor(1)
             self.moving_shapes.empty() # kill false image on the way out
         
-        self.opponent_window.essence_bar_lock = False
-        self.collection_window.essence_bar_lock = False
+        self.collection_window.essence_bar.increaseEssenceBy(player_amount)
+        self.opponent_window.essence_bar.increaseEssenceBy(opponent_amount)
+        self.user.shape_essence += player_amount # each player handles the db entries of only their own essence
+        self.session.commit()
 
         # hold while essence bars are updating
         self.updateMenuState() # required for essence bar's changing flag to be updated
@@ -502,8 +507,6 @@ class Menu():
             self.updateMenuState()
             self.drawScreenElements()
             self.clock.tick(self.target_fps)
-
-        self.session.commit()
 
         # redraw the positions of shapes in collection group
         # (keeps the new shape at the front of the group)
@@ -1067,7 +1070,8 @@ class Menu():
         if self.opponent_window: self.opponent_window.draw(self.screen)
 
         # draw moving shapes on top of windows
-        self.moving_shapes.draw(self.screen)
+        if self.moving_shapes:
+            if self.moving_shapes.sprites()[0].image.get_alpha() != 0: self.moving_shapes.draw(self.screen)
 
         # draw bad credentials text if flag is true, and handle timer
         if self.bad_credentials_flag:

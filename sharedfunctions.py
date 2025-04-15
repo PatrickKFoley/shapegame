@@ -90,3 +90,6 @@ def createShape(owner_id = -1, session = None, username = "no one"):
     else:
         shape = Shape(owner_id, None, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_multiplier, luck, team_size, username, name, title)
         return shape
+
+def getEssenceCost(level):
+    return round(0.25 * (1.35 ** level), 2)

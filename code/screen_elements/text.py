@@ -37,7 +37,7 @@ class Text(ScreenElement):
 
             diff = max(2, int(size / 38))
 
-            self.surface = Surface((back.get_size()[0] + diff, back.get_size()[1]), pygame.SRCALPHA, 32)
+            self.surface = Surface((back.get_size()[0] + diff, back.get_size()[1]), pygame.SRCALPHA, 32).convert_alpha()
             self.rect = self.surface.get_rect()
 
 

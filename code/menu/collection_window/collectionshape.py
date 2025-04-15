@@ -69,8 +69,8 @@ class CollectionShape(pygame.sprite.Sprite):
         '''generate the surfaces for window stats, additional info, and shape image'''
 
         # shape image
-        self.face_image = smoothscale(load(f'assets/shapes/faces/{self.shape_data.type}/{self.shape_data.face_id}/0.png').convert_alpha(), [190, 190])
-        self.image = smoothscale(load(f'assets/shapes/backgrounds/{self.shape_data.type}/{color_data[self.shape_data.color_id].name}.png').convert_alpha(), [190, 190])
+        self.face_image = smoothscale(load(f'assets/shapes/faces/{self.shape_data.type}/{self.shape_data.face_id}/0.png').convert_alpha(), [190, 190]).convert_alpha()
+        self.image = smoothscale(load(f'assets/shapes/backgrounds/{self.shape_data.type}/{color_data[self.shape_data.color_id].name}.png').convert_alpha(), [190, 190]).convert_alpha()
 
         self.image.blit(self.face_image, [0, 0])
 
@@ -78,7 +78,7 @@ class CollectionShape(pygame.sprite.Sprite):
         self.rect.center = [self.x, self.y]
 
         # stats surface
-        self.stats_surface = Surface([580, 340], pygame.SRCALPHA, 32)
+        self.stats_surface = Surface([580, 340], pygame.SRCALPHA, 32).convert_alpha()
         self.stats_rect = self.stats_surface.get_rect()
         self.stats_rect.center = [450, 267]
         self.stats_alpha = 255
@@ -144,7 +144,7 @@ class CollectionShape(pygame.sprite.Sprite):
             self.stats_surface.blit(text.surface, text.rect)
 
         # additional info
-        self.info_surface = Surface([510, 300], pygame.SRCALPHA, 32)
+        self.info_surface = Surface([510, 300], pygame.SRCALPHA, 32).convert_alpha()
         self.info_rect = self.info_surface.get_rect()
         self.info_rect.center = [1095, 250]
 
@@ -170,7 +170,7 @@ class CollectionShape(pygame.sprite.Sprite):
         
     def regenerateStats(self):
         # stats surface
-        self.stats_surface = Surface([580, 340], pygame.SRCALPHA, 32)
+        self.stats_surface = Surface([580, 340], pygame.SRCALPHA, 32).convert_alpha()
         self.stats_rect = self.stats_surface.get_rect()
         self.stats_rect.center = [450, 267]
         self.stats_alpha = 255
@@ -236,7 +236,7 @@ class CollectionShape(pygame.sprite.Sprite):
             self.stats_surface.blit(text.surface, text.rect)
 
         # additional info
-        self.info_surface = Surface([510, 300], pygame.SRCALPHA, 32)
+        self.info_surface = Surface([510, 300], pygame.SRCALPHA, 32).convert_alpha()
         self.info_rect = self.info_surface.get_rect()
         self.info_rect.center = [1095, 250]
 

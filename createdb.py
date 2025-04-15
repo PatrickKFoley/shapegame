@@ -91,8 +91,8 @@ class User(BaseClass):
     favorite_id = Column("favorite_id", Integer, nullable=True, default=None)
     username = Column("username", String, unique=True, nullable=False)
     _password = Column("password", String, nullable=False)
-    shape_tokens = Column("shape_tokens", Integer, default=5)
-    shape_essence = Column("shape_essence", Float, default=0.0)
+    shape_tokens = Column("shape_tokens", Integer, default=0)
+    shape_essence = Column("shape_essence", Float, default=10.0)
     num_shapes = Column("num_shapes", Integer, default=0)
     num_wins = Column("num_wins", Integer, default=0)
     date_joined = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -198,7 +198,7 @@ def generateRandomShape(user: User, session):
 
     shape_data = Shape(user.id, user, type, face_id, color_id, density, velocity, radius_min, radius_max, health, dmg_x, luck, team_size, user.username, name, title)
 
-    user.shape_tokens -= 1
+    user.shape_essence -= 1
     user.num_shapes += 1
 
     session.add(shape_data)
@@ -228,6 +228,7 @@ if __name__ == "__main__":
 
     try:
         user_1 = User("pat", "1")
+        user_1.shape_essence = 10.5
         user_2 = User("camille", "1")
         # user_3 = User("aiden", "password123")
         # user_4 = User("kyra", "password123")
@@ -270,7 +271,9 @@ if __name__ == "__main__":
 
 
         shape_1 = generateRandomShape(user_1, session)
+        shape_1.level = 20
         shape_1_2 = generateRandomShape(user_1, session)
+        shape_1_2.level = 3
         shape_1_3 = generateRandomShape(user_1, session)
         shape_1_4 = generateRandomShape(user_1, session)
         shape_1_5 = generateRandomShape(user_1, session)

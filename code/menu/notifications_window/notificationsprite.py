@@ -39,7 +39,7 @@ class NotificationSprite(WindowSprite):
         
         self.shimmer_index = 0
         self.shimmering = self.notification.new
-        self.next_shimmer_frame = random.randint(60, 120)
+        self.next_shimmer_frame = random.randint(10, 30)
         self.frames = 0
         self.shimmer_surface = None if not self.shimmering else self.shimmer_images[self.shimmer_index]
         

@@ -44,9 +44,9 @@ class NotificationsWindow(ScrollableWindow):
             self.challenge_tags.append(load(f'assets/backgrounds/challenge_stickers/{i}.png'))
         self.challenge_tags.append(self.name_tags[-1])
         
-        self.shimmer = []
+        self.shimmer_images = []
         for i in range(33):
-            self.shimmer.append(load(f'assets/backgrounds/sticker shimmer/{i}.png').convert_alpha())
+            self.shimmer_images.append(load(f'assets/backgrounds/sticker shimmer/{i}.png').convert_alpha())
             
         # create and add screen elements
         self.new_notification_sound = Sound('assets/sounds/new_notification.wav')
@@ -72,7 +72,7 @@ class NotificationsWindow(ScrollableWindow):
 
     def initGroup(self):
         for notification in reversed(self.user.notifications_owned):
-            self.addNotificationSprite(notification, new=False, shimmer_images=self.shimmer)
+            self.addNotificationSprite(notification, new=False, shimmer_images=self.shimmer_images)
 
     def handleInputs(self, mouse_pos, events):
         rel_mouse_pos = [mouse_pos[0] - self.x, mouse_pos[1] - self.y]
@@ -114,7 +114,7 @@ class NotificationsWindow(ScrollableWindow):
         for notification in self.user.notifications_owned:
             if notification.id not in displayed_notifications:
                 self.new_notification_sound.play()
-                self.addNotificationSprite(notification)
+                self.addNotificationSprite(notification, shimmer_images=self.shimmer_images)
 
         return clear_prev_opponent
 

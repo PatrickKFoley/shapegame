@@ -29,9 +29,9 @@ class Selection(pygame.sprite.Sprite):
         self.size = self.max_size if self.selected else self.min_size
         self.next_size = self.size
         
-        self.image = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
-        self.selected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
-        self.unselected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
+        self.image = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32).convert_alpha()
+        self.selected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32).convert_alpha()
+        self.unselected_surface = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32).convert_alpha()
         self.rect = self.image.get_rect()
         
         width = min(max(self.num_shapes * 50, MIN_W), MAX_W)
@@ -83,7 +83,7 @@ class Selection(pygame.sprite.Sprite):
                 self.size = max(self.size - 1, self.next_size)
                 
             # reset surface
-            self.image = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32)
+            self.image = Surface((self.surface_size, self.surface_size), pygame.SRCALPHA, 32).convert_alpha()
             shape_image = smoothscale(self.selected_surface if self.selected or self.hovered else self.unselected_surface, [self.size, self.size])
             rect = shape_image.get_rect()
             rect.center = self.surface_size/2, self.surface_size/2
@@ -104,7 +104,7 @@ class Selector:
         self.h = 60
         self.next_w = self.w
         
-        self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
+        self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32).convert_alpha()
         self.rect = self.surface.get_rect()
         # self.rect.center = center
         self.rect.topleft = self.topleft
@@ -160,7 +160,7 @@ class Selector:
         
     def redrawSurface(self):
         self.next_w = min(max(self.num_shapes * 50, MIN_W), MAX_W)
-        self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
+        self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32).convert_alpha()
         # self.surface.fill((255, 255, 255))
         self.rect = self.surface.get_rect()
         # self.rect.center = self.center
@@ -216,7 +216,7 @@ class Selector:
             else:
                 self.w = max(self.w - 5, self.next_w)
             
-            self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32)
+            self.surface = Surface((self.w, 60), pygame.SRCALPHA, 32).convert_alpha()
             self.rect = self.surface.get_rect()
             self.rect.topleft = self.topleft
         

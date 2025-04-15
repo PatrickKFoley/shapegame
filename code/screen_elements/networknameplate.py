@@ -17,8 +17,8 @@ class NetworkNameplate:
         self.disabled = False
         self.button_hovered = False
 
-        self.surface = Surface([self.w, self.h], pygame.SRCALPHA, 32)
-        self.background = Surface([self.w, self.h], pygame.SRCALPHA, 32)
+        self.surface = Surface([self.w, self.h], pygame.SRCALPHA, 32).convert_alpha()
+        self.background = Surface([self.w, self.h], pygame.SRCALPHA, 32).convert_alpha()
         self.rect = self.surface.get_rect()
         self.rect.center = [1370, 100]
         

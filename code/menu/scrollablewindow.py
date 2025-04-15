@@ -20,7 +20,7 @@ from ..game.gamedata import color_data
 from .friends_window.friendsprite import FriendSprite
 from .notifications_window.notificationsprite import NotificationSprite
 from sqlalchemy import func, delete, select, case
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, exc
 from sharedfunctions import clearSurfaceBeneath
 
 class ScrollableWindow:
@@ -145,7 +145,10 @@ class ScrollableWindow:
                 self.session.commit()
             except Exception as e:
                 self.session.rollback()
-                print(f'error deleting notification: {e}')
+
+                # ignore object deleted errors, happens when notification is replaced by a new identical one
+                if type(e) != exc.ObjectDeletedError:
+                    print(f'error deleting notification: {e}')
 
     def updateScrollBar(self):
         scrollbar_hooks = {key: getattr(self, key) for key in ['x', 'next_x', 'y', 'y_min', 'next_y_min']}
