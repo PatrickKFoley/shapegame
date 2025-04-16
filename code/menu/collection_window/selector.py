@@ -2,6 +2,7 @@ from pygame.locals import *
 from pygame.sprite import Group
 from pygame.transform import smoothscale
 from pygame.surface import Surface
+from pygame.image import load
 import pygame
 
 from createdb import Shape as ShapeData
@@ -10,6 +11,8 @@ from .collectionshape import CollectionShape
 
 MIN_W = 75
 MAX_W = 1030
+
+spiral_image = load('assets/icons/spiral_black.png')
 
 class Selection(pygame.sprite.Sprite):
     def __init__(self, shape: ShapeData, position: int, num_shapes: int, inverted: bool = False):
@@ -51,6 +54,27 @@ class Selection(pygame.sprite.Sprite):
         elif self.shape_type == 'circle':
             pygame.draw.circle(self.selected_surface, 'white' if self.inverted else 'black', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
             pygame.draw.circle(self.unselected_surface, 'lightgray' if self.inverted else 'gray', [self.surface_size/2, self.surface_size/2], self.surface_size/2)
+            
+        elif self.shape_type == 'rhombus':
+            pygame.draw.polygon(self.selected_surface, 'white' if self.inverted else 'black', [[self.surface_size/2, 0], [self.surface_size, self.surface_size/2], [self.surface_size/2, self.surface_size], [0, self.surface_size/2]])
+            pygame.draw.polygon(self.unselected_surface, 'lightgray' if self.inverted else 'gray', [[self.surface_size/2, 0], [self.surface_size, self.surface_size/2], [self.surface_size/2, self.surface_size], [0, self.surface_size/2]])
+
+        elif self.shape_type == 'spiral':
+            for x in range(self.surface_size):
+                for y in range(self.surface_size):
+                    
+                    alpha = spiral_image.get_at((x, y))[3]
+                    
+                    white = (255, 255, 255, alpha)
+                    black = (0, 0, 0, alpha)
+                    gray = (190, 190, 190, alpha)
+                    lightgray = (211, 211, 211, alpha)
+                    
+                    self.selected_surface.set_at((x, y), white if self.inverted else black)
+                    self.unselected_surface.set_at((x, y), lightgray if self.inverted else gray)
+            
+            # pygame.draw.polygon(self.selected_surface, 'white' if self.inverted else 'black', [[self.surface_size/2, 0], [self.surface_size, self.surface_size/2], [self.surface_size/2, self.surface_size], [0, self.surface_size/2]])
+            # pygame.draw.polygon(self.unselected_surface, 'lightgray' if self.inverted else 'gray', [[self.surface_size/2, 0], [self.surface_size, self.surface_size/2], [self.surface_size/2, self.surface_size], [0, self.surface_size/2]])
 
         shape_image = smoothscale(self.selected_surface if self.selected or self.hovered else self.unselected_surface, [self.size, self.size])
         rect = shape_image.get_rect()

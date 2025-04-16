@@ -23,18 +23,38 @@ class ColorData():
         self.circle_image = pygame.image.load(f'assets/shapes/backgrounds/circle/{name}.png')
         self.square_image = pygame.image.load(f'assets/shapes/backgrounds/square/{name}.png')
         self.triangle_image = pygame.image.load(f'assets/shapes/backgrounds/triangle/{name}.png')
+        self.rhombus_image = pygame.image.load(f'assets/shapes/backgrounds/rhombus/{name}.png')
+        self.spiral_image = pygame.image.load(f'assets/shapes/backgrounds/spiral/{name}.png')
 
         self.shape_backgrounds = {
             'circle': self.circle_image,
             'square': self.square_image,
-            'triangle': self.triangle_image
+            'triangle': self.triangle_image,
+            'rhombus': self.rhombus_image,
+            'spiral': self.spiral_image
         }
 
 shape_data = {
     'circle':   ShapeData('circle', 8, 40, 50, 1.2, 150, 10, 10),
     'triangle': ShapeData('triangle', 10, 50, 60, 1.1, 150, 9, 8),
-    'square':   ShapeData('square', 6, 70, 80, 1.0, 200, 7, 5)
+    'square':   ShapeData('square', 6, 55, 65, 1.0, 200, 7, 6),
+    'rhombus':  ShapeData('rhombus', 10, 80, 90, 1.1, 300, 9, 4),
+    'spiral':   ShapeData('spiral', 5, 75, 85, 1.5, 500, 9, 3)
 }
+
+color_names = [
+    "blue", "gray", "green", "lemonlime",
+    "orange", "pink", "sprite", "tan", 'black'
+]
+
+shape_names = [
+    "circle", "triangle", "square",
+    "rhombus", "spiral"
+]
+
+shape_weights = [
+    30, 25, 25, 15, 5
+]
 
 color_data = [
     ColorData(0, "blue", [82, 207, 250]),

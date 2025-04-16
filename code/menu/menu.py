@@ -30,7 +30,7 @@ from ..server.connectionmanager import ConnectionManager
 from ..server.playerselections import PlayerSelections
 from sqlalchemy import create_engine, func, delete, select, case
 from sqlalchemy.orm import sessionmaker as session_maker, Session
-from ..game.gamedata import color_data, shape_data as shape_model_data
+from ..game.gamedata import color_data, shape_data as shape_model_data, shape_names
 from ..game.clouds2 import Clouds
 
 from threading import Thread, Lock
@@ -209,12 +209,20 @@ class Menu():
         for i in range(4):
             self.circle_face_images.append(pygame.image.load(f'assets/shapes/faces/circle/0/{i}.png').convert_alpha())
 
+        self.rhombus_face_images = []
+        for i in range(4):
+            self.rhombus_face_images.append(pygame.image.load(f'assets/shapes/faces/rhombus/0/{i}.png').convert_alpha())
+
+        self.spiral_face_images = []
+        for i in range(4):
+            self.spiral_face_images.append(pygame.image.load(f'assets/shapes/faces/spiral/0/{i}.png').convert_alpha())
+        
         self.cloud_images = []
         for i in range(5):
             self.cloud_images.append(pygame.transform.smoothscale(pygame.image.load(f'assets/powerups/screen_effects/clouds/{i}.png').convert_alpha(), [100, 100]))
 
         for i in range(NUM_MENU_SHAPES):
-            shape_data = shape_model_data[random.choice(['triangle', 'square', 'circle'])]
+            shape_data = shape_model_data[random.choice(shape_names)]
             shape_data.color_id = random.randint(0, len(color_data) - 1)
 
             face_images = []
@@ -224,6 +232,10 @@ class Menu():
                 face_images = self.square_face_images
             elif shape_data.type == 'circle':
                 face_images = self.circle_face_images
+            elif shape_data.type == 'rhombus':
+                face_images = self.rhombus_face_images
+            elif shape_data.type == 'spiral':
+                face_images = self.spiral_face_images
 
             self.menu_shapes.add(MenuShape(i, shape_data, color_data[shape_data.color_id], face_images))
 

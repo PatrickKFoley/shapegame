@@ -70,6 +70,10 @@ class MenuShape(pygame.sprite.Sprite):
             self.body_image = self.color_data.square_image
         elif self.shape_data.type == 'triangle':
             self.body_image = self.color_data.triangle_image
+        elif self.shape_data.type == 'rhombus':
+            self.body_image = self.color_data.rhombus_image
+        elif self.shape_data.type == 'spiral':
+            self.body_image = self.color_data.spiral_image
 
         # construct shape images (full sized)
         self.shape_images = []
