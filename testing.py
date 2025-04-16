@@ -40,17 +40,9 @@ pygame.mouse.set_visible(False)
 def game2():
     user1 = User("Camille", 'password')
     user2 = User("Patrick", 'password')
-    shape_data = ShapeData(1, user1, 'square', 0, 0, 1, 10, 40, 50, 100, 1, 1, 10, "", "dumbass", "")
-
-    shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 40, 50, 100, 1, 1, 10, "", "dickhead", "")
-
-    # shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
-    # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
+    shape_data = ShapeData(1, user1, 'rhombus', 0, 0, 1, 10, 40, 50, 100, 1, 1, 10, "", "guy", "")
+    shape_data2 = ShapeData(2, user2, 'spiral', 0, 1, 1, 10, 40, 50, 100, 1, 1, 10, "", "dude", "")
     
-    pygame.init()
-    pygame.mixer.pre_init(44100, -16, 2, 512)
-    pygame.mixer.set_num_channels(16)
-    pygame.mouse.set_visible(False)
     screen = pygame.display.set_mode((1920, 1080), pygame.NOFRAME)
     Game2(screen, shape_data, shape_data2, user1, user2).play()
 
@@ -165,9 +157,6 @@ def generateShapeBackgrounds():
                     new_image.set_at((x, y), pixel)
                     
             pygame.image.save(new_image, f'assets/shapes/backgrounds/{shape}/{color}.png')
-                    
-                    
-        
     
 if len(sys.argv) > 1: 
     if sys.argv[1] == 'menu': 

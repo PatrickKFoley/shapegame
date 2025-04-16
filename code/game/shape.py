@@ -147,7 +147,10 @@ class Shape(pygame.sprite.Sprite):
             self.body_image = self.color_data.square_image
         elif self.type == 'triangle':
             self.body_image = self.color_data.triangle_image
-
+        elif self.type == 'rhombus':
+            self.body_image = self.color_data.rhombus_image
+        elif self.type == 'spiral':
+            self.body_image = self.color_data.spiral_image
         # construct shape images (full sized)
         self.shape_images = []
         for i, face in enumerate(self.face_images):
