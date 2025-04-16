@@ -148,12 +148,12 @@ class Game2:
         '''populate teams'''
 
         for i in range(0, self.shape_1_data.team_size):
-            shape = Shape(i, 0, self.shape_1_data, color_data[self.shape_1_data.color_id], self.shape_1_face_images, self.powerup_images_small, self.shape_1_healthbar_images)
+            shape = Shape(i, 0, self.shape_1_data, color_data[self.shape_1_data.color_id], self.shape_1_face_images, self.powerup_images_small)
             
             self.team_1_group.add(shape)
 
         for i in range(0, self.shape_2_data.team_size):
-            shape = Shape(i, 1, self.shape_2_data, color_data[self.shape_2_data.color_id], self.shape_2_face_images, self.powerup_images_small, self.shape_2_healthbar_images)
+            shape = Shape(i, 1, self.shape_2_data, color_data[self.shape_2_data.color_id], self.shape_2_face_images, self.powerup_images_small)
 
             self.team_2_group.add(shape)
 
@@ -236,24 +236,6 @@ class Game2:
         '''load all images into their containers'''
         self.title_text = Text("shapegame", 150, 1920/2, 2*1080/3, outline_color='white')
 
-        def getHealthbarImages(shape_data: ShapeData):
-            '''load and return an array of healthbar images for the given shape'''
-
-            # default to number of images for circle health bar
-            num_images = 17
-            
-            if shape_data.type == 'square':
-                num_images = 19
-
-            elif shape_data.type == 'triangle':
-                num_images = 18
-
-            images = []
-            for i in range(num_images):
-                images.append(pygame.image.load(f'assets/shapes/healthbars/{shape_data.type}/{i}.png').convert_alpha())
-
-            return images
-
         def getFaceImages(shape_data: ShapeData):
             '''load and return an array of shape faces for the given shape'''
             images = []
@@ -267,12 +249,6 @@ class Game2:
             image = pygame.image.load(self.powerup_data[powerup][0]).convert_alpha()
             self.powerup_images_small.append(pygame.transform.smoothscale(image, (20, 20)))
             self.powerup_images_medium.append(pygame.transform.smoothscale(image, (40, 40)))
-
-        # load healthbar images for each shape
-        self.shape_1_healthbar_images = getHealthbarImages(self.shape_1_data)
-        # worth checking if shapes share images to save resources
-        if self.shape_1_data.type == self.shape_2_data.type: self.shape_2_healthbar_images = self.shape_1_healthbar_images
-        else: self.shape_2_healthbar_images = getHealthbarImages(self.shape_2_data)
 
         # load face images for each shape
         self.shape_1_face_images = getFaceImages(self.shape_1_data)

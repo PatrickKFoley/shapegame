@@ -8,7 +8,7 @@ from .circledata import powerup_data
 from ..screen_elements.text import Text 
 
 class Shape(pygame.sprite.Sprite):
-    def __init__(self, shape_id, team_id, shape_data: ShapeData = 0, color_data: ColorData = 0,  face_images: list[Surface] = 0, hud_images: list[Surface] = 0, healthbar_imgs: list[Surface] = 0, resurrected_creator = False, resurrected_model = False, simulated = False):
+    def __init__(self, shape_id, team_id, shape_data: ShapeData = 0, color_data: ColorData = 0,  face_images: list[Surface] = 0, hud_images: list[Surface] = 0, resurrected_creator = False, resurrected_model = False, simulated = False):
         super().__init__()
 
         # range of motion
@@ -28,7 +28,6 @@ class Shape(pygame.sprite.Sprite):
             self.color_data = color_data
             self.face_images = face_images
             self.hud_images = hud_images
-            self.healthbar_imgs_full = healthbar_imgs
 
             self.r = random.randint(shape_data.radius_min, shape_data.radius_max)
             self.m = round((3/4) * 3.14 * self.r**3)
@@ -85,7 +84,6 @@ class Shape(pygame.sprite.Sprite):
             self.color_data = resurrected_creator.color_data
             self.face_images = resurrected_creator.face_images
             self.hud_images = resurrected_creator.hud_images
-            self.healthbar_imgs_full = resurrected_creator.healthbar_imgs_full
 
             # copy powerups from creator as well (do not inherit bombs)
             self.powerup_arr: list[str] = [powerup for powerup in resurrected_creator.powerup_arr if not powerup in ['bomb', 'resurrect']]
@@ -103,9 +101,6 @@ class Shape(pygame.sprite.Sprite):
                 self.vx = shape_data.velocity if team_id == 1 else shape_data.velocity * -1
                 self.vy = random.randint(-1, 1)
 
-        # healthbar things
-        self.current_healthbar_image_id = 0
-        self.healthbar_img = self.healthbar_imgs_full[self.current_healthbar_image_id]
 
         # all other necessary shape attributes
         self.luck = self.shape_data.luck
@@ -113,7 +108,7 @@ class Shape(pygame.sprite.Sprite):
         self.hp = self.shape_data.health
         self.max_hp = self.shape_data.health
         self.current_shape_image_id = 0
-        self.necessary_surface_size = int(self.r*2) + 50 # 50 should be plenty for healthbar and powerups
+        self.necessary_surface_size = int(self.r*2) + 50 # 50 should be plenty for powerups
         self.is_dead = False
         self.shapes_touching: list[Shape] = []
         '''list of shapes a shape is touching. used to prevent tunneled shapes from chunking each other'''
@@ -296,12 +291,6 @@ class Shape(pygame.sprite.Sprite):
         if self.hp <= 0:
             self.is_dead = True
             self.stats_to_render.append('all')
-        
-        # check to see if healthbar image needs to be changed
-        post_dmg_health_id = self.determineHealthbarImageId()
-        if self.current_healthbar_image_id != post_dmg_health_id:
-            self.current_healthbar_image_id = post_dmg_health_id
-            self.shape_sections_to_render.append("healthbar")
 
         # check to see if shape image needs to be changed
         post_dmg_img_id = self.determineShapeImageId()
@@ -318,7 +307,6 @@ class Shape(pygame.sprite.Sprite):
         if self.hp >= self.max_hp: self.hp = self.max_hp
 
         self.shape_sections_to_render.append('shape')
-        self.shape_sections_to_render.append('healthbar')
 
     def collectPowerup(self, powerup: Powerup):
         """shape's handler of picking up a powerup. everything required to be done by game is done before this function is called"""
@@ -411,29 +399,12 @@ class Shape(pygame.sprite.Sprite):
         elif hp_percent < 50 and hp_percent >= 25: return 2
         else: return 3
 
-    def determineHealthbarImageId(self):
-        """determines which healthbar image id a shape should use (based on health). returns id as int"""
-
-        hp_percent = int((self.hp / self.max_hp) * 100)
-        hp_percent_inverse = 100 - hp_percent
-
-        # apply linear transformation formula: (hp - out-min) * (out_max - out_min) / (in_max - in_min) + out_min
-        return min(int(hp_percent_inverse * (len(self.healthbar_imgs_full) - 1) / 100), len(self.healthbar_imgs_full)-1)
-
     # RENDERING FUNCTIONS
 
     def renderSelf(self):
         """renders shapes image using sections_to_render attribute. only renders what is needed. valid sections are "all", "face", "powerups" """
         # this function is called every frame, but rerendering isn't always needed
-        if self.shape_sections_to_render == []: return   
-
-        # variables for scaling healthbar images (defaults for circles)
-        healthbar_scale_up = 1.10
-        healthbar_y_translate = 0
-        
-        if self.type == 'square':
-            healthbar_scale_up = 1.15
-            healthbar_y_translate = 0.05
+        if self.shape_sections_to_render == []: return
 
         # draw the face in the center of the surface
         if "shape" in self.shape_sections_to_render or "all" in self.shape_sections_to_render:
@@ -499,12 +470,7 @@ class Shape(pygame.sprite.Sprite):
 
                 # draw the powerup centered on the proper coordinates
                 self.powerups_surface.blit(powerup_img, [self.powerups_surface.get_size()[0]/2 + powerup_positions[i][0] - powerup_img.get_size()[0]/2, self.powerups_surface.get_size()[1]/2 + powerup_positions[i][1] - powerup_img.get_size()[1]/2])
-
-        if "healthbar" in self.shape_sections_to_render or "all" in self.shape_sections_to_render:
-            healthbar_img_copy = self.healthbar_imgs_full[self.current_healthbar_image_id].convert_alpha()
-            self.healthbar_img = pygame.transform.smoothscale(healthbar_img_copy, (2 * int(healthbar_scale_up * self.r), 2 * int(healthbar_scale_up * self.r)))
-            
-            
+ 
         # once all sections are rerendered, clear sections array
         self.shape_sections_to_render = []
 
@@ -514,7 +480,6 @@ class Shape(pygame.sprite.Sprite):
         self.rect.center = [self.x, self.y]
 
         # draw all surfaces to main surface
-        self.image.blit(self.healthbar_img, [self.image.get_size()[0]/2 - self.healthbar_img.get_size()[0]/2, self.image.get_size()[1]/2 - ((healthbar_scale_up) * self.r) + (healthbar_y_translate * self.r)])
         self.image.blit(self.current_shape_image, [self.image.get_size()[0]/2 - self.r, self.image.get_size()[1]/2 - self.r])
         self.image.blit(self.powerups_surface, [0, 0])
      

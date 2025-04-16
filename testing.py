@@ -517,8 +517,9 @@ def game2():
 
     # shape_data = ShapeData(1, user1, 'circle', 0, 0, 1, 10, 100, 110, 100, 1, 1, 1, "", "dumbass", "")
     # shape_data2 = ShapeData(2, user2, 'circle', 0, 1, 1, 10, 50, 70, 100, 1, 1, 1, "", "dickhead", "")
-    
+    print('pre init')
     pygame.init()
+    print('post init')
     pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.mixer.set_num_channels(16)
     pygame.mouse.set_visible(False)
