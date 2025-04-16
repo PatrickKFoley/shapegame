@@ -58,6 +58,7 @@ class NetworkNameplate:
         ]
 
         self.renderSurface()
+        self.turnOn()
 
     def renderSurface(self):
         self.surface.fill((0, 0, 0, 0))

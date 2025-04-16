@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
     try:
         user_1 = User("pat", "1")
-        user_1.shape_essence = 10.5
+        user_1.shape_essence = 100.5
         user_2 = User("camille", "1")
         # user_3 = User("aiden", "password123")
         # user_4 = User("kyra", "password123")
@@ -238,9 +238,6 @@ if __name__ == "__main__":
 
         session.add(user_1)
         session.add(user_2)
-
-        user_1.shape_tokens = 20
-        user_2.shape_tokens = 20
         # session.add(user_3)
         # session.add(user_4)
         # session.add(user_5)
@@ -273,8 +270,10 @@ if __name__ == "__main__":
 
         shape_1 = generateRandomShape(user_1, session)
         shape_1.level = 20
+        shape_1.type = 'spiral'
         shape_1_2 = generateRandomShape(user_1, session)
         shape_1_2.level = 3
+        shape_1_2.type = 'rhombus'
         shape_1_3 = generateRandomShape(user_1, session)
         shape_1_4 = generateRandomShape(user_1, session)
         shape_1_5 = generateRandomShape(user_1, session)

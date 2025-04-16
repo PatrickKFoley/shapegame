@@ -44,14 +44,22 @@ class Text(ScreenElement):
             self.surface.blit(back, [0, 0])
             self.surface.blit(front, [diff, 0])
 
-    def updateText(self, text: str, color: str = None):
+    def updateText(self, text: str, color: str = None, size: int = None, x: int = None, y: int = None):
         self.text = text
 
         if color != None:
             self.color = color
 
-        self.buildSurface(self.size)
+        if size != None:
+            self.size = size
 
+        if x != None:
+            self.x = x
+
+        if y != None:
+            self.y = y
+
+        self.buildSurface(self.size)
         if self.max_width != None:
             while self.surface.get_size()[0] > self.max_width:
                 self.size -= 1
