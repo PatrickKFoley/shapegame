@@ -2,35 +2,36 @@ import pygame, numpy, sys, os
 from pygame.locals import *
 from pygame.image import load
 import sys
-import math
+# import math
 import random
-from createdb import Shape
+# from createdb import Shape
 from code.game.circledata import *
-from threading import Thread
-from code.game.powerup2 import Powerup
-import time
+# from threading import Thread
+# from code.game.powerup2 import Powerup
+# import time
 
-import numpy as np
-from scipy.io import wavfile
-from scipy.signal import resample
+# import numpy as np
+# from scipy.io import wavfile
+# from scipy.signal import resample
 import librosa
 import soundfile as sf
 
 from createdb import User, Shape as ShapeData
-from code.game.circledata import colors as color_data
-from code.game.circledata import powerup_data
-from code.game.gamedata import color_data
-from pygame.sprite import Group
+# from code.game.circledata import colors as color_data
+# from code.game.circledata import powerup_data
+# from code.game.gamedata import color_data
+# from pygame.sprite import Group
 
-from code.game.shape import Shape
+# from code.game.shape import Shape
 from code.game.game2 import Game2
 from code.menu.menu import Menu, CollectionWindow
 
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from createdb import User, Shape as DbShape
+# from sqlalchemy import create_engine
+# from sqlalchemy.orm import sessionmaker
+# from createdb import User, Shape as DbShape
 from code.game.gamedata import color_names, shape_names
+from code.game.challengedisplay import ChallengeDisplay
 
 pygame.init()
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -158,6 +159,29 @@ def generateShapeBackgrounds():
                     
             pygame.image.save(new_image, f'assets/shapes/backgrounds/{shape}/{color}.png')
     
+def challenge():
+
+    display = pygame.display.set_mode((800, 300))
+    display.fill('white')
+    clock = pygame.time.Clock()
+
+    challenge_display = ChallengeDisplay(random.randint(0, 1000000))
+
+    while True:
+
+        clock.tick(60)
+        events = pygame.event.get()
+        display.fill('white')
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        challenge_display.update(events)
+        challenge_display.draw(display)
+        pygame.display.update()
+
 if len(sys.argv) > 1: 
     if sys.argv[1] == 'menu': 
         if len(sys.argv) < 4:
@@ -166,3 +190,4 @@ if len(sys.argv) > 1:
             menu2(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == 'game': game2()
     elif sys.argv[1] == 'gen_shapes': generateShapeBackgrounds()
+    elif sys.argv[1] == 'challenge': challenge()

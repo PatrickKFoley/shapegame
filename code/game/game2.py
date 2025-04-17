@@ -3,13 +3,17 @@ from queue import Queue
 from pygame import Surface
 from pygame.locals import *
 from pygame.sprite import Group
+from pygame.transform import smoothscale
+from pygame.image import load
 import pygame.sprite
 
 from ..screen_elements.clickabletext import ClickableText
 from ..screen_elements.doublecheckbox import DoubleCheckbox
 from ..screen_elements.text import Text
 from ..screen_elements.button import Button
+from ..server.connectionmanager import ConnectionManager
 from sharedfunctions import clearSurfaceBeneath
+from .challengedisplay import ChallengeDisplay
 
 from createdb import User, Shape as ShapeData
 
@@ -42,19 +46,10 @@ KILL_LASER = 'kill_laser'
 KILL_BUCKSHOT = 'kill_buckshot'
 
 class Game2:
-    def __init__(self, screen: Surface, shape_1_data: ShapeData, shape_2_data: ShapeData, user_1: User, user_2: User, seed = False, player_simulated = False, server_simulated = False):
+    def __init__(self, screen: Surface, shape_1_data: ShapeData, shape_2_data: ShapeData, user_1: User, user_2: User, seed = False, player_simulated = False, server_simulated = False, connection_manager: ConnectionManager = None):
         # seed randomness
         if seed != False: 
             random.seed(seed)
-
-        print(
-            'playing game:',
-            f'seed: {seed}\n',
-            f'player 1: {user_1.id}',
-            f'player 2: {user_2.id}\n',
-            f'shape 1: {shape_1_data.id},'
-            f'shape 2: {shape_2_data.id}\n'
-        )
         
         self.screen = screen
         self.shape_1_data = shape_1_data
@@ -64,11 +59,14 @@ class Game2:
         self.seed = seed
         self.player_simulated = player_simulated
         self.server_simulated = server_simulated
+        self.connection_manager = connection_manager
+        self.selections = self.connection_manager.selections
         self.simulated = player_simulated or server_simulated
         self.powerup_data = powerup_data
         
         self.initSimulationNecessities()
         self.initTeams()
+        self.initChallengeNecessities()
 
         if self.simulated: return
         
@@ -80,6 +78,8 @@ class Game2:
         self.initTeamOverview()
 
         self.initBoundaryCircle()
+
+        self.connection_manager.send(f'STARTED.')
 
     # INIT HELPERS
 
@@ -143,6 +143,13 @@ class Game2:
         # killfeed necessities
         self.killfeed_group = Group()
         self.num_killfeeds = 0
+
+    def initChallengeNecessities(self):
+
+        self.is_challenge_active = False
+        self.num_challenges_completed = 0
+        self.frames_since_challenge_completed = 0
+        self.challenges = []
 
     def populateTeams(self):
         '''populate teams'''
@@ -459,6 +466,12 @@ class Game2:
 
     # GAME STATE UPDATE FUNCTIONS
 
+    def sendGameProgress(self):
+        '''send game progress to server'''
+        
+        if self.frames_played % 60 == 0:
+            self.connection_manager.send(f'FRAME_{self.frames_played}.')
+
     def updateGameState(self, events):
         self.current_time = time.time()
         
@@ -466,8 +479,9 @@ class Game2:
         while self.time_step_accumulator >= self.time_step:
             self.time_step_accumulator -= self.time_step
             
-            self.frames_played += 1
             self.updateGameElements(events)
+
+            self.checkForCompletion()
 
         self.prev_time = self.current_time
 
@@ -475,13 +489,30 @@ class Game2:
 
     def updateGameElements(self, events):
         '''update all game elements (shapes, powerups, killfeed), separate from drawGameElements for easier simulation'''
+        self.frames_played += 1
+
+        if self.is_challenge_active:
+            self.frames_since_challenge_completed = 0
+        else: self.frames_since_challenge_completed += 1
+
+        if self.frames_played == self.selections.challenge_reward[1]:
+            self.awardChallengePowerupTo(self.team_1_group if self.selections.challenge_reward[0] == 0 else self.team_2_group)
+
         mouse_pos = pygame.mouse.get_pos()
 
         self.title_text.update(events, mouse_pos)
         if self.player_win_text: self.player_win_text.update(events, mouse_pos)
 
+        # periodically send game progress to server
+        self.selections = self.connection_manager.getPlayerSelections()
+        self.sendGameProgress()
+        self.checkForChallengeCompletion()
+
         # spawn powerups
         self.spawnRandomPowerups()
+
+        # randomly spawn a challenge
+        self.spawnRandomChallenge()
 
         # update groups
         self.powerup_group.update()
@@ -489,6 +520,7 @@ class Game2:
         self.clouds_group.update()
         self.team_1_group.update(self.f_r)
         self.team_2_group.update(self.f_r)
+        [challenge.update(events) for challenge in self.challenges]
 
         # update killfeed elements
         num_cycles = 0
@@ -567,7 +599,17 @@ class Game2:
         seconds_per_powerup = 3
 
         if not self.done and self.frames_played % (seconds_per_powerup * self.target_fps) == 0 and self.frames_played > 300:
-            powerup_name = self.getRandom(list(self.powerup_data.keys()))
+            
+            spawning_powerups = [
+                'star',
+                'boxing_glove',
+                'feather',
+                'cherry',
+                'laser',
+                'buckshot',
+            ]
+
+            powerup_name = self.getRandom(spawning_powerups)
             powerup_image = self.powerup_images_medium[self.powerup_data[powerup_name][1]]
 
             # select an xy within the bounding circle
@@ -587,6 +629,62 @@ class Game2:
             self.playSound(self.pop_sound)
             self.powerup_group.add(Powerup(powerup_name, powerup_image, [x, y]))
 
+    def awardChallengePowerupTo(self, group: Group):
+        '''award a random powerup to a random shape in a group as a result of a challenge win'''
+
+        awarded_powerups = [
+            'skull',
+            'resurrect',
+            'bomb'
+        ]
+        powerup_name = self.getRandom(awarded_powerups) 
+        powerup_image = self.powerup_images_medium[self.powerup_data[powerup_name][1]]
+
+        # select a random shape in the group
+        shape = self.getRandom(group.sprites())
+
+        self.playSound(self.pop_sound)
+        self.powerup_group.add(Powerup(powerup_name, powerup_image, shape.getXY()))
+
+
+    def spawnRandomChallenge(self):
+        '''spawn a random challenge every few seconds'''
+
+        if not self.is_challenge_active and self.frames_since_challenge_completed > 250 + random.randint(-200, 500):
+            
+            self.is_challenge_active = True
+            self.challenges.append(ChallengeDisplay(random.randint(0, 99999)))
+      
+    def completeChallenge(self):
+        '''finish a challenge and send the result to the server'''
+        if not self.is_challenge_active: return
+
+        self.connection_manager.send(f'CHALLENGE_{self.frames_played}.')
+
+    def checkForChallengeCompletion(self):
+        '''
+        check if a challenge has been completed by the user, or according to the server.
+        if a challenge is marked as won on this client, send the result to the server.
+        if the server has recorded a challenge as completed, check if it was won or lost.
+        '''
+        
+        # check for completion by the user
+        if self.challenges != [] and self.challenges[-1].won:
+            self.completeChallenge()
+
+        # check for completion by the server
+        # if the length of either list is greater than the recorded number of challenges completed, a challenge has been completed
+        if len(self.selections.challenges_completed[0]) > self.num_challenges_completed:
+
+            self.is_challenge_active = False
+
+            winner_pid = 0 if self.selections.challenges_completed[0][self.num_challenges_completed] > self.selections.challenges_completed[1][self.num_challenges_completed] else 1
+            
+            self.num_challenges_completed += 1
+
+            if winner_pid != self.connection_manager.pid:
+                self.challenges[-1].markFailed()
+       
     def checkForCompletion(self):
         '''check if one team is entirely dead. raises self.done and self.pX_win flag'''
         if self.done: return
@@ -1282,6 +1380,7 @@ class Game2:
         for shape in itertools.chain(self.team_1_group, self.team_2_group):
             if not shape.is_dead: self.screen.blit(shape.image, shape.rect)
         self.clouds_group.draw(self.screen)
+        [challenge.draw(self.screen) for challenge in self.challenges]
 
     def drawStatsWindow(self):
         '''update and draw the stats window if necessary'''
@@ -1455,8 +1554,6 @@ class Game2:
             events = pygame.event.get()
 
             self.updateGameState(events)            
-
-            self.checkForCompletion()
 
             self.handleInputs(events)
 

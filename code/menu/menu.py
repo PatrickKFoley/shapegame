@@ -291,7 +291,8 @@ class Menu():
                     self.opponent_window.collection_shapes.sprites()[self.opponent_window.selected_index].shape_data,
                     self.user,
                     self.opponent,
-                    self.selections.seed
+                    self.selections.seed,
+                    connection_manager=self.connection_manager
                 ).play()
             else:
                 Game2(
@@ -300,7 +301,8 @@ class Menu():
                         self.collection_window.collection_shapes.sprites()[self.collection_window.selected_index].shape_data,
                         self.opponent,
                         self.user,
-                        self.selections.seed
+                        self.selections.seed,
+                        connection_manager=self.connection_manager
                     ).play()
 
             # clear time accumulation

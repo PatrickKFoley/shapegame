@@ -27,7 +27,7 @@ class ConnectionManager:
 
         # predefine selections object used for game state management, and create the thread responsible for updating it
         self.selections: PlayerSelections | None = None
-        self.thread = Thread(target=self.updatePlayerSelections)
+        self.selections_thread = Thread(target=self.updatePlayerSelections)
 
     # initial connection to the server, returns server's first communication (your pid)
     def connect(self):
@@ -82,11 +82,12 @@ class ConnectionManager:
 
     # ensure that the selections updater thread is alive, return the selections object
     def getPlayerSelections(self):
-        if not self.thread.is_alive():
+        if not self.selections_thread.is_alive():
             # threads cannot be restarted, kill it and make a new one
-            del self.thread
-            self.thread = Thread(target=self.updatePlayerSelections)
+            del self.selections_thread
+            self.selections_thread = Thread(target=self.updatePlayerSelections)
 
-            self.thread.start()
+            self.selections_thread.start()
 
         return self.selections
+
