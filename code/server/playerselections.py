@@ -136,9 +136,6 @@ class PlayerSelections:
         if challenge != None:
             self.challenges_completed[pid].append(challenge)
 
-            opp_pid = 0 if pid == 1 else 1
-            self.challenges_completed[opp_pid].append(-1)
-
         if frame != None:
             self.frames[pid] = frame
 

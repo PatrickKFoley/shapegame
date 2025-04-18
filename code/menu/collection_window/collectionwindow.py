@@ -109,6 +109,7 @@ class CollectionWindow:
         # window state attributes
         self.opened = False
         self.fully_closed = True if not self.is_opponent else False
+        self.fully_opened = False
         self.essence_bar_changing = self.essence_bar.changing
 
         # attributes for shape selection
@@ -463,6 +464,7 @@ class CollectionWindow:
 
             self.next_y = self.opened_y
         else: 
+            self.fully_opened = False
             self.next_y = self.closed_y
 
     def close(self):
@@ -539,7 +541,7 @@ class CollectionWindow:
         '''render the entire collection window surface'''
 
         # clear surface
-        self.surface.fill((0, 0, 0, 0))
+        # self.surface.fill((0, 0, 0, 0))
         
         # draw proper background depending on selected shape
         self.surface.blit(self.background if self.selected_shape == None or self.selected_shape.shape_data.id != self.user.favorite_id else self.background_hearts, [0, 50])
@@ -613,6 +615,9 @@ class CollectionWindow:
         # determine closed status
         if self.y == self.closed_y:
             self.fully_closed = True
+            
+        if self.y == self.opened_y:
+            self.fully_opened = True
 
     # ---- WINDOW STATE HELPERS ----
 

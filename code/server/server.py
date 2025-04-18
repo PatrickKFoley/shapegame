@@ -367,21 +367,22 @@ class Server:
                     else:
                         selections.update(data, pid, connection, self.seeds)
 
-                        if selections.kill[pid]: break
+                        if selections.kill[pid]: 
+                            selections.kill[pid] = False
+                            break
 
-                        if selections.started[0] and selections.started[1] and pid == 0:
+                        if pid == 0:
 
-                            # check if a challenge was completed
-                            if max(len(selections.challenges_completed[0]), len(selections.challenges_completed[1])) > selections.num_challenges_completed:
+                            # check if both players have subbitted a timestamp for the challenge
+                            if len(selections.challenges_completed[0]) > selections.num_challenges_completed and len(selections.challenges_completed[1]) > selections.num_challenges_completed:
 
                                 selections.num_challenges_completed += 1
 
-                                winner_pid = 0 if len(selections.challenges_completed[0]) > len(selections.challenges_completed[1]) else 1
+                                winner_pid = 0 if selections.challenges_completed[0][selections.num_challenges_completed] >= selections.challenges_completed[1][selections.num_challenges_completed] else 1
 
-                                # 300 frames later is about 5 seconds real-time for the data to be sent
-                                frame_to_award = max(selections.frames[0], selections.frames[1]) + 300
-
-                                selections.challenge_reward = [winner_pid, frame_to_award]
+                                frame_to_reward = max(selections.frames[0], selections.frames[1]) + 300
+                                
+                                selections.challenge_rewards = [winner_pid, frame_to_reward]
 
                                 connection.sendall(pickle.dumps(selections))
 

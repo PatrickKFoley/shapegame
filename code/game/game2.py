@@ -496,6 +496,12 @@ class Game2:
         else: self.frames_since_challenge_completed += 1
 
         if self.frames_played == self.selections.challenge_reward[1]:
+            
+            if self.selections.challenge_reward[0] != self.connection_manager.pid:
+                self.challenges[-1].markFailed()
+            else:
+                self.challenges[-1].markWon()
+            
             self.awardChallengePowerupTo(self.team_1_group if self.selections.challenge_reward[0] == 0 else self.team_2_group)
 
         mouse_pos = pygame.mouse.get_pos()
@@ -646,7 +652,6 @@ class Game2:
         self.playSound(self.pop_sound)
         self.powerup_group.add(Powerup(powerup_name, powerup_image, shape.getXY()))
 
-
     def spawnRandomChallenge(self):
         '''spawn a random challenge every few seconds'''
 
@@ -669,21 +674,23 @@ class Game2:
         '''
         
         # check for completion by the user
-        if self.challenges != [] and self.challenges[-1].won:
+        if self.challenges != [] and self.challenges[-1].completed:
             self.completeChallenge()
 
         # check for completion by the server
-        # if the length of either list is greater than the recorded number of challenges completed, a challenge has been completed
-        if len(self.selections.challenges_completed[0]) > self.num_challenges_completed:
+        # if the length of both lists is greater than the recorded number of challenges completed, the currrent challenge challenge is ready to be rectified 
+        # if len(self.selections.challenges_completed[0]) > self.num_challenges_completed and len(self.selections.challenges_completed[1]) > self.num_challenges_completed:
 
-            self.is_challenge_active = False
+        #     self.is_challenge_active = False
 
-            winner_pid = 0 if self.selections.challenges_completed[0][self.num_challenges_completed] > self.selections.challenges_completed[1][self.num_challenges_completed] else 1
+        #     winner_pid = 0 if self.selections.challenges_completed[0][self.num_challenges_completed] > self.selections.challenges_completed[1][self.num_challenges_completed] else 1
             
-            self.num_challenges_completed += 1
+        #     self.num_challenges_completed += 1
 
-            if winner_pid != self.connection_manager.pid:
-                self.challenges[-1].markFailed()
+        #     if winner_pid != self.connection_manager.pid:
+        #         self.challenges[-1].markFailed()
+        #     else:
+        #         self.challenges[-1].markWon()
        
     def checkForCompletion(self):
         '''check if one team is entirely dead. raises self.done and self.pX_win flag'''
@@ -710,6 +717,9 @@ class Game2:
                 
                 if event.button == 1:
                     if self.exit_clickable.rect.collidepoint(mouse_pos):
+                        
+                        self.connection_manager.send('KILL.')
+                        
                         self.running = False
 
                     if self.stats_window_rect.collidepoint(mouse_pos):

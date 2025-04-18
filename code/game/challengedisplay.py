@@ -175,8 +175,6 @@ class ChallengeDisplay:
 
                     if len(self.user_sequence) == len(self.sequence):
                         self.completed = True
-                        self.won = True
-                        self.win_sound.play()
 
                 else:
                     [element.markIncorrect() for element in self.challenge_elements]
@@ -196,11 +194,16 @@ class ChallengeDisplay:
 
         # if self.frames > 300 and not self.completed: self.markFailed()
 
+    def markWon(self):
+        [element.markIncorrect() for element in self.challenge_elements]
+        
+        self.won = True
+        self.win_sound.play()
+
     def markFailed(self):
         
         [element.markIncorrect() for element in self.challenge_elements]
 
         self.failed = True
-        self.completed = True
         self.fail_sound.play()
 
