@@ -149,7 +149,9 @@ class Game2:
         self.is_challenge_active = False
         self.num_challenges_completed = 0
         self.frames_since_challenge_completed = 0
-        self.challenges = []
+        self.challenge_signaled_to_server = False
+        self.opponent_disconnected = False
+        self.challenges: list[ChallengeDisplay] = []
 
     def populateTeams(self):
         '''populate teams'''
@@ -177,8 +179,9 @@ class Game2:
         self.clock = pygame.time.Clock()
 
         # create screen elements
-        self.exit_clickable = Button("exit", 45, [1920 - 25, 1080 - 25])
-        self.clickables = [self.exit_clickable]
+        self.opponent_disconnected_text = Text(["opponent left the game", "all further challenges have be forfeited"], 30, 1920/2, 1080/10, fast_off=True)
+        self.exit_button = Button("exit", 45, [1920 - 25, 1080 - 25])
+        self.screen_elements = [self.exit_button, self.opponent_disconnected_text]
 
         # load and center cursor
         self.cursor = pygame.transform.smoothscale(pygame.image.load('assets/misc/cursor.png').convert_alpha(), (12, 12))
@@ -461,7 +464,7 @@ class Game2:
             self.drawScreenElements()
             self.screen.blit(self.background_clear, [0, 0])
             self.screen.blit(self.cursor, self.cursor_rect)
-            self.exit_clickable.draw(self.screen)
+            self.exit_button.draw(self.screen)
             self.clock.tick(self.target_fps)
 
     # GAME STATE UPDATE FUNCTIONS
@@ -490,19 +493,6 @@ class Game2:
     def updateGameElements(self, events):
         '''update all game elements (shapes, powerups, killfeed), separate from drawGameElements for easier simulation'''
         self.frames_played += 1
-
-        if self.is_challenge_active:
-            self.frames_since_challenge_completed = 0
-        else: self.frames_since_challenge_completed += 1
-
-        if self.frames_played == self.selections.challenge_reward[1]:
-            
-            if self.selections.challenge_reward[0] != self.connection_manager.pid:
-                self.challenges[-1].markFailed()
-            else:
-                self.challenges[-1].markWon()
-            
-            self.awardChallengePowerupTo(self.team_1_group if self.selections.challenge_reward[0] == 0 else self.team_2_group)
 
         mouse_pos = pygame.mouse.get_pos()
 
@@ -542,7 +532,7 @@ class Game2:
 
         # update clickable elements
         mouse_pos = pygame.mouse.get_pos()
-        [clickable.update(events, mouse_pos) for clickable in self.clickables if clickable not in [None]]
+        [clickable.update(events, mouse_pos) for clickable in self.screen_elements if clickable not in [None]]
 
         # detect collisions
         self.detectCollisions()
@@ -655,14 +645,19 @@ class Game2:
     def spawnRandomChallenge(self):
         '''spawn a random challenge every few seconds'''
 
-        if not self.is_challenge_active and self.frames_since_challenge_completed > 250 + random.randint(-200, 500):
+        if self.opponent_disconnected: return
+
+        if not self.is_challenge_active and self.frames_since_challenge_completed > 1000 + random.randint(-200, 500):
             
             self.is_challenge_active = True
+            self.challenge_signaled_to_server = False
             self.challenges.append(ChallengeDisplay(random.randint(0, 99999)))
       
     def completeChallenge(self):
         '''finish a challenge and send the result to the server'''
-        if not self.is_challenge_active: return
+        if not self.is_challenge_active or self.challenge_signaled_to_server: return
+
+        self.challenge_signaled_to_server = True
 
         self.connection_manager.send(f'CHALLENGE_{self.frames_played}.')
 
@@ -672,25 +667,40 @@ class Game2:
         if a challenge is marked as won on this client, send the result to the server.
         if the server has recorded a challenge as completed, check if it was won or lost.
         '''
+
+        # check if the opponent has disconnected
+        if self.selections.player_exit[1 - self.connection_manager.pid] and not self.opponent_disconnected:
+            self.opponent_disconnected = True
+
+            if not self.done: self.opponent_disconnected_text.turnOnFor(120)
+
+        # if the opponent disconnected and a challenge is currently active, mark it for removal
+        if self.opponent_disconnected and self.is_challenge_active:
+            self.is_challenge_active = False
+            self.challenges[-1].markCancelled()
+
+        # keep track of how long the challenge has been inactive
+        if self.is_challenge_active:
+            self.frames_since_challenge_completed = 0
+        else: self.frames_since_challenge_completed += 1
         
         # check for completion by the user
-        if self.challenges != [] and self.challenges[-1].completed:
+        if self.challenges != [] and self.challenges[-1].user_completed:
             self.completeChallenge()
 
         # check for completion by the server
-        # if the length of both lists is greater than the recorded number of challenges completed, the currrent challenge challenge is ready to be rectified 
-        # if len(self.selections.challenges_completed[0]) > self.num_challenges_completed and len(self.selections.challenges_completed[1]) > self.num_challenges_completed:
-
-        #     self.is_challenge_active = False
-
-        #     winner_pid = 0 if self.selections.challenges_completed[0][self.num_challenges_completed] > self.selections.challenges_completed[1][self.num_challenges_completed] else 1
+        if self.frames_played == self.selections.challenge_reward[1]:
+            print(f'challenge completed on frame: {self.frames_played}')
             
-        #     self.num_challenges_completed += 1
+            if self.selections.challenge_reward[0] != self.connection_manager.pid:
+                self.challenges[-1].markFailed()
+            else:
+                self.challenges[-1].markWon()
 
-        #     if winner_pid != self.connection_manager.pid:
-        #         self.challenges[-1].markFailed()
-        #     else:
-        #         self.challenges[-1].markWon()
+                
+            self.is_challenge_active = False
+            
+            self.awardChallengePowerupTo(self.team_1_group if self.selections.challenge_reward[0] == 0 else self.team_2_group)
        
     def checkForCompletion(self):
         '''check if one team is entirely dead. raises self.done and self.pX_win flag'''
@@ -716,12 +726,10 @@ class Game2:
             if event.type == MOUSEBUTTONDOWN:
                 
                 if event.button == 1:
-                    if self.exit_clickable.rect.collidepoint(mouse_pos):
-                        
-                        self.connection_manager.send('KILL.')
+                    if self.exit_button.rect.collidepoint(mouse_pos):
                         
                         self.running = False
-
+                        self.connection_manager.send('EXIT.')
                     if self.stats_window_rect.collidepoint(mouse_pos):
                         self.stats_window_held = True
                         self.stats_window_y_when_clicked = int(self.stats_window_y)
@@ -1469,7 +1477,7 @@ class Game2:
         self.drawStatsWindow()
 
         # draw clickable elements
-        [clickable.draw(self.screen) for clickable in self.clickables if clickable not in [None]]
+        [clickable.draw(self.screen) for clickable in self.screen_elements if clickable not in [None]]
 
         # if game is done, show victory text
         if self.done: self.screen.blit(self.player_win_text.surface, self.player_win_text.rect)
@@ -1560,7 +1568,8 @@ class Game2:
 
         self.transitionIn()
         
-        while self.running:
+        # continue to play while a challenge is yet to be rewarded
+        while self.running or (False if self.selections.challenge_reward[0] == None else self.frames_played <= self.selections.challenge_reward[1] + 10):
             events = pygame.event.get()
 
             self.updateGameState(events)            
@@ -1576,3 +1585,13 @@ class Game2:
         self.transitionOut()
         # print(f'game played for: {self.frames_played} frames. FPS AVG: {self.sum_fps / self.frames_played} low: {self.fps_low} high: {self.fps_high}')
 
+        # if the game isn't finished yet, simulate the rest of the game
+        while not self.done:
+            events = pygame.event.get()
+
+            self.updateGameElements(events)
+            self.checkForCompletion()
+
+        # send the winner to the server
+        self.connection_manager.send(f'WINNER_{0 if self.p1_win else 1}.KILL_GAME.')
+        print(f'results sent to server')

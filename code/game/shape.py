@@ -428,8 +428,8 @@ class Shape(pygame.sprite.Sprite):
 
             # if more than one powerup, calculate positions
             else:
-                # circles have their powerups in an arc beneath them
-                if self.type == 'circle':
+                # circles, spirals, and rhombuses have their powerups in an arc beneath them
+                if self.type in ['circle', 'spiral', 'rhombus']:
                     # some calculations
                     arc_r = distance_to_center
                     start_angle = math.pi / 3

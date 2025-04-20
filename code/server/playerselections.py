@@ -1,11 +1,11 @@
 import pickle
-
+import threading
 def processData(data):
     '''process any data sent from user into their selections object'''
 
     parts = data.split('.')
 
-    started, challenge, winner, frame = None, None, None, None
+    started, challenge, winner, frame, exit = None, None, None, None, None
     
     user = None
     locked = None
@@ -13,7 +13,8 @@ def processData(data):
     shape = None
     keeps = None
     ready = None
-    kill = None
+    kill_game = None
+    kill_pregame = None
     get = None
 
     for part in parts:
@@ -36,6 +37,7 @@ def processData(data):
             keeps = int(part[6:])
 
         if part[:10] == "CHALLENGE_":
+            print(f'challenge completed on fram: {part[10:]}')
             challenge = int(part[10:])
 
         elif part[:7] == "WINNER_":
@@ -47,18 +49,27 @@ def processData(data):
         elif part == "STARTED":
             started = True
 
-        elif part == "KILL":
-            kill = True
+        elif part == "KILL_GAME":
+            kill_game = True
+
+        elif part == "KILL_PREGAME":
+            kill_pregame = True
 
         elif part == "GET":
             get = True
+
+        elif part == "EXIT":
+            exit = True
     
-    return user, selected, shape, keeps, ready, kill, get, locked, started, challenge, winner, frame
+    return user, selected, shape, keeps, ready, kill_game, kill_pregame, get, locked, started, challenge, winner, frame, exit
 
 class PlayerSelections:
     def __init__(self, id):
         self.id = id
         self.ready = False
+
+        self.results_computed_flag = False
+        self.results_computing_flag = False
 
         # ALL BELLOW NEEDED FOR NETWORK PREGAME
 
@@ -79,7 +90,10 @@ class PlayerSelections:
 
         self.seed = None
 
-        self.kill = [False, False]
+        self.player_exit = [False, False] # if true, the player has exited the game
+        self.kill_game = [False, False] # if true, the game has been stopped (finished simulating, if was necessary)
+        self.kill_pregame = [False, False]
+        self.player_quit = [False, False] # if true, a player's thread has finshed 
 
         self.winner = None
 
@@ -98,19 +112,18 @@ class PlayerSelections:
         self.winners = [None, None]
         '''the winner of the game, according to each player'''
 
-        self.kill = [False, False]
-        '''if kill signal is recieved from each player''' 
-
         self.num_challenges_completed = 0
 
         self.challenge_reward = [None, None]
         '''to who and when the next challenge is rewarded'''
+
+
         
     def __repr__(self):
-        return "id: {} ready: {} players_ready: {} users_selected: {} shape_ids: {} user_ids: {} keeps: {} seed: {} kill: {}".format(self.id, self.ready, self.players_ready, self.users_selected, self.shape_ids, self.user_ids, self.keeps, self.seed, self.kill)
+        return "id: {} ready: {} players_ready: {} users_selected: {} shape_ids: {} user_ids: {} keeps: {} seed: {}".format(self.id, self.ready, self.players_ready, self.users_selected, self.shape_ids, self.user_ids, self.keeps, self.seed)
 
     def update(self, data, pid, connection, seeds):
-        user, selected, shape, keeps, ready, kill, get, locked, started, challenge, winner, frame = processData(data)
+        user, selected, shape, keeps, ready, kill_game, kill_pregame, get, locked, started, challenge, winner, frame, exit = processData(data)
 
         if user != None:
             self.user_ids[pid] = user
@@ -134,6 +147,8 @@ class PlayerSelections:
             self.started[pid] = True
 
         if challenge != None:
+            # also update the frame the challenge was completed on
+            self.frames[pid] = challenge
             self.challenges_completed[pid].append(challenge)
 
         if frame != None:
@@ -142,11 +157,17 @@ class PlayerSelections:
         if winner != None:
             self.winners[pid] = winner
 
-        if kill != None:
-            self.kill[pid] = kill
+        if kill_game != None:
+            self.kill_game[pid] = kill_game
+
+        if kill_pregame != None:
+            self.kill_pregame[pid] = kill_pregame
 
         if self.players_ready[0] and self.players_ready[1]:
             self.seed = seeds[self.id]
+
+        if exit != None:
+            self.player_exit[pid] = exit
 
         if ready != None or get:
             # print(f'sending: {self}')

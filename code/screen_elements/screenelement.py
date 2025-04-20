@@ -29,6 +29,7 @@ class ScreenElement:
         surface.blit(self.surface, self.rect)   
 
     def fastOff(self):
+        self.dead = True
         self.turnOff()
         self.alpha = 0
         self.surface.set_alpha(0)
@@ -38,6 +39,7 @@ class ScreenElement:
         self.disable()
 
     def turnOn(self):
+        self.dead = False
         self.shown = True
         self.enable()
 
@@ -63,21 +65,21 @@ class ScreenElement:
         if self.dead: return
         self.frames += 1
         
-        if self.frames == 1 and self.duration != None: self.turnOn()
-        elif self.duration != None:
-            if self.frames > self.duration:
-                self.turnOff()
+        if self.duration != None and self.frames > self.duration:
+            self.turnOff()
                 
-            if self.alpha == 0: self.dead = True
         
         # fade in or out
         if not self.shown and self.alpha > 0:
             self.alpha = max(self.alpha - 10, 0)
             self.surface.set_alpha(self.alpha)
 
+            if self.alpha == 0: self.dead = True
+
         elif self.shown and self.alpha < 255:
             self.alpha = min(self.alpha + 10, 255)
             self.surface.set_alpha(self.alpha)
+
 
     def align(self):
         if self.alignment == 'center':

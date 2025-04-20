@@ -70,7 +70,8 @@ class ChallengeDisplay:
         self.win_sound.set_volume(0.5)
 
         self.challenge_elements = []
-        self.completed = False
+        self.user_completed = False
+        self.server_completed = False
         self.failed = False
         self.won = False
         self.frames_completed = 0
@@ -161,7 +162,7 @@ class ChallengeDisplay:
         self.rect.topleft = (self.x, self.y)
 
         for event in events:
-            if event.type == pygame.KEYDOWN and not self.completed:
+            if event.type == pygame.KEYDOWN and not self.user_completed:
                 
                 direction = getKeyFromEvent(event)
 
@@ -174,13 +175,13 @@ class ChallengeDisplay:
                     self.challenge_elements[len(self.user_sequence) - 1].markCorrect()
 
                     if len(self.user_sequence) == len(self.sequence):
-                        self.completed = True
+                        self.user_completed = True
 
                 else:
                     [element.markIncorrect() for element in self.challenge_elements]
                     self.user_sequence = []
 
-        if self.completed:
+        if self.server_completed:
             
             self.frames_completed += 1
 
@@ -198,6 +199,7 @@ class ChallengeDisplay:
         [element.markIncorrect() for element in self.challenge_elements]
         
         self.won = True
+        self.server_completed = True
         self.win_sound.play()
 
     def markFailed(self):
@@ -205,5 +207,11 @@ class ChallengeDisplay:
         [element.markIncorrect() for element in self.challenge_elements]
 
         self.failed = True
+        self.server_completed = True
         self.fail_sound.play()
 
+    def markCancelled(self):
+
+        [element.markIncorrect() for element in self.challenge_elements]
+
+        self.server_completed = True

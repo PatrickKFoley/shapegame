@@ -319,7 +319,7 @@ class Menu():
         if self.network_connected:
             self.postGame()
 
-        if not self.selections.kill[self.pid]: self.connection_manager.send('KILL.')
+        if not self.selections.kill_pregame[self.pid]: self.connection_manager.send('KILL_PREGAME.')
 
         # prepare to go back to the menu
         self.collection_window.changeModeTransition()
@@ -386,7 +386,7 @@ class Menu():
             self.selections = self.connection_manager.getPlayerSelections()
 
             # break if other player disconnected
-            if self.selections.kill[0 if self.pid == 1 else 1]:
+            if self.selections.kill_pregame[0 if self.pid == 1 else 1]:
                 self.network_connected = False
 
             # update state
@@ -960,7 +960,7 @@ class Menu():
                     if any(window.opened for window in [self.notifications_window, self.collection_window]): continue
 
                 if self.connection_manager: 
-                    self.connection_manager.send('KILL.')
+                    self.connection_manager.send('KILL_PREGAME.')
                     self.network_connected = False
                 
                 else:
