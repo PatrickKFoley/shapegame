@@ -487,8 +487,6 @@ class CollectionWindow:
         self.mode = NETWORK
         self.connection_manager = connection_manager
 
-        self.moveSpritesHome()
-
         # update screen element states
         self.del_button.fastOff()
         self.add_button.disable()

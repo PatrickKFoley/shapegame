@@ -144,6 +144,7 @@ class Menu():
         self.title_text = Text('shapegame', 150, 1920/2, 2*1080/3, outline_color='white')
         self.play_text = Text('play', 100, 1920/2, 4*1080/5, outline_color='white')
         self.connecting_to_text = Text('waiting for opponent...' , 35, 1920/2, 60)
+        self.new_notification_text = Text('', 30, 1870, 0, align='topright', color='black', fast_off=True)
 
         # create all interactive elements
         self.network_match_clickable = ClickableText('network match', 50, 1920/2 - 200, 975, outline_color='white')
@@ -182,6 +183,7 @@ class Menu():
         self.screen_elements.append(self.bad_credentials_text)
         self.screen_elements.append(self.back_button)
         self.screen_elements.append(self.logging_in_text)
+        self.screen_elements.append(self.new_notification_text)
 
         # show only title, exit, and login elements
         [element.fastOff() for element in self.screen_elements if element not in [self.title_text]]
@@ -597,7 +599,8 @@ class Menu():
         
         blurb = [f'new notification', f'from {notification.sender.username}']
         
-        self.screen_elements.append(Text(blurb, 30, 1870, 0, align='topright', color='black', duration=250, fast_off=True))
+        self.new_notification_text.updateText(blurb)
+        self.new_notification_text.turnOnFor(250)
 
     # MENU SHAPE HELPERS
 
