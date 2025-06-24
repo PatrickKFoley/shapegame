@@ -45,6 +45,8 @@ class ScrollableWindow:
         self.mouse_y_on_click = 0
         self.is_held = False
         
+        self.current_opp_id = -1
+        
         self.initAssets()
         self.initSurface()
 

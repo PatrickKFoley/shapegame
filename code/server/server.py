@@ -161,7 +161,8 @@ class Server:
         connection.close()
 
         # if you are the last player to quit, delete the selections entry and seed
-        if any(selections.player_quit):
+        # or, if your opponent never connected
+        if any(selections.player_quit) or not selections.ready:
 
             print(f'thread: {pid} deleting selections entry and seed: {game_id}')
 

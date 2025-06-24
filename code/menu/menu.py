@@ -335,6 +335,7 @@ class Menu():
 
         # keep track of who opponent was for notification deletion
         if self.opponent: self.prev_opponent = self.opponent
+        self.notifications_window.current_opp_id = -1
 
 
         # prepare to go back to the menu
@@ -372,6 +373,7 @@ class Menu():
         if self.network_connected:
             self.session.commit()
             self.opponent = self.session.query(User).filter(User.id == int(self.selections.user_ids[0 if self.pid == 1 else 1])).first()
+            self.notifications_window.current_opp_id = self.opponent.id
 
             self.opponent_window = CollectionWindow(self.opponent, self.session, True)
             self.opponent_window.changeModeNetwork(self.connection_manager)
@@ -1193,9 +1195,15 @@ class Menu():
             while not self.stop_notification_polling:
                 if self.notifications_window:
                     self.session.commit()
-                    clear_prev_opponent = self.notifications_window.checkNotificationsUpdate(self.prev_opponent)
+                    clear_prev_opponent, ids_to_update = self.notifications_window.checkNotificationsUpdate(self.prev_opponent)
                     if clear_prev_opponent: self.prev_opponent = None
-                
+                    
+                    if ids_to_update != []:
+                        for id in ids_to_update:
+                            for sprite in self.friends_window.group.sprites():
+                                if sprite.user.id == id:
+                                    sprite.initSurface()
+                        
                 time.sleep(2)  # Poll every 2 seconds
 
         if self.notification_poll_thread is None:

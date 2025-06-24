@@ -89,41 +89,63 @@ class NotificationsWindow(ScrollableWindow):
      
     def checkNotificationsUpdate(self, prev_opponent = None):
         '''check if notifications have been added or removed'''
-
+        
+        # prev_opponent of menu needs to be cleared once pending notifications from that opponent have been cleared
         clear_prev_opponent = prev_opponent != None
         
         # compare current notifications with displayed notifications, remove/delete accordingly
-        current_notifications = set(notification.id for notification in self.user.notifications_owned)
         displayed_notifications = set()
         sprites_to_remove = []
+        ids_to_update = []
+        '''return this list to menu for the shape icon to be updated on friendsprite'''
 
         # determine which notifications are to be removed
         for sprite in self.group.sprites():
             try: 
                 displayed_notifications.add(sprite.notification.id) #if notification.id causes an error, it has been deleted
-                # Remove challenge notifications from previous opponent
+                
+                # remove challenge notifications from previous opponent
                 if prev_opponent and sprite.notification.type == 'CHALLENGE' and sprite.notification.sender_id == prev_opponent.id:
                     sprites_to_remove.append(sprite)
+                    
+            # signal a deleted notification to kill it's sprite
             except (exc.ObjectDeletedError, sqlalchemy.exc.InvalidRequestError):
                 sprites_to_remove.append(sprite)
         
-        # remove sprites with deleted notifications
-        for sprite in sprites_to_remove: sprite.next_x += 1000
         
         # Add sprites for new notifications
         for notification in self.user.notifications_owned:
+            
             if notification.id not in displayed_notifications:
-                self.new_notification_sound.play()
-                self.addNotificationSprite(notification, shimmer_images=self.shimmer_images)
+                
+                if notification.type == 'FAVORITE_CHANGE':
+                    ids_to_update.append(notification.sender_id)
+                    
+                    for sprite in self.group.sprites():
+                        if notification.sender_id == sprite.notification.sender_id:
+                            sprite.initSurface()
+                            
+                    continue
+                
+                if self.current_opp_id != -1: self.new_notification_sound.play()
+                sprite = self.addNotificationSprite(notification, shimmer_images=self.shimmer_images)
+                
+                # remove incoming notifications from current opponent
+                if self.current_opp_id == notification.sender_id:
+                    sprites_to_remove.append(sprite)
+                
+        
+        # remove sprites with deleted notifications
+        for sprite in sprites_to_remove: sprite.next_x += 1000
 
-        return clear_prev_opponent
+        return clear_prev_opponent, ids_to_update
 
     def addNotificationSprite(self, notification: Notification, new: bool = True, shimmer_images: list[Surface] = None):
         
         # create notification on main menu
         if new: self.notifyMenu(notification)
-
-        self.addSprite(NotificationSprite(
+        
+        sprite = NotificationSprite(
             self.user, 
             notification,
             -1, 
@@ -134,7 +156,11 @@ class NotificationsWindow(ScrollableWindow):
             len(self.group),
             True,
             shimmer_images
-        ), False)
+        )
+
+        self.addSprite(sprite, False)
+        
+        return sprite
 
     def deleteAllNotifications(self):
         for sprite in self.group.sprites(): sprite.next_x += 1000

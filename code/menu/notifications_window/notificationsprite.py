@@ -53,6 +53,8 @@ class NotificationSprite(WindowSprite):
         self.buttons.append(self.accept_button)
 
     def initSurface(self):
+        self.image.fill((0, 0, 0, 0))
+        
         self.image.blit(self.background, [0, 0])
         self.image.blit(self.username_text.surface, self.username_text.rect)
         self.blurb.draw(self.image)
